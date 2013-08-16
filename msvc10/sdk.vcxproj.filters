@@ -1,0 +1,35 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClCompile Include="..\sdk\smsdk_ext.cpp">
+      <Filter>sdk</Filter>
+    </ClCompile>
+    <ClCompile Include="..\vhook.cpp" />
+    <ClCompile Include="..\extension.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\extension.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\vhook.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\sdk\smsdk_config.h">
+      <Filter>sdk</Filter>
+    </ClInclude>
+    <ClInclude Include="..\sdk\smsdk_ext.h">
+      <Filter>sdk</Filter>
+    </ClInclude>
+    <ClInclude Include="..\vhook_macros.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="Headers">
+      <UniqueIdentifier>{dcea02e7-7dfe-4bd2-9e97-d58b3c166cbb}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="sdk">
+      <UniqueIdentifier>{8a0b4570-752f-44d9-b270-ef886743e9ea}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+</Project>
