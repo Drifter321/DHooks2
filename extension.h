@@ -48,12 +48,13 @@
  * Note: Uncomment one of the pre-defined virtual functions in order to use it.
  */
 
-class DHooks : public SDKExtension, public ISMEntityListener
+class DHooks : public SDKExtension, public ISMEntityListener, public IPluginsListener, public IHandleTypeDispatch
 {
 public:
-	void OnEntityCreated(CBaseEntity *pEntity, const char *classname);
-	void OnEntityDestroyed(CBaseEntity *pEntity);
-
+	void OnHandleDestroy(HandleType_t type, void *object);
+public: //IPluginsListener
+	void OnPluginUnloaded(IPlugin *plugin);
+public:
 	/**
 	 * @brief This is called after the initial loading sequence has been processed.
 	 *
@@ -67,7 +68,7 @@ public:
 	/**
 	 * @brief This is called right before the extension is unloaded.
 	 */
-	//virtual void SDK_OnUnload();
+	virtual void SDK_OnUnload();
 
 	/**
 	 * @brief This is called once all known extensions have been loaded.
@@ -123,4 +124,5 @@ public:
 #endif
 };
 extern SourceHook::IHookManagerAutoGen *g_pHookManager;
+extern sp_nativeinfo_t g_Natives[];
 #endif // _INCLUDE_SOURCEMOD_EXTENSION_PROPER_H_

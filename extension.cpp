@@ -1,41 +1,101 @@
 #include "extension.h"
 #include "vhook.h"
+#include "listeners.h"
+#include <macro-assembler-x86.h>
 
-DHooks g_Sample;		/**< Global singleton for extension's main interface */
-SMEXT_LINK(&g_Sample);
+DHooks g_DHooksIface;		/**< Global singleton for extension's main interface */
+SMEXT_LINK(&g_DHooksIface);
 
 IBinTools *g_pBinTools;
 ISDKHooks *g_pSDKHooks;
 ISDKTools *g_pSDKTools;
+DHooksEntityListener *g_pEntityListener = NULL;
 
-CBitVec<NUM_ENT_ENTRIES> m_EntityExists;
+bool g_bAllowGamerules = true;
+
+HandleType_t g_HookSetupHandle = 0;
+HandleType_t g_HookParamsHandle = 0;
+HandleType_t g_HookReturnHandle = 0;
 
 bool DHooks::SDK_OnLoad(char *error, size_t maxlength, bool late)
 {
+	HandleError err;
+	g_HookSetupHandle = handlesys->CreateType("HookSetup", this, 0, NULL, NULL, myself->GetIdentity(), &err);
+	if(g_HookSetupHandle == 0)
+	{
+		snprintf(error, maxlength, "Could not create hook setup handle type (err: %d)", err);	
+		return false;
+	}
+	g_HookParamsHandle = handlesys->CreateType("HookParams", this, 0, NULL, NULL, myself->GetIdentity(), &err);
+	if(g_HookParamsHandle == 0)
+	{
+		snprintf(error, maxlength, "Could not create hook params handle type (err: %d)", err);	
+		return false;
+	}
+	g_HookReturnHandle = handlesys->CreateType("HookReturn", this, 0, NULL, NULL, myself->GetIdentity(), &err);
+	if(g_HookReturnHandle == 0)
+	{
+		snprintf(error, maxlength, "Could not create hook return handle type (err: %d)", err);	
+		return false;
+	}
+
 	sharesys->AddDependency(myself, "bintools.ext", true, true);
 	sharesys->AddDependency(myself, "sdktools.ext", true, true);
 	sharesys->AddDependency(myself, "sdkhooks.ext", true, true);
 
 	sharesys->RegisterLibrary(myself, "dhooks");
+	plsys->AddPluginsListener(this);
+	sharesys->AddNatives(myself, g_Natives);
 
 	return true;
 }
+
+void DHooks::OnHandleDestroy(HandleType_t type, void *object)
+{
+	if(type == g_HookSetupHandle)
+	{
+		delete (HookSetup *)object;
+	}
+	else if(type == g_HookParamsHandle)
+	{
+		delete (HookParamsStruct *)object;
+	}
+	else if(type == g_HookReturnHandle)
+	{
+		delete (HookReturnStruct *)object;
+	}
+}
+
 void DHooks::SDK_OnAllLoaded()
 {
 	SM_GET_LATE_IFACE(SDKTOOLS, g_pSDKTools);
-	if(g_pSDKTools == NULL)
-	{
-		smutils->LogError(myself, "SDKTools interface not found. DHookGamerules native disabled.");
-	}
-	else if(g_pSDKTools->GetInterfaceVersion() < 2)
+
+	if(g_pSDKTools->GetInterfaceVersion() < 2)
 	{
 		//<psychonic> THIS ISN'T DA LIMBO STICK. LOW IS BAD
+		g_bAllowGamerules = false;
 		smutils->LogError(myself, "SDKTools interface is outdated. DHookGamerules native disabled.");
 	}
+
 	SM_GET_LATE_IFACE(BINTOOLS, g_pBinTools);
 	SM_GET_LATE_IFACE(SDKHOOKS, g_pSDKHooks);
-	g_pSDKHooks->AddEntityListener(this);
+
+	g_pEntityListener = new DHooksEntityListener();
+	g_pSDKHooks->AddEntityListener(g_pEntityListener);
 }
+
+void DHooks::SDK_OnUnload()
+{
+	CleanupHooks(NULL);
+	if(g_pEntityListener)
+	{
+		g_pEntityListener->CleanupListeners(NULL);
+		g_pSDKHooks->RemoveEntityListener(g_pEntityListener);
+		delete g_pEntityListener;
+	}
+	plsys->RemovePluginsListener(this);
+}
+
 bool DHooks::SDK_OnMetamodLoad(ISmmAPI *ismm, char *error, size_t maxlength, bool late)
 {
 	if(!SetupHookManager(ismm))
@@ -45,61 +105,12 @@ bool DHooks::SDK_OnMetamodLoad(ISmmAPI *ismm, char *error, size_t maxlength, boo
 	}
 	return true;
 }
-DHooksManager *manager1;
-DHooksManager *manager2;
 
-#ifndef __linux__
-#define WEAPON_CANUSE 258
-#define SET_MODEL 24
-#else
-#define WEAPON_CANUSE 259
-#define SET_MODEL 25
-#endif
-
-void DHooks::OnEntityCreated(CBaseEntity *pEntity, const char *classname)
+void DHooks::OnPluginUnloaded(IPlugin *plugin)
 {
-	int entity = gamehelpers->ReferenceToIndex(gamehelpers->EntityToBCompatRef(pEntity));
-
-	if(entity <= playerhelpers->GetMaxClients() && entity > 0)
-	{			
-		SourceHook::HookManagerPubFunc hook;
-		SourceHook::CProtoInfoBuilder protoInfo(SourceHook::ProtoInfo::CallConv_ThisCall);
-		protoInfo.AddParam(sizeof(CBaseEntity *), SourceHook::PassInfo::PassType_Basic, SourceHook::PassInfo::PassFlag_ByVal, NULL, NULL, NULL, NULL);
-		protoInfo.SetReturnType(sizeof(bool), SourceHook::PassInfo::PassType_Basic, SourceHook::PassInfo::PassFlag_ByVal, NULL, NULL, NULL, NULL);
-		hook = g_pHookManager->MakeHookMan(protoInfo, 0, WEAPON_CANUSE);
-		manager1 = new DHooksManager();
-		manager1->callback_bool = new DHooksCallback<bool>();
-		manager1->callback_bool->paramcount = 1;
-		manager1->callback_bool->params[0].size = sizeof(CBaseEntity *);
-		manager1->callback_bool->params[0].type = HookParamType_CBaseEntity;
-		manager1->callback_bool->params[0].flag = PASSFLAG_BYVAL;
-		manager1->callback_bool->offset = WEAPON_CANUSE;
-		manager1->hookid = g_SHPtr->AddHook(g_PLID, SourceHook::ISourceHook::Hook_Normal, pEntity, 0, hook, manager1->callback_bool, false);
-
-		SourceHook::CProtoInfoBuilder protoInfo2(SourceHook::ProtoInfo::CallConv_ThisCall);
-		protoInfo2.AddParam(sizeof(char *), SourceHook::PassInfo::PassType_Basic, SourceHook::PassInfo::PassFlag_ByVal, NULL, NULL, NULL, NULL);
-		protoInfo2.SetReturnType(0, SourceHook::PassInfo::PassType_Unknown, 0, NULL, NULL, NULL, NULL);
-		hook = g_pHookManager->MakeHookMan(protoInfo2, 0, SET_MODEL);
-		manager2 = new DHooksManager();
-		manager2->callback_void = new DHooksCallback<void>();
-		manager2->callback_void->paramcount = 1;
-		manager2->callback_void->params[0].size = sizeof(char *);
-		manager2->callback_void->params[0].type = HookParamType_CharPtr;
-		manager2->callback_void->params[0].flag = PASSFLAG_BYVAL;
-		manager2->callback_void->offset = SET_MODEL;
-		manager2->hookid = g_SHPtr->AddHook(g_PLID, SourceHook::ISourceHook::Hook_Normal, pEntity, 0, hook, manager2->callback_void, false);
-
-		META_CONPRINTF("Hooked entity %i\n", entity);
-	}
-}
-void DHooks::OnEntityDestroyed(CBaseEntity *pEntity)
-{
-	int entity = gamehelpers->ReferenceToIndex(gamehelpers->EntityToBCompatRef(pEntity));
-
-	if(entity <= playerhelpers->GetMaxClients() && entity > 0)
+	CleanupHooks(plugin->GetBaseContext());
+	if(g_pEntityListener)
 	{
-		META_CONPRINTF("Cleaning\n");
-		delete manager1;
-		delete manager2;
+		g_pEntityListener->CleanupListeners(plugin->GetBaseContext());
 	}
 }

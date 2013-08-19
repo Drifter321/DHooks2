@@ -1,7 +1,70 @@
 #include "vhook.h"
-#include "vhook_macros.h"
 
 SourceHook::IHookManagerAutoGen *g_pHookManager = NULL;
+
+CUtlVector<DHooksManager *> g_pHooks;
+
+using namespace SourceHook;
+
+DHooksManager::DHooksManager(HookSetup *setup, void *iface, IPluginFunction *remove_callback, bool post)
+{
+	this->callback = MakeHandler(setup->returnType);
+	this->hookid = 0;
+	this->remove_callback = remove_callback;
+	this->callback->offset = setup->offset;
+	this->callback->plugin_callback = setup->callback;
+	this->callback->returnFlag = setup->returnFlag;
+	this->callback->thisType = setup->thisType;
+	this->callback->post = post;
+	this->callback->hookType = setup->hookType;
+	this->callback->params = setup->params;
+
+	if(this->callback->hookType == HookType_Entity)
+	{
+		this->callback->entity = gamehelpers->EntityToBCompatRef((CBaseEntity *)iface);
+	}
+	else
+	{
+		this->callback->entity = -1;
+	}
+
+	CProtoInfoBuilder protoInfo(ProtoInfo::CallConv_ThisCall);
+
+	for(int i = this->callback->params.Count() -1; i >= 0; i--)
+	{
+		protoInfo.AddParam(this->callback->params.Element(i).size, this->callback->params.Element(i).pass_type, this->callback->params.Element(i).flag, NULL, NULL, NULL, NULL);
+	}
+
+	if(this->callback->returnType == ReturnType_Void)
+	{
+		protoInfo.SetReturnType(0, SourceHook::PassInfo::PassType_Unknown, 0, NULL, NULL, NULL, NULL);
+	}
+	else if(this->callback->returnType == ReturnType_Float)
+	{
+		protoInfo.SetReturnType(sizeof(float), SourceHook::PassInfo::PassType_Float, 0, NULL, NULL, NULL, NULL);
+	}
+	else
+	{
+		protoInfo.SetReturnType(sizeof(void *), SourceHook::PassInfo::PassType_Basic, 0, NULL, NULL, NULL, NULL);
+	}
+	HookManagerPubFunc hook = g_pHookManager->MakeHookMan(protoInfo, 0, this->callback->offset);
+
+	this->hookid = g_SHPtr->AddHook(g_PLID,ISourceHook::Hook_Normal, iface, 0, hook, this->callback, this->callback->post);
+}
+
+void CleanupHooks(IPluginContext *pContext)
+{
+	for(int i = g_pHooks.Count() -1; i >= 0; i--)
+	{
+		DHooksManager *manager = g_pHooks.Element(i);
+
+		if(pContext == NULL || pContext == manager->callback->plugin_callback->GetParentContext())
+		{
+			delete manager;
+			g_pHooks.Remove(i);
+		}
+	}
+}
 
 bool SetupHookManager(ISmmAPI *ismm)
 {
@@ -10,210 +73,208 @@ bool SetupHookManager(ISmmAPI *ismm)
 	return g_pHookManager != NULL;
 }
 
-void CallFunction_Void(DHooksCallback<void> *info, unsigned long stack, void *iface)
+size_t GetParamTypeSize(HookParamType type)
 {
-	PassInfo *paramInfo = NULL;
-	ICallWrapper *call;
-	size_t size = 0;
-
-	if(info->paramcount > 0)
+	return sizeof(void *);
+}
+SourceHook::PassInfo::PassType GetParamTypePassType(HookParamType type)
+{
+	switch(type)
 	{
-		paramInfo = (PassInfo *)malloc(sizeof(PassInfo) * info->paramcount);
-		for(int i = 0; i < info->paramcount; i++)
+		case HookParamType_Float:
+			return SourceHook::PassInfo::PassType::PassType_Float;
+		default:
+			return SourceHook::PassInfo::PassType::PassType_Basic;
+	}
+}
+size_t GetStackArgsSize(DHooksCallback *dg)
+{
+	size_t res = 0;
+	for(int i = dg->params.Count() - 1; i >= 0; i--)
+	{
+		res += dg->params.Element(i).size;
+	}
+	return res;
+}
+HookParamsStruct *GetParamStruct(DHooksCallback *dg, void **argStack, size_t argStackSize)
+{
+	HookParamsStruct *res = new HookParamsStruct();
+	res->dg = dg;
+	res->orgParams = (void **)malloc(argStackSize);
+	res->newParams = (void **)malloc(argStackSize);
+	memcpy(res->orgParams, argStack, argStackSize);
+	for(int i = 0; i < dg->params.Count(); i++)
+	{
+		res->newParams[i] = NULL;
+	}
+	return res;
+}
+HookReturnStruct *GetReturnStruct(DHooksCallback *dg, const void *result)
+{
+	HookReturnStruct *res = new HookReturnStruct();
+	res->isChanged = false;
+	res->type = dg->returnType;
+	res->orgResult = &result;
+	res->newResult = 0;
+
+	return res;
+}
+cell_t GetThisPtr(void *iface, ThisPointerType type)
+{
+	if(ThisPointer_CBaseEntity)
+	{
+		return gamehelpers->EntityToBCompatRef((CBaseEntity *)iface);
+	}
+
+	return (cell_t)iface;
+}
+#ifndef __linux__
+void *Callback(DHooksCallback *dg, void **argStack, size_t *argsizep)
+{
+	HookReturnStruct *returnStruct = NULL;
+	HookParamsStruct *paramStruct = NULL;
+	Handle_t rHndl;
+	Handle_t pHndl;
+
+	*argsizep = GetStackArgsSize(dg);
+
+	if(dg->thisType == ThisPointer_CBaseEntity || dg->thisType == ThisPointer_Address)
+	{
+		dg->plugin_callback->PushCell(GetThisPtr(g_SHPtr->GetIfacePtr(), dg->thisType));
+	}
+	if(dg->returnType != ReturnType_Void)
+	{
+		returnStruct = GetReturnStruct(dg, g_SHPtr->GetOrigRet());
+		rHndl = handlesys->CreateHandle(g_HookReturnHandle, returnStruct, dg->plugin_callback->GetParentRuntime()->GetDefaultContext()->GetIdentity(), myself->GetIdentity(), NULL);
+		if(!rHndl)
 		{
-			switch(info->params[i].type)
+			if(returnStruct)
 			{
-				PARAMINFO_SWITCH_CASE(int, HookParamType_Int ,PassType_Basic);
-				PARAMINFO_SWITCH_CASE(bool, HookParamType_Bool ,PassType_Basic);
-				PARAMINFO_SWITCH_CASE(float, HookParamType_Float ,PassType_Float);
-				PARAMINFO_SWITCH_CASE(string_t, HookParamType_String ,PassType_Object);
-				PARAMINFO_SWITCH_CASE(string_t *, HookParamType_StringPtr ,PassType_Basic);
-				PARAMINFO_SWITCH_CASE(char *, HookParamType_CharPtr ,PassType_Basic);
-				PARAMINFO_SWITCH_CASE(Vector *, HookParamType_VectorPtr ,PassType_Basic);
-				PARAMINFO_SWITCH_CASE(CBaseEntity *, HookParamType_CBaseEntity ,PassType_Basic);
-				PARAMINFO_SWITCH_CASE(edict_t *, HookParamType_Edict ,PassType_Basic);
-				default:
-					paramInfo[i].flags = info->params[i].flag;
-					paramInfo[i].size = sizeof(void *);
-					paramInfo[i].type = PassType_Basic;
-					size += sizeof(void *);
-					break;
+				delete returnStruct;
 			}
+			g_SHPtr->SetRes(MRES_IGNORED);
+			return 0;
 		}
-		call = g_pBinTools->CreateVCall(info->offset, 0, 0, NULL, paramInfo, info->paramcount);
+		dg->plugin_callback->PushCell(rHndl);
+	}
+	if(*argsizep > 0)
+	{
+		paramStruct = GetParamStruct(dg, argStack, *argsizep);
+		pHndl = handlesys->CreateHandle(g_HookParamsHandle, paramStruct, dg->plugin_callback->GetParentRuntime()->GetDefaultContext()->GetIdentity(), myself->GetIdentity(), NULL);
+		if(!pHndl)
+		{
+			if(returnStruct)
+			{
+				delete returnStruct;
+			}
+			if(paramStruct)
+			{
+				delete paramStruct;
+			}
+			g_SHPtr->SetRes(MRES_IGNORED);
+			return 0;
+		}
+		dg->plugin_callback->PushCell(pHndl);
+	}
+	cell_t result = (cell_t)MRES_Ignored;
+	dg->plugin_callback->Execute(&result);
+
+	void *ret = g_SHPtr->GetOverrideRetPtr();
+	void *res = 0;
+
+	switch((MRESReturn)result)
+	{
+		case MRES_Handled:
+		case MRES_ChangedHandled:
+			g_SHPtr->DoRecall();
+			g_SHPtr->SetRes(MRES_SUPERCEDE);
+			//ret = CallVFunction(dg, argStack, g_SHPtr->GetIfacePtr());
+			memcpy(res, ret, sizeof(void *));
+			break;
+		case MRES_ChangedOverride:
+			g_SHPtr->DoRecall();
+			g_SHPtr->SetRes(MRES_SUPERCEDE);
+			//CallVFunction(dg, argStack, g_SHPtr->GetIfacePtr());
+			if(dg->returnType != ReturnType_Void)
+			{
+				if(returnStruct->isChanged)
+				{
+					memcpy(ret, returnStruct->newResult, sizeof(void *));
+					memcpy(res, returnStruct->newResult, sizeof(void *));
+				}
+				else if(dg->post)
+				{
+					memcpy(ret, returnStruct->orgResult, sizeof(void *));
+					memcpy(res, returnStruct->orgResult, sizeof(void *));
+				}
+			}
+			break;
+		case MRES_Override:
+			g_SHPtr->SetRes(MRES_OVERRIDE);
+			if(dg->returnType != ReturnType_Void)
+			{
+				if(returnStruct->isChanged)
+				{
+					memcpy(ret, returnStruct->newResult, sizeof(void *));
+					memcpy(res, returnStruct->newResult, sizeof(void *));
+				}
+				else if(dg->post)
+				{
+					memcpy(ret, returnStruct->orgResult, sizeof(void *));
+					memcpy(res, returnStruct->orgResult, sizeof(void *));
+				}
+			}
+			break;
+		case MRES_Supercede:
+			g_SHPtr->SetRes(MRES_SUPERCEDE);
+			if(dg->returnType != ReturnType_Void)
+			{
+				if(returnStruct->isChanged)
+				{
+					memcpy(ret, returnStruct->newResult, sizeof(void *));
+					memcpy(res, returnStruct->newResult, sizeof(void *));
+				}
+				else if(dg->post)
+				{
+					memcpy(ret, returnStruct->orgResult, sizeof(void *));
+					memcpy(res, returnStruct->orgResult, sizeof(void *));
+				}
+			}
+			break;
+		default:
+			g_SHPtr->SetRes(MRES_IGNORED);
+			break;
+	}
+
+	HandleSecurity sec(dg->plugin_callback->GetParentContext()->GetIdentity(), myself->GetIdentity());
+
+	if(returnStruct)
+	{
+		handlesys->FreeHandle(rHndl, &sec);
+	}
+	if(paramStruct)
+	{
+		handlesys->FreeHandle(pHndl, &sec);
+	}
+
+	return res;
+}
+#else
+void *Callback(DHooksCallback *dg, void **argStack)
+{
+	if(dg->returnType == ReturnType_Void)
+	{
+		META_CONPRINTF("String is %s\n", argStack[0]);
+		g_SHPtr->SetRes(MRES_IGNORED);
 	}
 	else
 	{
-		call = g_pBinTools->CreateVCall(info->offset, 0, 0, NULL, NULL, 0);
+		//META_CONPRINTF("Entity %i\n", gamehelpers->ReferenceToIndex(gamehelpers->EntityToBCompatRef((CBaseEntity *)g_SHPtr->GetIfacePtr())));
+		g_SHPtr->SetRes(MRES_SUPERCEDE);
+		void *ret = g_SHPtr->GetOverrideRetPtr();
+		ret = (void *)false;
+		return false;
 	}
-
-	unsigned char *vstk = (unsigned char *)malloc(sizeof(void *) + size);
-	unsigned char *vptr = vstk;
-
-    *(void **)vptr = iface;
-    vptr += sizeof(void *);
-
-	size_t offset = STACK_OFFSET;
-
-	if(info->paramcount > 0)
-	{
-		for(int i = 0; i < info->paramcount; i++)
-		{
-			switch(info->params[i].type)
-			{
-				VSTK_PARAM_SWITCH(int, HookParamType_Int);
-				VSTK_PARAM_SWITCH(bool, HookParamType_Bool);
-				VSTK_PARAM_SWITCH(float, HookParamType_Float);
-				VSTK_PARAM_SWITCH(string_t, HookParamType_String);
-				VSTK_PARAM_SWITCH(string_t *, HookParamType_StringPtr);
-				VSTK_PARAM_SWITCH(char *, HookParamType_CharPtr);
-				VSTK_PARAM_SWITCH(Vector *, HookParamType_VectorPtr);
-				VSTK_PARAM_SWITCH(CBaseEntity *, HookParamType_CBaseEntity);
-				VSTK_PARAM_SWITCH(edict_t *, HookParamType_Edict);
-				default:
-					*(void **)vptr = *(void **)(stack+offset);
-					if(i + 1 != info->paramcount)
-					{
-						vptr += sizeof(void *);
-					}
-					offset += sizeof(void *);
-					break;
-			}
-		}
-	}
-	call->Execute(vstk, NULL);
-	call->Destroy();
-
-	free(vstk);
-
-	if(paramInfo)
-		free(paramInfo);
+	return 0;
 }
-template<class T>
-T CallFunction(DHooksCallback<T> *info, unsigned long stack, void *iface)
-{
-	PassInfo *paramInfo = NULL;
-	ICallWrapper *call;
-	size_t size = 0;
-
-	PassInfo returnInfo;
-	returnInfo.flags = PASSFLAG_BYVAL;
-	returnInfo.size = sizeof(T);
-	returnInfo.type = PassType_Basic;
-
-	if(info->paramcount > 0)
-	{
-		paramInfo = (PassInfo *)malloc(sizeof(PassInfo) * info->paramcount);
-		for(int i = 0; i < info->paramcount; i++)
-		{
-			switch(info->params[i].type)
-			{
-				PARAMINFO_SWITCH_CASE(int, HookParamType_Int ,PassType_Basic);
-				PARAMINFO_SWITCH_CASE(bool, HookParamType_Bool ,PassType_Basic);
-				PARAMINFO_SWITCH_CASE(float, HookParamType_Float ,PassType_Float);
-				PARAMINFO_SWITCH_CASE(string_t, HookParamType_String ,PassType_Object);
-				PARAMINFO_SWITCH_CASE(string_t *, HookParamType_StringPtr ,PassType_Basic);
-				PARAMINFO_SWITCH_CASE(char *, HookParamType_CharPtr ,PassType_Basic);
-				PARAMINFO_SWITCH_CASE(Vector *, HookParamType_VectorPtr ,PassType_Basic);
-				PARAMINFO_SWITCH_CASE(CBaseEntity *, HookParamType_CBaseEntity ,PassType_Basic);
-				PARAMINFO_SWITCH_CASE(edict_t *, HookParamType_Edict ,PassType_Basic);
-				default:
-					paramInfo[i].flags = info->params[i].flag;
-					paramInfo[i].size = sizeof(void *);
-					paramInfo[i].type = PassType_Basic;
-					size += sizeof(void *);
-					break;
-			}
-		}
-		call = g_pBinTools->CreateVCall(info->offset, 0, 0, &returnInfo, paramInfo, info->paramcount);
-	}
-	else
-	{
-		call = g_pBinTools->CreateVCall(info->offset, 0, 0, &returnInfo, NULL, 0);
-	}
-
-	unsigned char *vstk = (unsigned char *)malloc(sizeof(void *) + size);
-	unsigned char *vptr = vstk;
-
-    *(void **)vptr = iface;
-    vptr += sizeof(void *);
-
-	size_t offset = STACK_OFFSET;
-
-	if(info->paramcount > 0)
-	{
-		for(int i = 0; i < info->paramcount; i++)
-		{
-			switch(info->params[i].type)
-			{
-				VSTK_PARAM_SWITCH(int, HookParamType_Int);
-				VSTK_PARAM_SWITCH(bool, HookParamType_Bool);
-				VSTK_PARAM_SWITCH(float, HookParamType_Float);
-				VSTK_PARAM_SWITCH(string_t, HookParamType_String);
-				VSTK_PARAM_SWITCH(string_t *, HookParamType_StringPtr);
-				VSTK_PARAM_SWITCH(char *, HookParamType_CharPtr);
-				VSTK_PARAM_SWITCH(Vector *, HookParamType_VectorPtr);
-				VSTK_PARAM_SWITCH(CBaseEntity *, HookParamType_CBaseEntity);
-				VSTK_PARAM_SWITCH(edict_t *, HookParamType_Edict);
-				default:
-					*(void **)vptr = *(void **)(stack+offset);
-					if(i + 1 != info->paramcount)
-					{
-						vptr += sizeof(void *);
-					}
-					offset += sizeof(void *);
-					break;
-			}
-		}
-	}
-	T ret;
-	call->Execute(vstk, &ret);
-	call->Destroy();
-
-	free(vstk);
-
-	if(paramInfo)
-		free(paramInfo);
-
-	return ret;
-}
-template <>
-void DHooksCallback<void>::Call()
-{
-	GET_STACK;
-	META_CONPRINTF("String %s\n", *(char **)(stack+STACK_OFFSET));
-	strcpy(*(char **)(stack+STACK_OFFSET), "models/player/t_phoenix.mdl");
-	
-	SH_GLOB_SHPTR->DoRecall();
-	CallFunction_Void(this, stack, g_SHPtr->GetIfacePtr());
-	RETURN_META(MRES_IGNORED);
-}
-template <>
-bool DHooksCallback<bool>::Call()
-{
-	GET_STACK;
-	META_CONPRINTF("Entity %i\n", gamehelpers->ReferenceToIndex(gamehelpers->EntityToBCompatRef(*(CBaseEntity **)(stack+STACK_OFFSET))));
-	/*__asm
-	{
-		mov ebp, stack
-	};*/
-	META_RES result = MRES_IGNORED;
-	RETURN_META_VALUE(MRES_IGNORED, true);
-	/*do
-	{
-		SH_GLOB_SHPTR->DoRecall();
-		if ((result) >= MRES_OVERRIDE)
-		{
-			void *pOverride = g_SHPtr->GetOverrideRetPtr();
-			pOverride = (void *)false;
-		}
-		if(result != MRES_SUPERCEDE)
-		{
-			RETURN_META_VALUE(MRES_SUPERCEDE, CallFunction<bool>(this, stack, g_SHPtr->GetIfacePtr()));
-		}
-		else
-		{
-			RETURN_META_VALUE(MRES_SUPERCEDE, true);
-		}
-	} while (0);*/
-}
+#endif

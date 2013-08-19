@@ -3,8 +3,18 @@
 
 #include "extension.h"
 #include <sourcehook.h>
+#include <macro-assembler-x86.h>
 
-#define MAX_PARAMS 10
+enum MRESReturn
+{
+	MRES_ChangedHandled = -2,	// Use changed values and return MRES_Handled
+	MRES_ChangedOverride,		// Use changed values and return MRES_Override
+	MRES_Ignored,				// plugin didn't take any action
+	MRES_Handled,				// plugin did something, but real function should still be called
+	MRES_Override,				// call real function, but use my return value
+	MRES_Supercede				// skip real function; use my return value
+};
+
 enum HookParamType
 {
 	HookParamType_Unknown,
@@ -19,6 +29,7 @@ enum HookParamType
 	HookParamType_ObjectPtr,
 	HookParamType_Edict
 };
+
 enum ReturnType
 {
 	ReturnType_Unknown,
@@ -35,52 +46,216 @@ enum ReturnType
 	ReturnType_Edict
 };
 
-class ParamInfo
+enum ThisPointerType
 {
-public:
+	ThisPointer_Ignore,
+	ThisPointer_CBaseEntity,
+	ThisPointer_Address
+};
+
+enum HookType
+{
+	HookType_Entity,
+	HookType_GameRules,
+	HookType_Raw
+};
+
+struct ParamInfo
+{
 	HookParamType type;
 	size_t size;
 	unsigned int flag;
+	SourceHook::PassInfo::PassType pass_type;
+};
+
+struct HookReturnStruct
+{
+	ReturnType type;
+	bool isChanged;
+	void *orgResult;
+	void *newResult;
 };
 
 class DHooksInfo
 {
 public:
-	int paramcount;
-	ParamInfo params[MAX_PARAMS];
+	CUtlVector<ParamInfo> params;
 	int offset;
+	unsigned int returnFlag;
+	ReturnType returnType;
+	bool post;
+	IPluginFunction *plugin_callback;
+	int entity;
+	ThisPointerType thisType;
+	HookType hookType;
 };
 
-template <class T>
 class DHooksCallback : public SourceHook::ISHDelegate, public DHooksInfo
 {
 public:
     virtual bool IsEqual(ISHDelegate *pOtherDeleg){return false;};
-    virtual void DeleteThis(){delete this;};
-    virtual T Call();
+    virtual void DeleteThis()
+	{
+		*(void ***)this = this->oldvtable;
+		g_pSM->GetScriptingEngine()->FreePageMemory(this->newvtable[2]);
+		delete this->newvtable;
+		delete this;
+	};
+	virtual void Call() {};
+public:
+	void **newvtable;
+	void **oldvtable;
 };
+
+#ifndef __linux__
+void *Callback(DHooksCallback *dg, void **stack, size_t *argsizep);
+//float Callback_float(DHooksCallback *dg, void **stack, size_t *argsizep);
+#else
+void *Callback(DHooksCallback *dg, void **stack);
+float Callback_float(DHooksCallback *dg, void **stack);
+#endif
+bool SetupHookManager(ISmmAPI *ismm);
+void CleanupHooks(IPluginContext *pContext);
+size_t GetParamTypeSize(HookParamType type);
+SourceHook::PassInfo::PassType GetParamTypePassType(HookParamType type);
+
+#ifdef  __linux__
+static void *GenerateThunk(ReturnType type)
+{
+	MacroAssemblerX86 masm;
+ 
+	masm.push(ebp);
+	masm.movl(ebp, esp);
+	masm.lea(eax, Operand(ebp, 12));
+	masm.push(eax);
+	masm.push(Operand(ebp, 8));
+	if(type == ReturnType_Float)
+		masm.call(ExternalAddress((void *)Callback_float));
+	else
+		masm.call(ExternalAddress((void *)Callback));
+	masm.addl(esp, 8);
+	masm.pop(ebp);
+	masm.ret();
+ 
+	void *base =  g_pSM->GetScriptingEngine()->AllocatePageMemory(masm.length());
+	masm.emitToExecutableMemory(base);
+	return base;
+}
+#else
+static void *GenerateThunk(ReturnType type)
+{
+	MacroAssemblerX86 masm;
+ 
+	masm.push(ebp);
+	masm.movl(ebp, esp);
+	masm.subl(esp, 4);
+	masm.push(esp);
+	masm.lea(eax, Operand(ebp, 8));
+	masm.push(eax);
+	masm.push(ecx);
+	//if(type == ReturnType_Float)
+	//	masm.call(ExternalAddress(Callback_float));
+	//else
+		masm.call(ExternalAddress(Callback));
+	masm.addl(esp, 12);
+	masm.pop(ecx); // grab arg size
+	masm.pop(ebp); // restore ebp
+	masm.pop(edx); // grab return address in edx
+	masm.addl(esp, ecx); // remove arguments
+	masm.jmp(edx); // return to caller
+ 
+	void *base =  g_pSM->GetScriptingEngine()->AllocatePageMemory(masm.length());
+	masm.emitToExecutableMemory(base);
+	return base;
+}
+#endif
+
+static DHooksCallback *MakeHandler(ReturnType type)
+{
+	DHooksCallback *dg = new DHooksCallback();
+	dg->returnType = type;
+	dg->oldvtable = *(void ***)dg;
+	dg->newvtable = new void *[3];
+	dg->newvtable[0] = dg->oldvtable[0];
+	dg->newvtable[1] = dg->oldvtable[1];
+	dg->newvtable[2] = GenerateThunk(type);
+	*(void ***)dg = dg->newvtable;
+	return dg;
+}
+
+class HookParamsStruct
+{
+public:
+	HookParamsStruct()
+	{
+		this->orgParams = NULL;
+		this->newParams = NULL;
+		this->dg = NULL;
+	}
+	~HookParamsStruct()
+	{
+		if(this->orgParams != NULL)
+		{
+			delete this->orgParams;
+		}
+		if(this->newParams != NULL)
+		{
+			delete this->newParams;
+		}
+	}
+public:
+	//CUtlVector<int> cleanup;
+	void **orgParams;
+	void **newParams;
+	DHooksCallback *dg;
+};
+
+class HookSetup
+{
+public:
+	HookSetup(ReturnType returnType, unsigned int returnFlag, HookType hookType, ThisPointerType thisType, int offset, IPluginFunction *callback)
+	{
+		this->returnType = returnType;
+		this->returnFlag = returnFlag;
+		this->hookType = hookType;
+		this->thisType = thisType;
+		this->offset = offset;
+		this->callback = callback;
+	};
+	~HookSetup(){};
+public:
+	unsigned int returnFlag;
+	ReturnType returnType;
+	HookType hookType;
+	ThisPointerType thisType;
+	CUtlVector<ParamInfo> params;
+	int offset;
+	IPluginFunction *callback;
+};
+
 class DHooksManager
 {
 public:
-	DHooksManager()
-	{
-		this->callback_bool = NULL; 
-		this->callback_void = NULL;
-		this->hookid = 0;
-	};
+	DHooksManager(HookSetup *setup, void *iface, IPluginFunction *remove_callback, bool post);
 	~DHooksManager()
 	{
-		if(this->hookid != 0)
+		if(this->hookid)
 		{
-			SH_REMOVE_HOOK_ID(this->hookid);
+			g_SHPtr->RemoveHookByID(this->hookid);
+			if(this->remove_callback)
+			{
+				this->remove_callback->PushCell(this->hookid);
+				this->remove_callback->Execute(NULL);
+			}
 		}
 	}
-	DHooksCallback<bool> *callback_bool;
-	DHooksCallback<void> *callback_void;
+public:
 	int hookid;
-	unsigned int returnFlag;
+	DHooksCallback *callback;
+	IPluginFunction *remove_callback;
 };
 
-bool SetupHookManager(ISmmAPI *ismm);
 extern IBinTools *g_pBinTools;
+extern HandleType_t g_HookParamsHandle;
+extern HandleType_t g_HookReturnHandle;
 #endif

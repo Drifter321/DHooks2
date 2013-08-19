@@ -6,6 +6,11 @@
     </ClCompile>
     <ClCompile Include="..\vhook.cpp" />
     <ClCompile Include="..\extension.cpp" />
+    <ClCompile Include="..\..\..\sourcemod-central\public\jit\x86\assembler-x86.cpp">
+      <Filter>JIT</Filter>
+    </ClCompile>
+    <ClCompile Include="..\natives.cpp" />
+    <ClCompile Include="..\listeners.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\extension.h">
@@ -23,6 +28,12 @@
     <ClInclude Include="..\vhook_macros.h">
       <Filter>Headers</Filter>
     </ClInclude>
+    <ClInclude Include="..\natives.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\listeners.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Headers">
@@ -30,6 +41,9 @@
     </Filter>
     <Filter Include="sdk">
       <UniqueIdentifier>{8a0b4570-752f-44d9-b270-ef886743e9ea}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="JIT">
+      <UniqueIdentifier>{9ac7d92a-8a9d-4e7c-b108-09d915244278}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
 </Project>
