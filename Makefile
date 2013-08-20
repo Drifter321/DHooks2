@@ -19,12 +19,12 @@ MMSOURCE19 = ../mmsource-1.9
 ### EDIT BELOW FOR OTHER PROJECTS ###
 #####################################
 
-PROJECT = sample
+PROJECT = dhooks
 
 #Uncomment for Metamod: Source enabled extension
 USEMETA = true
 
-OBJECTS = sdk/smsdk_ext.cpp extension.cpp vhook.cpp ../sourcemod-central/public/jit/x86/assembler-x86.cpp
+OBJECTS = sdk/smsdk_ext.cpp extension.cpp vhook.cpp $(SMSDK)/public/jit/x86/assembler-x86.cpp listeners.cpp natives.cpp vfunc_call.cpp
 
 ##############################################
 ### CONFIGURE ANY OTHER FLAGS/OPTIONS HERE ###

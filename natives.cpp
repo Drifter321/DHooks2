@@ -93,9 +93,10 @@ cell_t Native_HookEntity(IPluginContext *pContext, const cell_t *params)
 
 	for(int i = g_pHooks.Count() -1; i >= 0; i--)
 	{
-		if(g_pHooks.Element(i)->callback->hookType == HookType_Entity && g_pHooks.Element(i)->callback->entity == params[3] && g_pHooks.Element(i)->callback->offset == setup->offset && g_pHooks.Element(i)->callback->post == post && g_pHooks.Element(i)->remove_callback == pContext->GetFunctionById(params[4]) && g_pHooks.Element(i)->callback->plugin_callback == setup->callback)
+		DHooksManager *manager = g_pHooks.Element(i);
+		if(manager->callback->hookType == HookType_Entity && manager->callback->entity == params[3] && manager->callback->offset == setup->offset && manager->callback->post == post && manager->remove_callback == pContext->GetFunctionById(params[4]) && manager->callback->plugin_callback == setup->callback)
 		{
-			return g_pHooks.Element(i)->hookid;
+			return manager->hookid;
 		}
 	}
 	CBaseEntity *pEnt = UTIL_GetCBaseEntity(params[3]);
@@ -134,7 +135,7 @@ cell_t Native_GetParam(IPluginContext *pContext, const cell_t *params)
 		return pContext->ThrowNativeError("Invalid Handle %x (error %d)", params[1], err);
 	}
 
-	if(params[2] > paramStruct->dg->params.Count() || params[2] < 0)
+	if(params[2] < 0 || params[2] > paramStruct->dg->params.Count())
 	{
 		return pContext->ThrowNativeError("Invalid param number %i max params is %i", params[2], paramStruct->dg->params.Count());
 	}
@@ -170,10 +171,89 @@ cell_t Native_GetParam(IPluginContext *pContext, const cell_t *params)
 }
 cell_t Native_GetReturn(IPluginContext *pContext, const cell_t *params)
 {
+	if(params[1] == BAD_HANDLE)
+	{
+		return pContext->ThrowNativeError("Invalid Handle %i", BAD_HANDLE);
+	}
+
+	HandleError err;
+	HandleSecurity sec(pContext->GetIdentity(), myself->GetIdentity());
+	HookReturnStruct *returnStruct;
+
+	if((err = handlesys->ReadHandle(params[1], g_HookReturnHandle, &sec, (void **)&returnStruct)) != HandleError_None)
+	{
+		return pContext->ThrowNativeError("Invalid Handle %x (error %d)", params[1], err);
+	}
+
+	switch(returnStruct->type)
+	{
+		case ReturnType_Int:
+			return *(int *)returnStruct->orgResult;
+		case ReturnType_Bool:
+			return *(cell_t *)returnStruct->orgResult;
+		case ReturnType_CBaseEntity:
+			return gamehelpers->EntityToBCompatRef((CBaseEntity *)returnStruct->orgResult);
+		case ReturnType_Edict:
+			return gamehelpers->IndexOfEdict((edict_t *)returnStruct->orgResult);
+		case ReturnType_Float:
+			return sp_ftoc(*(float *)returnStruct->orgResult);
+		default:
+			return pContext->ThrowNativeError("Invalid param type (%i) to get",returnStruct->type);
+	}
 	return 1;
 }
 cell_t Native_SetReturn(IPluginContext *pContext, const cell_t *params)
 {
+	if(params[1] == BAD_HANDLE)
+	{
+		return pContext->ThrowNativeError("Invalid Handle %i", BAD_HANDLE);
+	}
+
+	HandleError err;
+	HandleSecurity sec(pContext->GetIdentity(), myself->GetIdentity());
+	HookReturnStruct *returnStruct;
+
+	if((err = handlesys->ReadHandle(params[1], g_HookReturnHandle, &sec, (void **)&returnStruct)) != HandleError_None)
+	{
+		return pContext->ThrowNativeError("Invalid Handle %x (error %d)", params[1], err);
+	}
+
+	CBaseEntity *pEnt;
+	edict_t *pEdict;
+	float *fpVal;
+	switch(returnStruct->type)
+	{
+		case ReturnType_Int:
+			returnStruct->newResult = (void *)((int)params[2]);
+			break;
+		case ReturnType_Bool:
+			returnStruct->newResult = (void *)(params[2] != 0);
+			break;
+		case ReturnType_CBaseEntity:
+			pEnt = UTIL_GetCBaseEntity(params[2]);
+			if(!pEnt)
+			{
+				return pContext->ThrowNativeError("Invalid entity index passed for return value");
+			}
+			returnStruct->newResult = pEnt;
+			break;
+		case ReturnType_Edict:
+			pEdict = gamehelpers->EdictOfIndex(params[2]);
+			if(!pEdict || pEdict->IsFree())
+			{
+				pContext->ThrowNativeError("Invalid entity index passed for return value");
+			}
+			returnStruct->newResult = pEdict;
+			break;
+		case ReturnType_Float:
+			fpVal = new float;
+			*fpVal = sp_ctof(params[2]);
+			returnStruct->newResult = fpVal;
+			break;
+		default:
+			return pContext->ThrowNativeError("Invalid param type (%i) to get",returnStruct->type);
+	}
+	returnStruct->isChanged = true;
 	return 1;
 }
 /*cell_t Native_SetParam(IPluginContext *pContext, const cell_t *params);
@@ -196,7 +276,7 @@ cell_t Native_GetParamString(IPluginContext *pContext, const cell_t *params)
 		return pContext->ThrowNativeError("Invalid Handle %x (error %d)", params[1], err);
 	}
 
-	if(params[2] > paramStruct->dg->params.Count() || params[2] <= 0)
+	if(params[2] <= 0 || params[2] > paramStruct->dg->params.Count())
 	{
 		return pContext->ThrowNativeError("Invalid param number %i max params is %i", params[2], paramStruct->dg->params.Count());
 	}
@@ -216,8 +296,42 @@ cell_t Native_GetParamString(IPluginContext *pContext, const cell_t *params)
 }
 //cell_t Native_GetReturnString(IPluginContext *pContext, const cell_t *params);
 //cell_t Native_SetReturnString(IPluginContext *pContext, const cell_t *params);
+
+//native DHookSetParamString(Handle:hParams, num, String:value[])
 cell_t Native_SetParamString(IPluginContext *pContext, const cell_t *params)
 {
+	if(params[1] == BAD_HANDLE)
+	{
+		return pContext->ThrowNativeError("Invalid Handle %i", BAD_HANDLE);
+	}
+
+	HandleError err;
+	HandleSecurity sec(pContext->GetIdentity(), myself->GetIdentity());
+	HookParamsStruct *paramStruct;
+	if((err = handlesys->ReadHandle(params[1], g_HookParamsHandle, &sec, (void **)&paramStruct)) != HandleError_None)
+	{
+		return pContext->ThrowNativeError("Invalid Handle %x (error %d)", params[1], err);
+	}
+
+	if(params[2] <= 0 || params[2] > paramStruct->dg->params.Count())
+	{
+		return pContext->ThrowNativeError("Invalid param number %i max params is %i", params[2], paramStruct->dg->params.Count());
+	}
+
+	int index = params[2] - 1;
+
+	char *value;
+	pContext->LocalToString(params[3], &value);
+
+	if(paramStruct->dg->params.Element(index).type == HookParamType_CharPtr)
+	{
+		if(paramStruct->newParams[index] != NULL)
+			delete (char *)paramStruct->newParams[index];
+
+		paramStruct->newParams[index] = new char[strlen(value)+1];
+		strcpy((char *)paramStruct->newParams[index], value);
+		paramStruct->isChanged[index] = true;
+	}
 	return 1;
 }
 

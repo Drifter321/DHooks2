@@ -1,4 +1,5 @@
 #include "vhook.h"
+#include "vfunc_call.h"
 
 SourceHook::IHookManagerAutoGen *g_pHookManager = NULL;
 
@@ -39,13 +40,9 @@ DHooksManager::DHooksManager(HookSetup *setup, void *iface, IPluginFunction *rem
 	{
 		protoInfo.SetReturnType(0, SourceHook::PassInfo::PassType_Unknown, 0, NULL, NULL, NULL, NULL);
 	}
-	else if(this->callback->returnType == ReturnType_Float)
-	{
-		protoInfo.SetReturnType(sizeof(float), SourceHook::PassInfo::PassType_Float, 0, NULL, NULL, NULL, NULL);
-	}
 	else
 	{
-		protoInfo.SetReturnType(sizeof(void *), SourceHook::PassInfo::PassType_Basic, 0, NULL, NULL, NULL, NULL);
+		protoInfo.SetReturnType(sizeof(void *), SourceHook::PassInfo::PassType_Basic, setup->returnFlag, NULL, NULL, NULL, NULL);
 	}
 	HookManagerPubFunc hook = g_pHookManager->MakeHookMan(protoInfo, 0, this->callback->offset);
 
@@ -82,10 +79,9 @@ SourceHook::PassInfo::PassType GetParamTypePassType(HookParamType type)
 	switch(type)
 	{
 		case HookParamType_Float:
-			return SourceHook::PassInfo::PassType::PassType_Float;
-		default:
-			return SourceHook::PassInfo::PassType::PassType_Basic;
+			return SourceHook::PassInfo::PassType_Float;
 	}
+	return SourceHook::PassInfo::PassType_Basic;
 }
 size_t GetStackArgsSize(DHooksCallback *dg)
 {
@@ -102,10 +98,12 @@ HookParamsStruct *GetParamStruct(DHooksCallback *dg, void **argStack, size_t arg
 	res->dg = dg;
 	res->orgParams = (void **)malloc(argStackSize);
 	res->newParams = (void **)malloc(argStackSize);
+	res->isChanged = (bool *)malloc(dg->params.Count() * sizeof(bool));
 	memcpy(res->orgParams, argStack, argStackSize);
 	for(int i = 0; i < dg->params.Count(); i++)
 	{
 		res->newParams[i] = NULL;
+		res->isChanged[i] = false;
 	}
 	return res;
 }
@@ -114,8 +112,32 @@ HookReturnStruct *GetReturnStruct(DHooksCallback *dg, const void *result)
 	HookReturnStruct *res = new HookReturnStruct();
 	res->isChanged = false;
 	res->type = dg->returnType;
-	res->orgResult = &result;
-	res->newResult = 0;
+	res->newResult = NULL;
+
+	float *fpVal = NULL;
+
+	if(result && dg->post)
+	{
+		switch(dg->returnType)
+		{
+			//ReturnType_String,
+			//ReturnType_Vector,
+			case ReturnType_Int:
+			case ReturnType_Bool:
+				res->orgResult = (int *)result;
+				break;
+			case ReturnType_Float:
+				res->orgResult = new float;
+				*fpVal = *(float *)result;
+				res->orgResult = fpVal;
+			default:
+				res->orgResult = (void *)result;
+		}
+	}
+	else
+	{
+		res->orgResult = NULL;
+	}
 
 	return res;
 }
@@ -128,15 +150,23 @@ cell_t GetThisPtr(void *iface, ThisPointerType type)
 
 	return (cell_t)iface;
 }
+
 #ifndef __linux__
 void *Callback(DHooksCallback *dg, void **argStack, size_t *argsizep)
+#else
+void *Callback(DHooksCallback *dg, void **argStack)
+#endif
 {
 	HookReturnStruct *returnStruct = NULL;
 	HookParamsStruct *paramStruct = NULL;
 	Handle_t rHndl;
 	Handle_t pHndl;
 
+	#ifndef __linux__
 	*argsizep = GetStackArgsSize(dg);
+	#else
+	size_t argsize = GetStackArgsSize(dg);
+	#endif
 
 	if(dg->thisType == ThisPointer_CBaseEntity || dg->thisType == ThisPointer_Address)
 	{
@@ -157,9 +187,16 @@ void *Callback(DHooksCallback *dg, void **argStack, size_t *argsizep)
 		}
 		dg->plugin_callback->PushCell(rHndl);
 	}
+
+	#ifndef __linux__
 	if(*argsizep > 0)
 	{
 		paramStruct = GetParamStruct(dg, argStack, *argsizep);
+	#else
+	if(argsize > 0)
+	{
+		paramStruct = GetParamStruct(dg, argStack, argsize);
+	#endif
 		pHndl = handlesys->CreateHandle(g_HookParamsHandle, paramStruct, dg->plugin_callback->GetParentRuntime()->GetDefaultContext()->GetIdentity(), myself->GetIdentity(), NULL);
 		if(!pHndl)
 		{
@@ -180,32 +217,24 @@ void *Callback(DHooksCallback *dg, void **argStack, size_t *argsizep)
 	dg->plugin_callback->Execute(&result);
 
 	void *ret = g_SHPtr->GetOverrideRetPtr();
-	void *res = 0;
-
+	ret = 0;
 	switch((MRESReturn)result)
 	{
 		case MRES_Handled:
 		case MRES_ChangedHandled:
 			g_SHPtr->DoRecall();
 			g_SHPtr->SetRes(MRES_SUPERCEDE);
-			//ret = CallVFunction(dg, argStack, g_SHPtr->GetIfacePtr());
-			memcpy(res, ret, sizeof(void *));
+			ret = CallVFunction(dg, paramStruct, g_SHPtr->GetIfacePtr());
 			break;
 		case MRES_ChangedOverride:
 			g_SHPtr->DoRecall();
 			g_SHPtr->SetRes(MRES_SUPERCEDE);
-			//CallVFunction(dg, argStack, g_SHPtr->GetIfacePtr());
+			ret = CallVFunction(dg, paramStruct, g_SHPtr->GetIfacePtr());
 			if(dg->returnType != ReturnType_Void)
 			{
 				if(returnStruct->isChanged)
 				{
-					memcpy(ret, returnStruct->newResult, sizeof(void *));
-					memcpy(res, returnStruct->newResult, sizeof(void *));
-				}
-				else if(dg->post)
-				{
-					memcpy(ret, returnStruct->orgResult, sizeof(void *));
-					memcpy(res, returnStruct->orgResult, sizeof(void *));
+					ret = returnStruct->newResult;
 				}
 			}
 			break;
@@ -215,13 +244,11 @@ void *Callback(DHooksCallback *dg, void **argStack, size_t *argsizep)
 			{
 				if(returnStruct->isChanged)
 				{
-					memcpy(ret, returnStruct->newResult, sizeof(void *));
-					memcpy(res, returnStruct->newResult, sizeof(void *));
+					ret = returnStruct->newResult;
 				}
 				else if(dg->post)
 				{
-					memcpy(ret, returnStruct->orgResult, sizeof(void *));
-					memcpy(res, returnStruct->orgResult, sizeof(void *));
+					ret = (void *)returnStruct->orgResult;
 				}
 			}
 			break;
@@ -231,13 +258,11 @@ void *Callback(DHooksCallback *dg, void **argStack, size_t *argsizep)
 			{
 				if(returnStruct->isChanged)
 				{
-					memcpy(ret, returnStruct->newResult, sizeof(void *));
-					memcpy(res, returnStruct->newResult, sizeof(void *));
+					ret = returnStruct->newResult;
 				}
 				else if(dg->post)
 				{
-					memcpy(ret, returnStruct->orgResult, sizeof(void *));
-					memcpy(res, returnStruct->orgResult, sizeof(void *));
+					ret = returnStruct->orgResult;
 				}
 			}
 			break;
@@ -257,24 +282,5 @@ void *Callback(DHooksCallback *dg, void **argStack, size_t *argsizep)
 		handlesys->FreeHandle(pHndl, &sec);
 	}
 
-	return res;
+	return ret;
 }
-#else
-void *Callback(DHooksCallback *dg, void **argStack)
-{
-	if(dg->returnType == ReturnType_Void)
-	{
-		META_CONPRINTF("String is %s\n", argStack[0]);
-		g_SHPtr->SetRes(MRES_IGNORED);
-	}
-	else
-	{
-		//META_CONPRINTF("Entity %i\n", gamehelpers->ReferenceToIndex(gamehelpers->EntityToBCompatRef((CBaseEntity *)g_SHPtr->GetIfacePtr())));
-		g_SHPtr->SetRes(MRES_SUPERCEDE);
-		void *ret = g_SHPtr->GetOverrideRetPtr();
-		ret = (void *)false;
-		return false;
-	}
-	return 0;
-}
-#endif

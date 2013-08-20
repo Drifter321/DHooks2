@@ -886,6 +886,7 @@
     <ClCompile Include="..\extension.cpp" />
     <ClCompile Include="..\listeners.cpp" />
     <ClCompile Include="..\natives.cpp" />
+    <ClCompile Include="..\vfunc_call.cpp" />
     <ClCompile Include="..\vhook.cpp" />
     <ClCompile Include="..\sdk\smsdk_ext.cpp" />
   </ItemGroup>
@@ -893,6 +894,7 @@
     <ClInclude Include="..\extension.h" />
     <ClInclude Include="..\listeners.h" />
     <ClInclude Include="..\natives.h" />
+    <ClInclude Include="..\vfunc_call.h" />
     <ClInclude Include="..\vhook.h" />
     <ClInclude Include="..\sdk\smsdk_config.h" />
     <ClInclude Include="..\sdk\smsdk_ext.h" />

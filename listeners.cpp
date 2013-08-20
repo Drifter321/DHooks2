@@ -53,7 +53,6 @@ void DHooksEntityListener::OnEntityDestroyed(CBaseEntity *pEntity)
 		DHooksManager *manager = g_pHooks.Element(i);
 		if(manager->callback->entity == entity)
 		{
-			META_CONPRINT("Removing 1\n");
 			delete manager;
 			g_pHooks.Remove(i);
 		}

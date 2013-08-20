@@ -68,8 +68,32 @@ struct ParamInfo
 	SourceHook::PassInfo::PassType pass_type;
 };
 
-struct HookReturnStruct
+class HookReturnStruct
 {
+public:
+	~HookReturnStruct()
+	{
+		if(this->isChanged && this->newResult)
+		{
+			if(this->type == ReturnType_CharPtr)
+			{
+				delete (char *)this->newResult;
+			}
+			else if(this->type == ReturnType_VectorPtr)
+			{
+				delete (Vector *)this->newResult;
+			}
+			else if(this->type == ReturnType_Float)
+			{
+				if(this->orgResult)
+				{
+					free(this->orgResult);
+				}
+				free(this->newResult);
+			}
+		}
+	}
+public:
 	ReturnType type;
 	bool isChanged;
 	void *orgResult;
@@ -129,9 +153,9 @@ static void *GenerateThunk(ReturnType type)
 	masm.lea(eax, Operand(ebp, 12));
 	masm.push(eax);
 	masm.push(Operand(ebp, 8));
-	if(type == ReturnType_Float)
+	/*if(type == ReturnType_Float)
 		masm.call(ExternalAddress((void *)Callback_float));
-	else
+	else*/
 		masm.call(ExternalAddress((void *)Callback));
 	masm.addl(esp, 8);
 	masm.pop(ebp);
@@ -191,22 +215,41 @@ public:
 		this->orgParams = NULL;
 		this->newParams = NULL;
 		this->dg = NULL;
+		this->isChanged = NULL;
 	}
 	~HookParamsStruct()
 	{
 		if(this->orgParams != NULL)
 		{
-			delete this->orgParams;
+			free(this->orgParams);
+		}
+		if(this->isChanged != NULL)
+		{
+			free(this->isChanged);
 		}
 		if(this->newParams != NULL)
 		{
-			delete this->newParams;
+			for(int i = dg->params.Count() - 1; i >= 0 ; i--)
+			{
+				if(this->newParams[i] == NULL)
+					continue;
+
+				if(dg->params.Element(i).type == HookParamType_VectorPtr)
+				{
+					delete (Vector *)this->newParams[i];
+				}
+				else if(dg->params.Element(i).type == HookParamType_CharPtr)
+				{
+					delete (char *)this->newParams[i];
+				}
+			}
+			free(this->newParams);
 		}
 	}
 public:
-	//CUtlVector<int> cleanup;
 	void **orgParams;
 	void **newParams;
+	bool *isChanged;
 	DHooksCallback *dg;
 };
 
@@ -254,6 +297,8 @@ public:
 	DHooksCallback *callback;
 	IPluginFunction *remove_callback;
 };
+
+size_t GetStackArgsSize(DHooksCallback *dg);
 
 extern IBinTools *g_pBinTools;
 extern HandleType_t g_HookParamsHandle;
