@@ -53,7 +53,7 @@ void *CallVFunction(DHooksCallback *dg, HookParamsStruct *paramStruct, void *ifa
 	unsigned char *vstk = (unsigned char *)malloc(sizeof(void *) + size);
 	unsigned char *vptr = vstk;
 
-    *(void **)vptr = iface;
+	*(void **)vptr = iface;
 
 	if(paramStruct)
 	{

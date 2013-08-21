@@ -221,8 +221,6 @@ cell_t Native_SetReturn(IPluginContext *pContext, const cell_t *params)
 		return pContext->ThrowNativeError("Invalid Handle %x (error %d)", params[1], err);
 	}
 
-	CBaseEntity *pEnt;
-	edict_t *pEdict;
 	switch(returnStruct->type)
 	{
 		case ReturnType_Int:
@@ -232,21 +230,25 @@ cell_t Native_SetReturn(IPluginContext *pContext, const cell_t *params)
 			*(bool *)returnStruct->newResult = params[2] != 0;
 			break;
 		case ReturnType_CBaseEntity:
-			pEnt = UTIL_GetCBaseEntity(params[2]);
+		{
+			CBaseEntity *pEnt = UTIL_GetCBaseEntity(params[2]);
 			if(!pEnt)
 			{
 				return pContext->ThrowNativeError("Invalid entity index passed for return value");
 			}
 			*(CBaseEntity **)returnStruct->newResult = pEnt;
 			break;
+		}
 		case ReturnType_Edict:
-			pEdict = gamehelpers->EdictOfIndex(params[2]);
+		{
+			edict_t *pEdict = gamehelpers->EdictOfIndex(params[2]);
 			if(!pEdict || pEdict->IsFree())
 			{
 				pContext->ThrowNativeError("Invalid entity index passed for return value");
 			}
 			*(edict_t **)returnStruct->newResult = pEdict;
 			break;
+		}
 		case ReturnType_Float:
 			*(float *)returnStruct->newResult = sp_ctof(params[2]);
 			break;

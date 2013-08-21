@@ -126,13 +126,13 @@ HookReturnStruct *GetReturnStruct(DHooksCallback *dg, const void *result)
 			case ReturnType_Int:
 				*(int *)res->orgResult = *(int *)result;
 			case ReturnType_Bool:
-				*(int *)res->orgResult = *(bool *)result;
+				*(bool *)res->orgResult = *(bool *)result;
 				break;
 			case ReturnType_Float:
 				*(float *)res->orgResult = *(float *)result;
 				break;
 			default:
-				res->orgResult = *(void **)result;
+				*(void **)res->orgResult = (void *)result;
 				break;
 		}
 	}
@@ -180,6 +180,7 @@ void *Callback(DHooksCallback *dg, void **argStack)
 		rHndl = handlesys->CreateHandle(g_HookReturnHandle, returnStruct, dg->plugin_callback->GetParentRuntime()->GetDefaultContext()->GetIdentity(), myself->GetIdentity(), NULL);
 		if(!rHndl)
 		{
+			dg->plugin_callback->Cancel();
 			if(returnStruct)
 			{
 				delete returnStruct;
@@ -202,6 +203,7 @@ void *Callback(DHooksCallback *dg, void **argStack)
 		pHndl = handlesys->CreateHandle(g_HookParamsHandle, paramStruct, dg->plugin_callback->GetParentRuntime()->GetDefaultContext()->GetIdentity(), myself->GetIdentity(), NULL);
 		if(!pHndl)
 		{
+			dg->plugin_callback->Cancel();
 			if(returnStruct)
 			{
 				delete returnStruct;
@@ -228,42 +230,53 @@ void *Callback(DHooksCallback *dg, void **argStack)
 			ret = CallVFunction(dg, paramStruct, g_SHPtr->GetIfacePtr());
 			break;
 		case MRES_ChangedOverride:
-			g_SHPtr->DoRecall();
-			g_SHPtr->SetRes(MRES_SUPERCEDE);
-			ret = CallVFunction(dg, paramStruct, g_SHPtr->GetIfacePtr());
 			if(dg->returnType != ReturnType_Void)
 			{
 				if(returnStruct->isChanged)
 				{
-					*(void **)ret = returnStruct->newResult;
+					ret = *(void **)returnStruct->newResult;
+				}
+				else //Throw an error if no override was set
+				{
+					g_SHPtr->SetRes(MRES_IGNORED);
+					IPlugin *plugin = plsys->FindPluginByContext(dg->plugin_callback->GetParentContext()->GetContext());
+					smutils->LogError(myself, "Plugin %s tried to override a return without a return being set", plugin->GetFilename());
+					break;
 				}
 			}
+			g_SHPtr->DoRecall();
+			g_SHPtr->SetRes(MRES_SUPERCEDE);
+			CallVFunction(dg, paramStruct, g_SHPtr->GetIfacePtr());
 			break;
 		case MRES_Override:
-			g_SHPtr->SetRes(MRES_OVERRIDE);
 			if(dg->returnType != ReturnType_Void)
 			{
 				if(returnStruct->isChanged)
 				{
-					*(void **)ret = returnStruct->newResult;
+					g_SHPtr->SetRes(MRES_OVERRIDE);
+					ret = *(void **)returnStruct->newResult;
 				}
-				else if(dg->post)
+				else //Throw an error if no override was set
 				{
-					*(void **)ret = returnStruct->orgResult;
+					g_SHPtr->SetRes(MRES_IGNORED);
+					IPlugin *plugin = plsys->FindPluginByContext(dg->plugin_callback->GetParentContext()->GetContext());
+					smutils->LogError(myself, "Plugin %s tried to override a return without a return being set", plugin->GetFilename());
 				}
 			}
 			break;
 		case MRES_Supercede:
-			g_SHPtr->SetRes(MRES_SUPERCEDE);
 			if(dg->returnType != ReturnType_Void)
 			{
 				if(returnStruct->isChanged)
 				{
-					*(void **)ret = returnStruct->newResult;
+					g_SHPtr->SetRes(MRES_SUPERCEDE);
+					ret = *(void **)returnStruct->newResult;
 				}
-				else if(dg->post)
+				else //Throw an error if no override was set
 				{
-					*(void **)ret = returnStruct->orgResult;
+					g_SHPtr->SetRes(MRES_IGNORED);
+					IPlugin *plugin = plsys->FindPluginByContext(dg->plugin_callback->GetParentContext()->GetContext());
+					smutils->LogError(myself, "Plugin %s tried to override a return without a return being set", plugin->GetFilename());
 				}
 			}
 			break;
@@ -283,7 +296,7 @@ void *Callback(DHooksCallback *dg, void **argStack)
 		handlesys->FreeHandle(pHndl, &sec);
 	}
 
-	if(dg->returnType != ReturnType_Void)
+	if(dg->returnType == ReturnType_Void || g_SHPtr->GetStatus() <= MRES_HANDLED)
 	{
 		return NULL;
 	}
