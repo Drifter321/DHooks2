@@ -74,25 +74,8 @@ class HookReturnStruct
 public:
 	~HookReturnStruct()
 	{
-		if(this->isChanged && this->newResult)
-		{
-			if(this->type == ReturnType_CharPtr)
-			{
-				delete (char *)this->newResult;
-			}
-			else if(this->type == ReturnType_VectorPtr)
-			{
-				delete (Vector *)this->newResult;
-			}
-			else if(this->type == ReturnType_Float)
-			{
-				if(this->orgResult)
-				{
-					free(this->orgResult);
-				}
-				free(this->newResult);
-			}
-		}
+		free(this->newResult);
+		free(this->orgResult);
 	}
 public:
 	ReturnType type;

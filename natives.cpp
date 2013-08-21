@@ -201,7 +201,7 @@ cell_t Native_GetReturn(IPluginContext *pContext, const cell_t *params)
 		case ReturnType_Float:
 			return sp_ftoc(*(float *)returnStruct->orgResult);
 		default:
-			return pContext->ThrowNativeError("Invalid param type (%i) to get",returnStruct->type);
+			return pContext->ThrowNativeError("Invalid param type (%i) to get", returnStruct->type);
 	}
 	return 1;
 }
@@ -223,14 +223,13 @@ cell_t Native_SetReturn(IPluginContext *pContext, const cell_t *params)
 
 	CBaseEntity *pEnt;
 	edict_t *pEdict;
-	float *fpVal;
 	switch(returnStruct->type)
 	{
 		case ReturnType_Int:
-			returnStruct->newResult = (int *)params[2];
+			*(int *)returnStruct->newResult = params[2];
 			break;
 		case ReturnType_Bool:
-			returnStruct->newResult = (bool *)(params[2]);
+			*(bool *)returnStruct->newResult = params[2] != 0;
 			break;
 		case ReturnType_CBaseEntity:
 			pEnt = UTIL_GetCBaseEntity(params[2]);
@@ -238,7 +237,7 @@ cell_t Native_SetReturn(IPluginContext *pContext, const cell_t *params)
 			{
 				return pContext->ThrowNativeError("Invalid entity index passed for return value");
 			}
-			returnStruct->newResult = pEnt;
+			*(CBaseEntity **)returnStruct->newResult = pEnt;
 			break;
 		case ReturnType_Edict:
 			pEdict = gamehelpers->EdictOfIndex(params[2]);
@@ -246,12 +245,10 @@ cell_t Native_SetReturn(IPluginContext *pContext, const cell_t *params)
 			{
 				pContext->ThrowNativeError("Invalid entity index passed for return value");
 			}
-			returnStruct->newResult = pEdict;
+			*(edict_t **)returnStruct->newResult = pEdict;
 			break;
 		case ReturnType_Float:
-			fpVal = new float;
-			*fpVal = sp_ctof(params[2]);
-			returnStruct->newResult = fpVal;
+			*(float *)returnStruct->newResult = sp_ctof(params[2]);
 			break;
 		default:
 			return pContext->ThrowNativeError("Invalid param type (%i) to get",returnStruct->type);
@@ -358,7 +355,7 @@ sp_nativeinfo_t g_Natives[] =
 	//{"DHookGetReturnString",				Native_GetReturnString},
 	//{"DHookSetReturnString",				Native_SetReturnString},
 	{"DHookSetParamString",					Native_SetParamString},
-	/*{"DHookAddEntityListener",				Native_AddEntityListener},
+	/*{"DHookAddEntityListener",			Native_AddEntityListener},
 	{"DHookRemoveEntityListener",			Native_RemoveEntityListener},
 	{"DHookGetParamObjectPtrVar",			Native_GetParamObjectPtrVar},
 	{"DHookSetParamObjectPtrVar",			Native_SetParamObjectPtrVar},

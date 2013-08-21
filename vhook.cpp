@@ -114,9 +114,8 @@ HookReturnStruct *GetReturnStruct(DHooksCallback *dg, const void *result)
 	HookReturnStruct *res = new HookReturnStruct();
 	res->isChanged = false;
 	res->type = dg->returnType;
-	res->newResult = NULL;
-
-	float *fpVal = NULL;
+	res->newResult = malloc(sizeof(void *));
+	res->orgResult = malloc(sizeof(void *));
 
 	if(result && dg->post)
 	{
@@ -125,17 +124,15 @@ HookReturnStruct *GetReturnStruct(DHooksCallback *dg, const void *result)
 			//ReturnType_String,
 			//ReturnType_Vector,
 			case ReturnType_Int:
-				res->orgResult = (int *)result;
+				*(int *)res->orgResult = *(int *)result;
 			case ReturnType_Bool:
-				res->orgResult = (bool *)result;
+				*(int *)res->orgResult = *(bool *)result;
 				break;
 			case ReturnType_Float:
-				res->orgResult = new float;
-				*fpVal = *(float *)result;
-				res->orgResult = fpVal;
+				*(float *)res->orgResult = *(float *)result;
 				break;
 			default:
-				res->orgResult = (void *)result;
+				res->orgResult = *(void **)result;
 				break;
 		}
 	}
@@ -222,7 +219,6 @@ void *Callback(DHooksCallback *dg, void **argStack)
 	dg->plugin_callback->Execute(&result);
 
 	void *ret = g_SHPtr->GetOverrideRetPtr();
-
 	switch((MRESReturn)result)
 	{
 		case MRES_Handled:
@@ -239,7 +235,7 @@ void *Callback(DHooksCallback *dg, void **argStack)
 			{
 				if(returnStruct->isChanged)
 				{
-					ret = returnStruct->newResult;
+					*(void **)ret = returnStruct->newResult;
 				}
 			}
 			break;
@@ -249,11 +245,11 @@ void *Callback(DHooksCallback *dg, void **argStack)
 			{
 				if(returnStruct->isChanged)
 				{
-					ret = returnStruct->newResult;
+					*(void **)ret = returnStruct->newResult;
 				}
 				else if(dg->post)
 				{
-					ret = returnStruct->orgResult;
+					*(void **)ret = returnStruct->orgResult;
 				}
 			}
 			break;
@@ -263,11 +259,11 @@ void *Callback(DHooksCallback *dg, void **argStack)
 			{
 				if(returnStruct->isChanged)
 				{
-					ret = returnStruct->newResult;
+					*(void **)ret = returnStruct->newResult;
 				}
 				else if(dg->post)
 				{
-					ret = returnStruct->orgResult;
+					*(void **)ret = returnStruct->orgResult;
 				}
 			}
 			break;
@@ -287,5 +283,9 @@ void *Callback(DHooksCallback *dg, void **argStack)
 		handlesys->FreeHandle(pHndl, &sec);
 	}
 
+	if(dg->returnType != ReturnType_Void)
+	{
+		return NULL;
+	}
 	return ret;
 }
