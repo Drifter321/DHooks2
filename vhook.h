@@ -27,7 +27,8 @@ enum HookParamType
 	HookParamType_VectorPtr,
 	HookParamType_CBaseEntity,
 	HookParamType_ObjectPtr,
-	HookParamType_Edict
+	HookParamType_Edict,
+	HookParamType_Object
 };
 
 enum ReturnType

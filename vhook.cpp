@@ -80,6 +80,8 @@ SourceHook::PassInfo::PassType GetParamTypePassType(HookParamType type)
 	{
 		case HookParamType_Float:
 			return SourceHook::PassInfo::PassType_Float;
+		case HookParamType_Object:
+			return SourceHook::PassInfo::PassType_Object;
 	}
 	return SourceHook::PassInfo::PassType_Basic;
 }
@@ -123,15 +125,18 @@ HookReturnStruct *GetReturnStruct(DHooksCallback *dg, const void *result)
 			//ReturnType_String,
 			//ReturnType_Vector,
 			case ReturnType_Int:
-			case ReturnType_Bool:
 				res->orgResult = (int *)result;
+			case ReturnType_Bool:
+				res->orgResult = (bool *)result;
 				break;
 			case ReturnType_Float:
 				res->orgResult = new float;
 				*fpVal = *(float *)result;
 				res->orgResult = fpVal;
+				break;
 			default:
 				res->orgResult = (void *)result;
+				break;
 		}
 	}
 	else
@@ -217,7 +222,7 @@ void *Callback(DHooksCallback *dg, void **argStack)
 	dg->plugin_callback->Execute(&result);
 
 	void *ret = g_SHPtr->GetOverrideRetPtr();
-	ret = 0;
+
 	switch((MRESReturn)result)
 	{
 		case MRES_Handled:
@@ -248,7 +253,7 @@ void *Callback(DHooksCallback *dg, void **argStack)
 				}
 				else if(dg->post)
 				{
-					ret = (void *)returnStruct->orgResult;
+					ret = returnStruct->orgResult;
 				}
 			}
 			break;

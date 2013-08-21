@@ -37,6 +37,7 @@ cell_t Native_CreateHook(IPluginContext *pContext, const cell_t *params)
 	return hndl;
 }
 //native bool:DHookAddParam(Handle:setup, HookParamType:type);
+//native bool:DHookAddParam(Handle:setup, HookParamType:type, size=-1, flag=-1);
 cell_t Native_AddParam(IPluginContext *pContext, const cell_t *params)
 {
 	if(params[1] == BAD_HANDLE)
@@ -54,17 +55,19 @@ cell_t Native_AddParam(IPluginContext *pContext, const cell_t *params)
 	}
 	ParamInfo info;
 
-	if(params[0] == 3)
+	//Add support for setting this
+	info.flag = PASSFLAG_BYVAL;
+
+	info.type = (HookParamType)params[2];
+
+	if(params[0] == 3 && params[3] != -1)
 	{
-		info.flag = params[3];
+		info.size = params[3];
 	}
 	else
 	{
-		info.flag = PASSFLAG_BYVAL;
+		info.size = GetParamTypeSize(info.type);
 	}
-	
-	info.type = (HookParamType)params[2];
-	info.size = GetParamTypeSize(info.type);
 	info.pass_type = GetParamTypePassType(info.type);
 	setup->params.AddToTail(info);
 
@@ -190,7 +193,7 @@ cell_t Native_GetReturn(IPluginContext *pContext, const cell_t *params)
 		case ReturnType_Int:
 			return *(int *)returnStruct->orgResult;
 		case ReturnType_Bool:
-			return *(cell_t *)returnStruct->orgResult;
+			return *(bool *)returnStruct->orgResult? 1 : 0;
 		case ReturnType_CBaseEntity:
 			return gamehelpers->EntityToBCompatRef((CBaseEntity *)returnStruct->orgResult);
 		case ReturnType_Edict:
@@ -224,10 +227,10 @@ cell_t Native_SetReturn(IPluginContext *pContext, const cell_t *params)
 	switch(returnStruct->type)
 	{
 		case ReturnType_Int:
-			returnStruct->newResult = (void *)((int)params[2]);
+			returnStruct->newResult = (int *)params[2];
 			break;
 		case ReturnType_Bool:
-			returnStruct->newResult = (void *)(params[2] != 0);
+			returnStruct->newResult = (bool *)(params[2]);
 			break;
 		case ReturnType_CBaseEntity:
 			pEnt = UTIL_GetCBaseEntity(params[2]);
