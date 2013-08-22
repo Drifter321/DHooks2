@@ -134,6 +134,7 @@ HookReturnStruct *GetReturnStruct(DHooksCallback *dg, const void *result)
 			//ReturnType_Vector,
 			case ReturnType_Int:
 				*(int *)res->orgResult = *(int *)result;
+				break;
 			case ReturnType_Bool:
 				*(bool *)res->orgResult = *(bool *)result;
 				break;
@@ -153,6 +154,7 @@ HookReturnStruct *GetReturnStruct(DHooksCallback *dg, const void *result)
 			//ReturnType_Vector,
 			case ReturnType_Int:
 				*(int *)res->orgResult = 0;
+				break;
 			case ReturnType_Bool:
 				*(bool *)res->orgResult = false;
 				break;
