@@ -71,3 +71,32 @@ void DHooksEntityListener::OnEntityDestroyed(CBaseEntity *pEntity)
 		}
 	}
 }
+bool DHooksEntityListener::AddPluginEntityListener(ListenType type, IPluginFunction *callback)
+{
+	for(int i = g_EntityListeners.Count() -1; i >= 0; i--)
+	{
+		EntityListener listerner = g_EntityListeners.Element(i);
+		if(listerner.callback == callback && listerner.type == type)
+		{
+			return true;
+		}
+	}
+	EntityListener listener;
+	listener.callback = callback;
+	listener.type = type;
+	g_EntityListeners.AddToTail(listener);
+	return true;
+}
+bool DHooksEntityListener::RemovePluginEntityListener(ListenType type, IPluginFunction *callback)
+{
+	for(int i = g_EntityListeners.Count() -1; i >= 0; i--)
+	{
+		EntityListener listerner = g_EntityListeners.Element(i);
+		if(listerner.callback == callback && listerner.type == type)
+		{
+			g_EntityListeners.Remove(i);
+			return true;
+		}
+	}
+	return false;
+}

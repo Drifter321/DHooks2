@@ -520,6 +520,59 @@ cell_t Native_SetParamString(IPluginContext *pContext, const cell_t *params)
 	return 1;
 }
 
+//native DHookAddEntityListener(ListenType:type, ListenCB:callback);
+cell_t Native_AddEntityListener(IPluginContext *pContext, const cell_t *params)
+{
+	if(g_pEntityListener)
+	{
+		return g_pEntityListener->AddPluginEntityListener((ListenType)params[1], pContext->GetFunctionById(params[2]));;
+	}
+	return pContext->ThrowNativeError("Failed to get g_pEntityListener");
+}
+
+//native bool:DHookRemoveEntityListener(ListenType:type, ListenCB:callback);
+cell_t Native_RemoveEntityListener(IPluginContext *pContext, const cell_t *params)
+{
+	if(g_pEntityListener)
+	{
+		return g_pEntityListener->RemovePluginEntityListener((ListenType)params[1], pContext->GetFunctionById(params[2]));;
+	}
+	return pContext->ThrowNativeError("Failed to get g_pEntityListener");
+}
+
+//native bool:DHookIsNullParam(Handle:hParams, num);
+cell_t Native_IsNullParam(IPluginContext *pContext, const cell_t *params)
+{
+	if(params[1] == BAD_HANDLE)
+	{
+		return pContext->ThrowNativeError("Invalid Handle %i", BAD_HANDLE);
+	}
+
+	HandleError err;
+	HandleSecurity sec(pContext->GetIdentity(), myself->GetIdentity());
+	HookParamsStruct *paramStruct;
+
+	if((err = handlesys->ReadHandle(params[1], g_HookParamsHandle, &sec, (void **)&paramStruct)) != HandleError_None)
+	{
+		return pContext->ThrowNativeError("Invalid Handle %x (error %d)", params[1], err);
+	}
+
+	if(params[2] <= 0 || params[2] > paramStruct->dg->params.Count())
+	{
+		return pContext->ThrowNativeError("Invalid param number %i max params is %i", params[2], paramStruct->dg->params.Count());
+	}
+
+	int index = params[2] - 1;
+
+	HookParamType type = paramStruct->dg->params.Element(index).type;
+
+	//Check that the type is ptr
+	if(type == HookParamType_StringPtr || type == HookParamType_CharPtr || type == HookParamType_VectorPtr || type == HookParamType_CBaseEntity || type == HookParamType_ObjectPtr || type == HookParamType_Edict || type == HookParamType_Unknown)
+		return (paramStruct->orgParams[index] == NULL);
+	else
+		return pContext->ThrowNativeError("Param is not a pointer!");
+}
+
 sp_nativeinfo_t g_Natives[] = 
 {
 	{"DHookCreate",							Native_CreateHook},
@@ -540,12 +593,12 @@ sp_nativeinfo_t g_Natives[] =
 	//{"DHookGetReturnString",				Native_GetReturnString},
 	//{"DHookSetReturnString",				Native_SetReturnString},
 	{"DHookSetParamString",					Native_SetParamString},
-	/*{"DHookAddEntityListener",			Native_AddEntityListener},
+	{"DHookAddEntityListener",				Native_AddEntityListener},
 	{"DHookRemoveEntityListener",			Native_RemoveEntityListener},
-	{"DHookGetParamObjectPtrVar",			Native_GetParamObjectPtrVar},
+	/*{"DHookGetParamObjectPtrVar",			Native_GetParamObjectPtrVar},
 	{"DHookSetParamObjectPtrVar",			Native_SetParamObjectPtrVar},
 	{"DHookGetParamObjectPtrVarVector",		Native_GetParamObjectPtrVarVector},
-	{"DHookSetParamObjectPtrVarVector",		Native_SetParamObjectPtrVarVector},
-	{"DHookIsNullParam",					Native_IsNullParam},*/
+	{"DHookSetParamObjectPtrVarVector",		Native_SetParamObjectPtrVarVector},*/
+	{"DHookIsNullParam",					Native_IsNullParam},
 	{NULL,							NULL}
 };

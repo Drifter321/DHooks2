@@ -1,8 +1,14 @@
-#ifndef _INCLUDE_FORWARDS_H_
-#define _INCLUDE_FORWARDS_H_
+#ifndef _INCLUDE_LISTENERS_H_
+#define _INCLUDE_LISTENERS_H_
 
 #include "extension.h"
 #include "vhook.h"
+
+enum ListenType
+{
+	ListenType_Created,
+	ListenType_Deleted
+};
 
 class DHooksEntityListener : public ISMEntityListener
 {
@@ -11,13 +17,10 @@ public:
 	virtual void OnEntityDestroyed(CBaseEntity *pEntity);
 	void CleanupListeners(IPluginContext *func);
 	virtual void LevelShutdown();
+	bool AddPluginEntityListener(ListenType type, IPluginFunction *callback);
+	bool RemovePluginEntityListener(ListenType type, IPluginFunction *callback);
 };
 
-enum ListenType
-{
-	ListenType_Created,
-	ListenType_Deleted
-};
 
 struct EntityListener
 {
