@@ -3,8 +3,7 @@
 
 #include "extension.h"
 #include "vhook.h"
-
-extern bool g_bAllowGamerules;
+extern ISDKTools *g_pSDKTools;
 extern HandleType_t g_HookSetupHandle;
 extern HandleType_t g_HookParamsHandle;
 extern HandleType_t g_HookReturnHandle;

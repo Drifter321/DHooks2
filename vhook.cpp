@@ -19,6 +19,7 @@ DHooksManager::DHooksManager(HookSetup *setup, void *iface, IPluginFunction *rem
 	this->callback->post = post;
 	this->callback->hookType = setup->hookType;
 	this->callback->params = setup->params;
+	this->addr = 0;
 
 	if(this->callback->hookType == HookType_Entity)
 	{
@@ -26,6 +27,10 @@ DHooksManager::DHooksManager(HookSetup *setup, void *iface, IPluginFunction *rem
 	}
 	else
 	{
+		if(this->callback->hookType == HookType_Raw)
+		{
+			this->addr = (intptr_t)iface;
+		}
 		this->callback->entity = -1;
 	}
 
@@ -40,9 +45,13 @@ DHooksManager::DHooksManager(HookSetup *setup, void *iface, IPluginFunction *rem
 	{
 		protoInfo.SetReturnType(0, SourceHook::PassInfo::PassType_Unknown, 0, NULL, NULL, NULL, NULL);
 	}
-	else
+	else if(this->callback->returnType != ReturnType_Float)
 	{
 		protoInfo.SetReturnType(sizeof(void *), SourceHook::PassInfo::PassType_Basic, setup->returnFlag, NULL, NULL, NULL, NULL);
+	}
+	else
+	{
+		protoInfo.SetReturnType(sizeof(void *), SourceHook::PassInfo::PassType_Float, setup->returnFlag, NULL, NULL, NULL, NULL);
 	}
 	HookManagerPubFunc hook = g_pHookManager->MakeHookMan(protoInfo, 0, this->callback->offset);
 
@@ -55,7 +64,7 @@ void CleanupHooks(IPluginContext *pContext)
 	{
 		DHooksManager *manager = g_pHooks.Element(i);
 
-		if(pContext == NULL || pContext == manager->callback->plugin_callback->GetParentContext())
+		if(pContext == NULL || pContext == manager->callback->plugin_callback->GetParentRuntime()->GetDefaultContext())
 		{
 			delete manager;
 			g_pHooks.Remove(i);
@@ -96,18 +105,18 @@ size_t GetStackArgsSize(DHooksCallback *dg)
 }
 HookParamsStruct *GetParamStruct(DHooksCallback *dg, void **argStack, size_t argStackSize)
 {
-	HookParamsStruct *res = new HookParamsStruct();
-	res->dg = dg;
-	res->orgParams = (void **)malloc(argStackSize);
-	res->newParams = (void **)malloc(argStackSize);
-	res->isChanged = (bool *)malloc(dg->params.Count() * sizeof(bool));
-	memcpy(res->orgParams, argStack, argStackSize);
+	HookParamsStruct *params = new HookParamsStruct();
+	params->dg = dg;
+	params->orgParams = (void **)malloc(argStackSize);
+	params->newParams = (void **)malloc(dg->params.Count() * sizeof(void *));
+	params->isChanged = (bool *)malloc(dg->params.Count() * sizeof(bool));
+	memcpy(params->orgParams, argStack, argStackSize);
 	for(int i = 0; i < dg->params.Count(); i++)
 	{
-		res->newParams[i] = NULL;
-		res->isChanged[i] = false;
+		params->newParams[i] = NULL;
+		params->isChanged[i] = false;
 	}
-	return res;
+	return params;
 }
 HookReturnStruct *GetReturnStruct(DHooksCallback *dg, const void *result)
 {
@@ -138,7 +147,22 @@ HookReturnStruct *GetReturnStruct(DHooksCallback *dg, const void *result)
 	}
 	else
 	{
-		res->orgResult = NULL;
+		switch(dg->returnType)
+		{
+			//ReturnType_String,
+			//ReturnType_Vector,
+			case ReturnType_Int:
+				*(int *)res->orgResult = 0;
+			case ReturnType_Bool:
+				*(bool *)res->orgResult = false;
+				break;
+			case ReturnType_Float:
+				*(float *)res->orgResult = 0.0;
+				break;
+			default:
+				*(void **)res->orgResult = NULL;
+				break;
+		}
 	}
 
 	return res;
@@ -186,7 +210,7 @@ void *Callback(DHooksCallback *dg, void **argStack)
 				delete returnStruct;
 			}
 			g_SHPtr->SetRes(MRES_IGNORED);
-			return 0;
+			return NULL;
 		}
 		dg->plugin_callback->PushCell(rHndl);
 	}
@@ -213,11 +237,13 @@ void *Callback(DHooksCallback *dg, void **argStack)
 				delete paramStruct;
 			}
 			g_SHPtr->SetRes(MRES_IGNORED);
-			return 0;
+			return NULL;
 		}
 		dg->plugin_callback->PushCell(pHndl);
 	}
 	cell_t result = (cell_t)MRES_Ignored;
+	META_RES mres = MRES_IGNORED;
+
 	dg->plugin_callback->Execute(&result);
 
 	void *ret = g_SHPtr->GetOverrideRetPtr();
@@ -227,6 +253,7 @@ void *Callback(DHooksCallback *dg, void **argStack)
 		case MRES_ChangedHandled:
 			g_SHPtr->DoRecall();
 			g_SHPtr->SetRes(MRES_SUPERCEDE);
+			mres = MRES_SUPERCEDE;
 			ret = CallVFunction(dg, paramStruct, g_SHPtr->GetIfacePtr());
 			break;
 		case MRES_ChangedOverride:
@@ -239,13 +266,14 @@ void *Callback(DHooksCallback *dg, void **argStack)
 				else //Throw an error if no override was set
 				{
 					g_SHPtr->SetRes(MRES_IGNORED);
-					IPlugin *plugin = plsys->FindPluginByContext(dg->plugin_callback->GetParentContext()->GetContext());
-					smutils->LogError(myself, "Plugin %s tried to override a return without a return being set", plugin->GetFilename());
+					mres = MRES_IGNORED;
+					dg->plugin_callback->GetParentRuntime()->GetDefaultContext()->ThrowNativeError("Tried to override return value without return value being set");
 					break;
 				}
 			}
 			g_SHPtr->DoRecall();
 			g_SHPtr->SetRes(MRES_SUPERCEDE);
+			mres = MRES_SUPERCEDE;
 			CallVFunction(dg, paramStruct, g_SHPtr->GetIfacePtr());
 			break;
 		case MRES_Override:
@@ -254,13 +282,14 @@ void *Callback(DHooksCallback *dg, void **argStack)
 				if(returnStruct->isChanged)
 				{
 					g_SHPtr->SetRes(MRES_OVERRIDE);
+					mres = MRES_OVERRIDE;
 					ret = *(void **)returnStruct->newResult;
 				}
 				else //Throw an error if no override was set
 				{
 					g_SHPtr->SetRes(MRES_IGNORED);
-					IPlugin *plugin = plsys->FindPluginByContext(dg->plugin_callback->GetParentContext()->GetContext());
-					smutils->LogError(myself, "Plugin %s tried to override a return without a return being set", plugin->GetFilename());
+					mres = MRES_IGNORED;
+					dg->plugin_callback->GetParentRuntime()->GetDefaultContext()->ThrowNativeError("Tried to override return value without return value being set");
 				}
 			}
 			break;
@@ -270,22 +299,24 @@ void *Callback(DHooksCallback *dg, void **argStack)
 				if(returnStruct->isChanged)
 				{
 					g_SHPtr->SetRes(MRES_SUPERCEDE);
+					mres = MRES_SUPERCEDE;
 					ret = *(void **)returnStruct->newResult;
 				}
 				else //Throw an error if no override was set
 				{
 					g_SHPtr->SetRes(MRES_IGNORED);
-					IPlugin *plugin = plsys->FindPluginByContext(dg->plugin_callback->GetParentContext()->GetContext());
-					smutils->LogError(myself, "Plugin %s tried to override a return without a return being set", plugin->GetFilename());
+					mres = MRES_IGNORED;
+					dg->plugin_callback->GetParentRuntime()->GetDefaultContext()->ThrowNativeError("Tried to override return value without return value being set");
 				}
 			}
 			break;
 		default:
 			g_SHPtr->SetRes(MRES_IGNORED);
+			mres = MRES_IGNORED;
 			break;
 	}
 
-	HandleSecurity sec(dg->plugin_callback->GetParentContext()->GetIdentity(), myself->GetIdentity());
+	HandleSecurity sec(dg->plugin_callback->GetParentRuntime()->GetDefaultContext()->GetIdentity(), myself->GetIdentity());
 
 	if(returnStruct)
 	{
@@ -296,9 +327,163 @@ void *Callback(DHooksCallback *dg, void **argStack)
 		handlesys->FreeHandle(pHndl, &sec);
 	}
 
-	if(dg->returnType == ReturnType_Void || g_SHPtr->GetStatus() <= MRES_HANDLED)
+	if(dg->returnType == ReturnType_Void || mres <= MRES_HANDLED)
 	{
 		return NULL;
 	}
 	return ret;
+}
+#ifndef __linux__
+float Callback_float(DHooksCallback *dg, void **argStack, size_t *argsizep)
+#else
+void *Callback_float(DHooksCallback *dg, void **argStack)
+#endif
+{
+	HookReturnStruct *returnStruct = NULL;
+	HookParamsStruct *paramStruct = NULL;
+	Handle_t rHndl;
+	Handle_t pHndl;
+
+	#ifndef __linux__
+	*argsizep = GetStackArgsSize(dg);
+	#else
+	size_t argsize = GetStackArgsSize(dg);
+	#endif
+
+	if(dg->thisType == ThisPointer_CBaseEntity || dg->thisType == ThisPointer_Address)
+	{
+		dg->plugin_callback->PushCell(GetThisPtr(g_SHPtr->GetIfacePtr(), dg->thisType));
+	}
+
+	returnStruct = GetReturnStruct(dg, g_SHPtr->GetOrigRet());
+	rHndl = handlesys->CreateHandle(g_HookReturnHandle, returnStruct, dg->plugin_callback->GetParentRuntime()->GetDefaultContext()->GetIdentity(), myself->GetIdentity(), NULL);
+
+	if(!rHndl)
+	{
+		dg->plugin_callback->Cancel();
+		if(returnStruct)
+		{
+			delete returnStruct;
+		}
+		g_SHPtr->SetRes(MRES_IGNORED);
+		return NULL;
+	}
+	dg->plugin_callback->PushCell(rHndl);
+
+	#ifndef __linux__
+	if(*argsizep > 0)
+	{
+		paramStruct = GetParamStruct(dg, argStack, *argsizep);
+	#else
+	if(argsize > 0)
+	{
+		paramStruct = GetParamStruct(dg, argStack, argsize);
+	#endif
+		pHndl = handlesys->CreateHandle(g_HookParamsHandle, paramStruct, dg->plugin_callback->GetParentRuntime()->GetDefaultContext()->GetIdentity(), myself->GetIdentity(), NULL);
+		if(!pHndl)
+		{
+			dg->plugin_callback->Cancel();
+			if(returnStruct)
+			{
+				delete returnStruct;
+			}
+			if(paramStruct)
+			{
+				delete paramStruct;
+			}
+			g_SHPtr->SetRes(MRES_IGNORED);
+			return NULL;
+		}
+		dg->plugin_callback->PushCell(pHndl);
+	}
+	cell_t result = (cell_t)MRES_Ignored;
+	META_RES mres = MRES_IGNORED;
+	dg->plugin_callback->Execute(&result);
+
+	void *ret = g_SHPtr->GetOverrideRetPtr();
+	switch((MRESReturn)result)
+	{
+		case MRES_Handled:
+		case MRES_ChangedHandled:
+			g_SHPtr->DoRecall();
+			g_SHPtr->SetRes(MRES_SUPERCEDE);
+			mres = MRES_SUPERCEDE;
+			ret = CallVFunction(dg, paramStruct, g_SHPtr->GetIfacePtr());
+			break;
+		case MRES_ChangedOverride:
+			if(dg->returnType != ReturnType_Void)
+			{
+				if(returnStruct->isChanged)
+				{
+					*(float *)ret = *(float *)returnStruct->newResult;
+				}
+				else //Throw an error if no override was set
+				{
+					g_SHPtr->SetRes(MRES_IGNORED);
+					mres = MRES_IGNORED;
+					dg->plugin_callback->GetParentRuntime()->GetDefaultContext()->ThrowNativeError("Tried to override return value without return value being set");
+					break;
+				}
+			}
+			g_SHPtr->DoRecall();
+			g_SHPtr->SetRes(MRES_SUPERCEDE);
+			mres = MRES_SUPERCEDE;
+			CallVFunction(dg, paramStruct, g_SHPtr->GetIfacePtr());
+			break;
+		case MRES_Override:
+			if(dg->returnType != ReturnType_Void)
+			{
+				if(returnStruct->isChanged)
+				{
+					g_SHPtr->SetRes(MRES_OVERRIDE);
+					mres = MRES_OVERRIDE;
+					*(float *)ret = *(float *)returnStruct->newResult;
+				}
+				else //Throw an error if no override was set
+				{
+					g_SHPtr->SetRes(MRES_IGNORED);
+					mres = MRES_IGNORED;
+					dg->plugin_callback->GetParentRuntime()->GetDefaultContext()->ThrowNativeError("Tried to override return value without return value being set");
+				}
+			}
+			break;
+		case MRES_Supercede:
+			if(dg->returnType != ReturnType_Void)
+			{
+				if(returnStruct->isChanged)
+				{
+					g_SHPtr->SetRes(MRES_SUPERCEDE);
+					mres = MRES_SUPERCEDE;
+					*(float *)ret = *(float *)returnStruct->newResult;
+				}
+				else //Throw an error if no override was set
+				{
+					g_SHPtr->SetRes(MRES_IGNORED);
+					mres = MRES_IGNORED;
+					dg->plugin_callback->GetParentRuntime()->GetDefaultContext()->ThrowNativeError("Tried to override return value without return value being set");
+				}
+			}
+			break;
+		default:
+			g_SHPtr->SetRes(MRES_IGNORED);
+			mres = MRES_IGNORED;
+			break;
+	}
+
+	HandleSecurity sec(dg->plugin_callback->GetParentRuntime()->GetDefaultContext()->GetIdentity(), myself->GetIdentity());
+
+	if(returnStruct)
+	{
+		handlesys->FreeHandle(rHndl, &sec);
+	}
+	if(paramStruct)
+	{
+		handlesys->FreeHandle(pHndl, &sec);
+	}
+
+	if(dg->returnType == ReturnType_Void || mres <= MRES_HANDLED)
+	{
+		return NULL;
+	}
+	return *(float *)ret;
 }

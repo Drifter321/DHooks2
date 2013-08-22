@@ -51,9 +51,9 @@
 class DHooks : public SDKExtension, public ISMEntityListener, public IPluginsListener, public IHandleTypeDispatch
 {
 public:
-	void OnHandleDestroy(HandleType_t type, void *object);
+	virtual void OnHandleDestroy(HandleType_t type, void *object);
 public: //IPluginsListener
-	void OnPluginUnloaded(IPlugin *plugin);
+	virtual void OnPluginUnloaded(IPlugin *plugin);
 public:
 	/**
 	 * @brief This is called after the initial loading sequence has been processed.

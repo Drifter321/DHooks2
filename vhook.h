@@ -117,7 +117,7 @@ public:
 
 #ifndef __linux__
 void *Callback(DHooksCallback *dg, void **stack, size_t *argsizep);
-//float Callback_float(DHooksCallback *dg, void **stack, size_t *argsizep);
+float Callback_float(DHooksCallback *dg, void **stack, size_t *argsizep);
 #else
 void *Callback(DHooksCallback *dg, void **stack);
 float Callback_float(DHooksCallback *dg, void **stack);
@@ -137,9 +137,9 @@ static void *GenerateThunk(ReturnType type)
 	masm.lea(eax, Operand(ebp, 12));
 	masm.push(eax);
 	masm.push(Operand(ebp, 8));
-	/*if(type == ReturnType_Float)
+	if(type == ReturnType_Float)
 		masm.call(ExternalAddress((void *)Callback_float));
-	else*/
+	else
 		masm.call(ExternalAddress((void *)Callback));
 	masm.addl(esp, 8);
 	masm.pop(ebp);
@@ -161,9 +161,9 @@ static void *GenerateThunk(ReturnType type)
 	masm.lea(eax, Operand(ebp, 8));
 	masm.push(eax);
 	masm.push(ecx);
-	//if(type == ReturnType_Float)
-	//	masm.call(ExternalAddress(Callback_float));
-	//else
+	if(type == ReturnType_Float)
+		masm.call(ExternalAddress(Callback_float));
+	else
 		masm.call(ExternalAddress(Callback));
 	masm.addl(esp, 12);
 	masm.pop(ecx); // grab arg size
@@ -226,6 +226,10 @@ public:
 				{
 					delete (char *)this->newParams[i];
 				}
+				else if(dg->params.Element(i).type == HookParamType_Float)
+				{
+					delete (float *)this->newParams[i];
+				}
 			}
 			free(this->newParams);
 		}
@@ -277,6 +281,7 @@ public:
 		}
 	}
 public:
+	intptr_t addr;
 	int hookid;
 	DHooksCallback *callback;
 	IPluginFunction *remove_callback;

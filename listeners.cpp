@@ -5,11 +5,24 @@ using namespace SourceHook;
 
 CUtlVector<EntityListener> g_EntityListeners;
 
+void DHooksEntityListener::LevelShutdown()
+{
+	for(int i = g_pHooks.Count() -1; i >= 0; i--)
+	{
+		DHooksManager *manager = g_pHooks.Element(i);
+		if(manager->callback->hookType == HookType_GameRules)
+		{
+			delete manager;
+			g_pHooks.Remove(i);
+		}
+	}
+}
+
 void DHooksEntityListener::CleanupListeners(IPluginContext *pContext)
 {
 	for(int i = g_EntityListeners.Count() -1; i >= 0; i--)
 	{
-		if(pContext == NULL || pContext == g_EntityListeners.Element(i).callback->GetParentContext())
+		if(pContext == NULL || pContext == g_EntityListeners.Element(i).callback->GetParentRuntime()->GetDefaultContext())
 		{
 			g_EntityListeners.Remove(i);
 		}

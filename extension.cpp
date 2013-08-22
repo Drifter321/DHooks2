@@ -11,11 +11,11 @@ ISDKHooks *g_pSDKHooks;
 ISDKTools *g_pSDKTools;
 DHooksEntityListener *g_pEntityListener = NULL;
 
-bool g_bAllowGamerules = true;
-
 HandleType_t g_HookSetupHandle = 0;
 HandleType_t g_HookParamsHandle = 0;
 HandleType_t g_HookReturnHandle = 0;
+
+SH_DECL_HOOK0_void(IServerGameDLL, LevelShutdown, SH_NOATTRIB, false);
 
 bool DHooks::SDK_OnLoad(char *error, size_t maxlength, bool late)
 {
@@ -47,6 +47,10 @@ bool DHooks::SDK_OnLoad(char *error, size_t maxlength, bool late)
 	plsys->AddPluginsListener(this);
 	sharesys->AddNatives(myself, g_Natives);
 
+	g_pEntityListener = new DHooksEntityListener();
+
+	SH_ADD_HOOK_MEMFUNC(IServerGameDLL, LevelShutdown, gamedll, g_pEntityListener, &DHooksEntityListener::LevelShutdown, false);
+
 	return true;
 }
 
@@ -69,18 +73,9 @@ void DHooks::OnHandleDestroy(HandleType_t type, void *object)
 void DHooks::SDK_OnAllLoaded()
 {
 	SM_GET_LATE_IFACE(SDKTOOLS, g_pSDKTools);
-
-	if(g_pSDKTools->GetInterfaceVersion() < 2)
-	{
-		//<psychonic> THIS ISN'T DA LIMBO STICK. LOW IS BAD
-		g_bAllowGamerules = false;
-		smutils->LogError(myself, "SDKTools interface is outdated. DHookGamerules native disabled.");
-	}
-
 	SM_GET_LATE_IFACE(BINTOOLS, g_pBinTools);
 	SM_GET_LATE_IFACE(SDKHOOKS, g_pSDKHooks);
 
-	g_pEntityListener = new DHooksEntityListener();
 	g_pSDKHooks->AddEntityListener(g_pEntityListener);
 }
 
@@ -91,6 +86,7 @@ void DHooks::SDK_OnUnload()
 	{
 		g_pEntityListener->CleanupListeners(NULL);
 		g_pSDKHooks->RemoveEntityListener(g_pEntityListener);
+		SH_REMOVE_HOOK_MEMFUNC(IServerGameDLL, LevelShutdown, gamedll, g_pEntityListener, &DHooksEntityListener::LevelShutdown, false);
 		delete g_pEntityListener;
 	}
 	plsys->RemovePluginsListener(this);

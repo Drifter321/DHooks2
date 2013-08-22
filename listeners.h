@@ -7,9 +7,10 @@
 class DHooksEntityListener : public ISMEntityListener
 {
 public:
-	void OnEntityCreated(CBaseEntity *pEntity, const char *classname);
-	void OnEntityDestroyed(CBaseEntity *pEntity);
+	virtual void OnEntityCreated(CBaseEntity *pEntity, const char *classname);
+	virtual void OnEntityDestroyed(CBaseEntity *pEntity);
 	void CleanupListeners(IPluginContext *func);
+	virtual void LevelShutdown();
 };
 
 enum ListenType

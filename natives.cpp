@@ -36,7 +36,7 @@ cell_t Native_CreateHook(IPluginContext *pContext, const cell_t *params)
 
 	return hndl;
 }
-//native bool:DHookAddParam(Handle:setup, HookParamType:type);
+//native bool:DHookAddParam(Handle:setup, HookParamType:type); OLD
 //native bool:DHookAddParam(Handle:setup, HookParamType:type, size=-1, flag=-1);
 cell_t Native_AddParam(IPluginContext *pContext, const cell_t *params)
 {
@@ -121,8 +121,124 @@ cell_t Native_HookEntity(IPluginContext *pContext, const cell_t *params)
 
 	return manager->hookid;
 }
-/*cell_t Native_HookGamerules(IPluginContext *pContext, const cell_t *params);
-cell_t Native_RemoveHookID(IPluginContext *pContext, const cell_t *params);*/
+// native DHookGamerules(Handle:setup, bool:post, DHookRemovalCB:removalcb);
+cell_t Native_HookGamerules(IPluginContext *pContext, const cell_t *params)
+{
+	if(params[1] == BAD_HANDLE)
+	{
+		return pContext->ThrowNativeError("Invalid Handle %i", BAD_HANDLE);
+	}
+
+	HandleError err;
+	HandleSecurity sec(pContext->GetIdentity(), myself->GetIdentity());
+	HookSetup *setup;
+
+	if((err = handlesys->ReadHandle(params[1], g_HookSetupHandle, &sec, (void **)&setup)) != HandleError_None)
+	{
+		return pContext->ThrowNativeError("Invalid Handle %x (error %d)", params[1], err);
+	}
+	if(setup->hookType != HookType_GameRules)
+	{
+		return pContext->ThrowNativeError("Hook is not a gamerules hook");
+	}
+
+	bool post = params[2] != 0;
+
+	for(int i = g_pHooks.Count() -1; i >= 0; i--)
+	{
+		DHooksManager *manager = g_pHooks.Element(i);
+		if(manager->callback->hookType == HookType_GameRules && manager->callback->offset == setup->offset && manager->callback->post == post && manager->remove_callback == pContext->GetFunctionById(params[3]) && manager->callback->plugin_callback == setup->callback)
+		{
+			return manager->hookid;
+		}
+	}
+
+	void *rules = g_pSDKTools->GetGameRules();
+
+	if(!rules)
+	{
+		return pContext->ThrowNativeError("Could not get game rules pointer");
+	}
+
+	DHooksManager *manager = new DHooksManager(setup, rules, pContext->GetFunctionById(params[3]), post);
+
+	if(!manager->hookid)
+	{
+		delete manager;
+		return 0;
+	}
+
+	g_pHooks.AddToTail(manager);
+
+	return manager->hookid;
+}
+// DHookRaw(Handle:setup, bool:post, Address:addr, DHookRemovalCB:removalcb);
+cell_t Native_HookRaw(IPluginContext *pContext, const cell_t *params)
+{
+	if(params[1] == BAD_HANDLE)
+	{
+		return pContext->ThrowNativeError("Invalid Handle %i", BAD_HANDLE);
+	}
+
+	HandleError err;
+	HandleSecurity sec(pContext->GetIdentity(), myself->GetIdentity());
+	HookSetup *setup;
+
+	if((err = handlesys->ReadHandle(params[1], g_HookSetupHandle, &sec, (void **)&setup)) != HandleError_None)
+	{
+		return pContext->ThrowNativeError("Invalid Handle %x (error %d)", params[1], err);
+	}
+	if(setup->hookType != HookType_Raw)
+	{
+		return pContext->ThrowNativeError("Hook is not a gamerules hook");
+	}
+
+	bool post = params[2] != 0;
+
+	for(int i = g_pHooks.Count() -1; i >= 0; i--)
+	{
+		DHooksManager *manager = g_pHooks.Element(i);
+		if(manager->callback->hookType == HookType_Raw && manager->callback->offset == setup->offset && manager->callback->post == post && manager->remove_callback == pContext->GetFunctionById(params[3]) && manager->callback->plugin_callback == setup->callback)
+		{
+			return manager->hookid;
+		}
+	}
+
+	void *iface = (void *)(params[3]);
+
+	if(!iface)
+	{
+		return pContext->ThrowNativeError("Invalid address passed");
+	}
+
+	DHooksManager *manager = new DHooksManager(setup, iface, pContext->GetFunctionById(params[3]), post);
+
+	if(!manager->hookid)
+	{
+		delete manager;
+		return 0;
+	}
+
+	g_pHooks.AddToTail(manager);
+
+	return manager->hookid;
+}
+// native bool:DHookRemoveHookID(hookid);
+cell_t Native_RemoveHookID(IPluginContext *pContext, const cell_t *params)
+{
+	for(int i = g_pHooks.Count() -1; i >= 0; i--)
+	{
+		DHooksManager *manager = g_pHooks.Element(i);
+		if(manager->hookid == params[1] && manager->callback->plugin_callback->GetParentRuntime()->GetDefaultContext() == pContext)
+		{
+			delete manager;
+			g_pHooks.Remove(i);
+			return 1;
+		}
+	}
+	return 0;
+}
+// native any:DHookGetParam(Handle:hParams, num);
 cell_t Native_GetParam(IPluginContext *pContext, const cell_t *params)
 {
 	if(params[1] == BAD_HANDLE)
@@ -172,6 +288,71 @@ cell_t Native_GetParam(IPluginContext *pContext, const cell_t *params)
 
 	return 1;
 }
+
+// native DHookSetParam(Handle:hParams, param, any:value)
+cell_t Native_SetParam(IPluginContext *pContext, const cell_t *params)
+{
+	if(params[1] == BAD_HANDLE)
+	{
+		return pContext->ThrowNativeError("Invalid Handle %i", BAD_HANDLE);
+	}
+
+	HandleError err;
+	HandleSecurity sec(pContext->GetIdentity(), myself->GetIdentity());
+	HookParamsStruct *paramStruct;
+	if((err = handlesys->ReadHandle(params[1], g_HookParamsHandle, &sec, (void **)&paramStruct)) != HandleError_None)
+	{
+		return pContext->ThrowNativeError("Invalid Handle %x (error %d)", params[1], err);
+	}
+
+	if(params[2] <= 0 || params[2] > paramStruct->dg->params.Count())
+	{
+		return pContext->ThrowNativeError("Invalid param number %i max params is %i", params[2], paramStruct->dg->params.Count());
+	}
+
+	int index = params[2] - 1;
+
+	switch(paramStruct->dg->params.Element(index).type)
+	{
+		case HookParamType_Int:
+			paramStruct->newParams[index] = (void *)params[3];
+			break;
+		case HookParamType_Bool:
+			paramStruct->newParams[index] = (void *)(params[3] ? 1 : 0);
+			break;
+		case HookParamType_CBaseEntity:
+		{
+			CBaseEntity *pEnt = UTIL_GetCBaseEntity(params[2]);
+			if(!pEnt)
+			{
+				return pContext->ThrowNativeError("Invalid entity index passed for param value");
+			}
+			paramStruct->newParams[index] = pEnt;
+			break;
+		}
+		case HookParamType_Edict:
+		{
+			edict_t *pEdict = gamehelpers->EdictOfIndex(params[2]);
+			if(!pEdict || pEdict->IsFree())
+			{
+				pContext->ThrowNativeError("Invalid entity index passed for param value");
+			}
+			paramStruct->newParams[index] = pEdict;
+			break;
+		}
+		case HookParamType_Float:
+			paramStruct->newParams[index] = new float;
+			*(float *)paramStruct->newParams[index] = sp_ctof(params[3]);
+			break;
+		default:
+			return pContext->ThrowNativeError("Invalid param type (%i) to set", paramStruct->dg->params.Element(index).type);
+	}
+
+	paramStruct->isChanged[index] = true;
+	return 1;
+}
+
+// native any:DHookGetReturn(Handle:hReturn);
 cell_t Native_GetReturn(IPluginContext *pContext, const cell_t *params)
 {
 	if(params[1] == BAD_HANDLE)
@@ -205,6 +386,7 @@ cell_t Native_GetReturn(IPluginContext *pContext, const cell_t *params)
 	}
 	return 1;
 }
+// native DHookSetReturn(Handle:hReturn, any:value)
 cell_t Native_SetReturn(IPluginContext *pContext, const cell_t *params)
 {
 	if(params[1] == BAD_HANDLE)
@@ -258,11 +440,12 @@ cell_t Native_SetReturn(IPluginContext *pContext, const cell_t *params)
 	returnStruct->isChanged = true;
 	return 1;
 }
-/*cell_t Native_SetParam(IPluginContext *pContext, const cell_t *params);
-cell_t Native_GetParamVector(IPluginContext *pContext, const cell_t *params);
+/*cell_t Native_GetParamVector(IPluginContext *pContext, const cell_t *params);
 cell_t Native_GetReturnVector(IPluginContext *pContext, const cell_t *params);
 cell_t Native_SetReturnVector(IPluginContext *pContext, const cell_t *params);
 cell_t Native_SetParamVector(IPluginContext *pContext, const cell_t *params);*/
+
+// native DHookGetParamString(Handle:hParams, num, String:buffer[], size)
 cell_t Native_GetParamString(IPluginContext *pContext, const cell_t *params)
 {
 	if(params[1] == BAD_HANDLE)
@@ -327,7 +510,7 @@ cell_t Native_SetParamString(IPluginContext *pContext, const cell_t *params)
 
 	if(paramStruct->dg->params.Element(index).type == HookParamType_CharPtr)
 	{
-		if(paramStruct->newParams[index] != NULL)
+		if((char *)paramStruct->newParams[index] != NULL && paramStruct->isChanged[index])
 			delete (char *)paramStruct->newParams[index];
 
 		paramStruct->newParams[index] = new char[strlen(value)+1];
@@ -342,14 +525,14 @@ sp_nativeinfo_t g_Natives[] =
 	{"DHookCreate",							Native_CreateHook},
 	{"DHookAddParam",						Native_AddParam},
 	{"DHookEntity",							Native_HookEntity},
-	/*{"DHookGamerules",						Native_HookGamerules},
+	{"DHookGamerules",						Native_HookGamerules},
 	{"DHookRaw",							Native_HookRaw},
-	{"DHookRemoveHookID",					Native_RemoveHookID},*/
+	{"DHookRemoveHookID",					Native_RemoveHookID},
 	{"DHookGetParam",						Native_GetParam},
 	{"DHookGetReturn",						Native_GetReturn},
 	{"DHookSetReturn",						Native_SetReturn},
-	/*{"DHookSetParam",						Native_SetParam},
-	{"DHookGetParamVector",					Native_GetParamVector},
+	{"DHookSetParam",						Native_SetParam},
+	/*{"DHookGetParamVector",					Native_GetParamVector},
 	{"DHookGetReturnVector",				Native_GetReturnVector},
 	{"DHookSetReturnVector",				Native_SetReturnVector},
 	{"DHookSetParamVector",					Native_SetParamVector},*/
