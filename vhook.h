@@ -74,7 +74,21 @@ class HookReturnStruct
 public:
 	~HookReturnStruct()
 	{
-		free(this->newResult);
+		if(this->type != ReturnType_CharPtr && this->type != ReturnType_StringPtr)
+		{
+			free(this->newResult);
+		}
+		else if(this->isChanged)
+		{
+			if(this->type != ReturnType_CharPtr)
+			{
+				delete *(char **)this->newResult;
+			}
+			else if(this->type != ReturnType_StringPtr)
+			{
+				delete *(string_t **)this->newResult;
+			}
+		}
 		free(this->orgResult);
 	}
 public:

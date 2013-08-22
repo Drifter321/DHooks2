@@ -125,12 +125,18 @@ HookReturnStruct *GetReturnStruct(DHooksCallback *dg, const void *result)
 	res->type = dg->returnType;
 	res->newResult = malloc(sizeof(void *));
 	res->orgResult = malloc(sizeof(void *));
+	if(dg->returnType != ReturnType_CharPtr && dg->returnType != ReturnType_StringPtr)
+	{
+		res->newResult = malloc(sizeof(void *));
+	}
 
 	if(result && dg->post)
 	{
 		switch(dg->returnType)
 		{
-			//ReturnType_String,
+			case ReturnType_String:
+				*(string_t *)res->orgResult = *(string_t *)res->orgResult;
+				break;
 			//ReturnType_Vector,
 			case ReturnType_Int:
 				*(int *)res->orgResult = *(int *)result;
@@ -150,7 +156,9 @@ HookReturnStruct *GetReturnStruct(DHooksCallback *dg, const void *result)
 	{
 		switch(dg->returnType)
 		{
-			//ReturnType_String,
+			case ReturnType_String:
+				*(string_t *)res->orgResult = NULL_STRING;
+				break;
 			//ReturnType_Vector,
 			case ReturnType_Int:
 				*(int *)res->orgResult = 0;

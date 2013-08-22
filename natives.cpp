@@ -376,9 +376,9 @@ cell_t Native_GetReturn(IPluginContext *pContext, const cell_t *params)
 		case ReturnType_Bool:
 			return *(bool *)returnStruct->orgResult? 1 : 0;
 		case ReturnType_CBaseEntity:
-			return gamehelpers->EntityToBCompatRef((CBaseEntity *)returnStruct->orgResult);
+			return gamehelpers->EntityToBCompatRef(*(CBaseEntity **)returnStruct->orgResult);
 		case ReturnType_Edict:
-			return gamehelpers->IndexOfEdict((edict_t *)returnStruct->orgResult);
+			return gamehelpers->IndexOfEdict(*(edict_t **)returnStruct->orgResult);
 		case ReturnType_Float:
 			return sp_ftoc(*(float *)returnStruct->orgResult);
 		default:
@@ -479,8 +479,75 @@ cell_t Native_GetParamString(IPluginContext *pContext, const cell_t *params)
 
 	return 1;
 }
-//cell_t Native_GetReturnString(IPluginContext *pContext, const cell_t *params);
-//cell_t Native_SetReturnString(IPluginContext *pContext, const cell_t *params);
+cell_t Native_GetReturnString(IPluginContext *pContext, const cell_t *params)
+{
+	if(params[1] == BAD_HANDLE)
+	{
+		return pContext->ThrowNativeError("Invalid Handle %i", BAD_HANDLE);
+	}
+
+	HandleError err;
+	HandleSecurity sec(pContext->GetIdentity(), myself->GetIdentity());
+	HookReturnStruct *returnStruct;
+
+	if((err = handlesys->ReadHandle(params[1], g_HookReturnHandle, &sec, (void **)&returnStruct)) != HandleError_None)
+	{
+		return pContext->ThrowNativeError("Invalid Handle %x (error %d)", params[1], err);
+	}
+
+	switch(returnStruct->type)
+	{
+		case ReturnType_String:
+			pContext->StringToLocal(params[2], params[3], (*(string_t *)returnStruct->orgResult == NULL_STRING) ? "" : STRING(*(string_t *)returnStruct->orgResult));
+			return 1;
+		case ReturnType_StringPtr:
+			pContext->StringToLocal(params[2], params[3], (*(string_t **)returnStruct->orgResult == NULL) ? "" : (*(string_t **)returnStruct->orgResult)->ToCStr());
+			return 1;
+		case ReturnType_CharPtr:
+			pContext->StringToLocal(params[2], params[3], (*(char **)returnStruct->orgResult == NULL) ? "" : *(const char **)returnStruct->orgResult);
+			return 1;
+		default:
+			return pContext->ThrowNativeError("Invalid param type to get. Param is not a string.");
+	}
+}
+cell_t Native_SetReturnString(IPluginContext *pContext, const cell_t *params)
+{
+	if(params[1] == BAD_HANDLE)
+	{
+		return pContext->ThrowNativeError("Invalid Handle %i", BAD_HANDLE);
+	}
+
+	HandleError err;
+	HandleSecurity sec(pContext->GetIdentity(), myself->GetIdentity());
+	HookReturnStruct *returnStruct;
+
+	if((err = handlesys->ReadHandle(params[1], g_HookReturnHandle, &sec, (void **)&returnStruct)) != HandleError_None)
+	{
+		return pContext->ThrowNativeError("Invalid Handle %x (error %d)", params[1], err);
+	}
+
+	char *value;
+	pContext->LocalToString(params[2], &value);
+
+	switch(returnStruct->type)
+	{
+		case ReturnType_String:
+			*(string_t *)returnStruct->newResult = MAKE_STRING(value);
+			returnStruct->isChanged = true;
+			return 1;
+		case ReturnType_StringPtr:
+			*(string_t **)returnStruct->newResult = new string_t(MAKE_STRING(value));
+			returnStruct->isChanged = true;
+			return 1;
+		case ReturnType_CharPtr:
+			*(char **)returnStruct->newResult = new char[strlen(value)+1];
+			strcpy(*(char **)returnStruct->newResult, value);
+			returnStruct->isChanged = true;
+			return 1;
+		default:
+			return pContext->ThrowNativeError("Invalid param type to get. Param is not a string.");
+	}
+}
 
 //native DHookSetParamString(Handle:hParams, num, String:value[])
 cell_t Native_SetParamString(IPluginContext *pContext, const cell_t *params)
@@ -590,8 +657,8 @@ sp_nativeinfo_t g_Natives[] =
 	{"DHookSetReturnVector",				Native_SetReturnVector},
 	{"DHookSetParamVector",					Native_SetParamVector},*/
 	{"DHookGetParamString",					Native_GetParamString},
-	//{"DHookGetReturnString",				Native_GetReturnString},
-	//{"DHookSetReturnString",				Native_SetReturnString},
+	{"DHookGetReturnString",				Native_GetReturnString},
+	{"DHookSetReturnString",				Native_SetReturnString},
 	{"DHookSetParamString",					Native_SetParamString},
 	{"DHookAddEntityListener",				Native_AddEntityListener},
 	{"DHookRemoveEntityListener",			Native_RemoveEntityListener},
