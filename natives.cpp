@@ -26,7 +26,7 @@ bool GetHandleIfValidOrError(HandleType_t type, void **object, IPluginContext *p
 	HandleError err;
 	HandleSecurity sec(pContext->GetIdentity(), myself->GetIdentity());
 
-	if((err = handlesys->ReadHandle(param, g_HookSetupHandle, &sec, object)) != HandleError_None)
+	if((err = handlesys->ReadHandle(param, type, &sec, object)) != HandleError_None)
 	{
 		return pContext->ThrowNativeError("Invalid Handle %x (error %d)", param, err) != 0;
 	}

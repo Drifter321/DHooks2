@@ -45,13 +45,17 @@ DHooksManager::DHooksManager(HookSetup *setup, void *iface, IPluginFunction *rem
 	{
 		protoInfo.SetReturnType(0, SourceHook::PassInfo::PassType_Unknown, 0, NULL, NULL, NULL, NULL);
 	}
-	else if(this->callback->returnType != ReturnType_Float)
+	else if(this->callback->returnType == ReturnType_Float)
 	{
-		protoInfo.SetReturnType(sizeof(void *), SourceHook::PassInfo::PassType_Basic, setup->returnFlag, NULL, NULL, NULL, NULL);
+		protoInfo.SetReturnType(sizeof(void *), SourceHook::PassInfo::PassType_Float, setup->returnFlag, NULL, NULL, NULL, NULL);
+	}
+	else if(this->callback->returnType == ReturnType_String)
+	{
+		protoInfo.SetReturnType(sizeof(void *), SourceHook::PassInfo::PassType_Object, setup->returnFlag, NULL, NULL, NULL, NULL);
 	}
 	else
 	{
-		protoInfo.SetReturnType(sizeof(void *), SourceHook::PassInfo::PassType_Float, setup->returnFlag, NULL, NULL, NULL, NULL);
+		protoInfo.SetReturnType(sizeof(void *), SourceHook::PassInfo::PassType_Basic, setup->returnFlag, NULL, NULL, NULL, NULL);
 	}
 	HookManagerPubFunc hook = g_pHookManager->MakeHookMan(protoInfo, 0, this->callback->offset);
 
@@ -135,7 +139,7 @@ HookReturnStruct *GetReturnStruct(DHooksCallback *dg, const void *result)
 		switch(dg->returnType)
 		{
 			case ReturnType_String:
-				*(string_t *)res->orgResult = *(string_t *)res->orgResult;
+				*(string_t *)res->orgResult = *(string_t *)result;
 				break;
 			//ReturnType_Vector,
 			case ReturnType_Int:
