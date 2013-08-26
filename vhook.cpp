@@ -122,37 +122,33 @@ HookParamsStruct *GetParamStruct(DHooksCallback *dg, void **argStack, size_t arg
 	}
 	return params;
 }
-HookReturnStruct *GetReturnStruct(DHooksCallback *dg, const void *result)
+HookReturnStruct *GetReturnStruct(DHooksCallback *dg)
 {
 	HookReturnStruct *res = new HookReturnStruct();
 	res->isChanged = false;
 	res->type = dg->returnType;
 	res->newResult = malloc(sizeof(void *));
 	res->orgResult = malloc(sizeof(void *));
-	if(dg->returnType != ReturnType_CharPtr && dg->returnType != ReturnType_StringPtr)
-	{
-		res->newResult = malloc(sizeof(void *));
-	}
 
-	if(result && dg->post)
+	if(g_SHPtr->GetOrigRet() && dg->post)
 	{
 		switch(dg->returnType)
 		{
 			case ReturnType_String:
-				*(string_t *)res->orgResult = *(string_t *)result;
+				*(string_t *)res->orgResult = META_RESULT_ORIG_RET(string_t);
 				break;
 			//ReturnType_Vector,
 			case ReturnType_Int:
-				*(int *)res->orgResult = *(int *)result;
+				*(int *)res->orgResult = META_RESULT_ORIG_RET(int);
 				break;
 			case ReturnType_Bool:
-				*(bool *)res->orgResult = *(bool *)result;
+				*(bool *)res->orgResult = META_RESULT_ORIG_RET(bool);
 				break;
 			case ReturnType_Float:
-				*(float *)res->orgResult = *(float *)result;
+				*(float *)res->orgResult = META_RESULT_ORIG_RET(float);
 				break;
 			default:
-				*(void **)res->orgResult = (void *)result;
+				*(void **)res->orgResult = META_RESULT_ORIG_RET(void *);
 				break;
 		}
 	}
@@ -214,7 +210,7 @@ void *Callback(DHooksCallback *dg, void **argStack)
 	}
 	if(dg->returnType != ReturnType_Void)
 	{
-		returnStruct = GetReturnStruct(dg, g_SHPtr->GetOrigRet());
+		returnStruct = GetReturnStruct(dg);
 		rHndl = handlesys->CreateHandle(g_HookReturnHandle, returnStruct, dg->plugin_callback->GetParentRuntime()->GetDefaultContext()->GetIdentity(), myself->GetIdentity(), NULL);
 		if(!rHndl)
 		{
@@ -369,7 +365,7 @@ void *Callback_float(DHooksCallback *dg, void **argStack)
 		dg->plugin_callback->PushCell(GetThisPtr(g_SHPtr->GetIfacePtr(), dg->thisType));
 	}
 
-	returnStruct = GetReturnStruct(dg, g_SHPtr->GetOrigRet());
+	returnStruct = GetReturnStruct(dg);
 	rHndl = handlesys->CreateHandle(g_HookReturnHandle, returnStruct, dg->plugin_callback->GetParentRuntime()->GetDefaultContext()->GetIdentity(), myself->GetIdentity(), NULL);
 
 	if(!rHndl)
