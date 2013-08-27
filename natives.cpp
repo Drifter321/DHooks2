@@ -1,4 +1,13 @@
 #include "natives.h"
+#include <isaverestore.h>
+
+#ifndef _DEBUG
+#include <ehandle.h>
+#else
+#undef _DEBUG
+#include <ehandle.h>
+#define _DEBUG 1
+#endif
 
 CBaseEntity *UTIL_GetCBaseEntity(int num)
 {
@@ -32,6 +41,17 @@ bool GetHandleIfValidOrError(HandleType_t type, void **object, IPluginContext *p
 	}
 	return true;
 }
+
+intptr_t GetObjectAddr(HookParamType type, void **params, int index)
+{
+	if(type == HookParamType_Object)
+		return (intptr_t)&params[index];
+	else if(type == HookParamType_ObjectPtr)
+		return (intptr_t)params[index];
+
+	return 0;
+}
+
 //native Handle:DHookCreate(offset, HookType:hooktype, ReturnType:returntype, ThisPointerType:thistype, DHookCallback:callback);
 cell_t Native_CreateHook(IPluginContext *pContext, const cell_t *params)
 {
@@ -53,7 +73,7 @@ cell_t Native_CreateHook(IPluginContext *pContext, const cell_t *params)
 	return hndl;
 }
 //native bool:DHookAddParam(Handle:setup, HookParamType:type); OLD
-//native DHookAddParam(Handle:setup, HookParamType:type, size=-1, DHookPassFlag:flag=DHookPass_ByVal);
+//native bool:DHookAddParam(Handle:setup, HookParamType:type, size=-1, DHookPassFlag:flag=DHookPass_ByVal);
 cell_t Native_AddParam(IPluginContext *pContext, const cell_t *params)
 {
 	HookSetup *setup;
@@ -617,6 +637,319 @@ cell_t Native_RemoveEntityListener(IPluginContext *pContext, const cell_t *param
 	return pContext->ThrowNativeError("Failed to get g_pEntityListener");
 }
 
+//native any:DHookGetParamObjectPtrVar(Handle:hParams, num, offset, ObjectValueType:type);
+cell_t Native_GetParamObjectPtrVar(IPluginContext *pContext, const cell_t *params)
+{
+	HookParamsStruct *paramStruct;
+
+	if(!GetHandleIfValidOrError(g_HookParamsHandle, (void **)&paramStruct, pContext, params[1]))
+	{
+		return 0;
+	}
+
+	if(params[2] <= 0 || params[2] > paramStruct->dg->params.Count())
+	{
+		return pContext->ThrowNativeError("Invalid param number %i max params is %i", params[2], paramStruct->dg->params.Count());
+	}
+
+	int index = params[2] - 1;
+
+	if(paramStruct->dg->params.Element(index).type != HookParamType_ObjectPtr && paramStruct->dg->params.Element(index).type != HookParamType_Object)
+	{
+		return pContext->ThrowNativeError("Invalid object value type %i", paramStruct->dg->params.Element(index).type);
+	}
+	
+	intptr_t addr = GetObjectAddr(paramStruct->dg->params.Element(index).type, paramStruct->orgParams, index);
+
+	switch((ObjectValueType)params[4])
+	{
+		case ObjectValueType_Int:
+		{
+			return *(int *)(addr + params[3]);
+		}
+		case ObjectValueType_Bool:
+			return *(bool *)(addr + params[3]) ? 1 : 0;
+		case ObjectValueType_Ehandle:
+		{
+			EHANDLE hEntity = *(EHANDLE *)(addr + params[3]);
+			return hEntity.IsValid()?hEntity.GetEntryIndex():-1;
+		}
+		case ObjectValueType_Float:
+			return sp_ftoc(*(float *)(addr + params[3]));
+		case ObjectValueType_CBaseEntityPtr:
+			return gamehelpers->EntityToBCompatRef(*(CBaseEntity **)(addr + params[3]));
+		case ObjectValueType_IntPtr:
+		{
+			int *ptr = *(int **)(addr + params[3]);
+			return *ptr;
+		}
+		case ObjectValueType_BoolPtr:
+		{
+			bool *ptr = *(bool **)(addr + params[3]);
+			return *ptr ? 1 : 0;
+		}
+		case ObjectValueType_EhandlePtr:
+		{
+			EHANDLE *hEntity = *(EHANDLE **)(addr + params[3]);
+			return hEntity->IsValid()?hEntity->GetEntryIndex():-1;
+		}
+		case ObjectValueType_FloatPtr:
+		{
+			float *ptr = *(float **)(addr + params[3]);
+			return sp_ftoc(*ptr);
+		}
+		default:
+			return pContext->ThrowNativeError("Invalid Object value type");
+	}
+}
+
+//native DHookSetParamObjectPtrVar(Handle:hParams, num, offset, ObjectValueType:type, value)
+cell_t Native_SetParamObjectPtrVar(IPluginContext *pContext, const cell_t *params)
+{
+	HookParamsStruct *paramStruct;
+
+	if(!GetHandleIfValidOrError(g_HookParamsHandle, (void **)&paramStruct, pContext, params[1]))
+	{
+		return 0;
+	}
+
+	if(params[2] <= 0 || params[2] > paramStruct->dg->params.Count())
+	{
+		return pContext->ThrowNativeError("Invalid param number %i max params is %i", params[2], paramStruct->dg->params.Count());
+	}
+
+	int index = params[2] - 1;
+
+	if(paramStruct->dg->params.Element(index).type != HookParamType_ObjectPtr)
+	{
+		return pContext->ThrowNativeError("Invalid object value type %i", paramStruct->dg->params.Element(index).type);
+	}
+	
+	intptr_t addr = GetObjectAddr(paramStruct->dg->params.Element(index).type, paramStruct->orgParams, index);
+
+	switch((ObjectValueType)params[4])
+	{
+		case ObjectValueType_Int:
+			*(int *)(addr + params[3]) = params[5];
+			break;
+		case ObjectValueType_Bool:
+			*(bool *)(addr + params[3]) = params[5] != 0;
+			break;
+		case ObjectValueType_Ehandle:
+		{
+			CBaseEntity *pEnt = UTIL_GetCBaseEntity(params[5]);
+
+			if(!pEnt)
+			{
+				return pContext->ThrowNativeError("Invalid entity passed");
+			}
+
+			*(EHANDLE *)(addr + params[3]) = pEnt;
+			break;
+		}
+		case ObjectValueType_Float:
+			*(float *)(addr + params[3]) = sp_ctof(params[5]);
+			break;
+		case ObjectValueType_CBaseEntityPtr:
+		{
+			CBaseEntity *pEnt = UTIL_GetCBaseEntity(params[5]);
+
+			if(!pEnt)
+			{
+				return pContext->ThrowNativeError("Invalid entity passed");
+			}
+
+			*(CBaseEntity **)(addr + params[3]) = pEnt;
+			break;
+		}
+		case ObjectValueType_IntPtr:
+		{
+			int *ptr = *(int **)(addr + params[3]);
+			*ptr = params[5];
+			break;
+		}
+		case ObjectValueType_BoolPtr:
+		{
+			bool *ptr = *(bool **)(addr + params[3]);
+			*ptr = params[5] != 0;
+			break;
+		}
+		case ObjectValueType_EhandlePtr:
+		{
+			CBaseEntity *pEnt = UTIL_GetCBaseEntity(params[5]);
+
+			if(!pEnt)
+			{
+				return pContext->ThrowNativeError("Invalid entity passed");
+			}
+
+			EHANDLE *hEntity = *(EHANDLE **)(addr + params[3]);
+			*hEntity = pEnt;
+			break;
+		}
+		case ObjectValueType_FloatPtr:
+		{
+			float *ptr = *(float **)(addr + params[3]);
+			*ptr = sp_ctof(params[5]);
+			break;
+		}
+		default:
+			return pContext->ThrowNativeError("Invalid Object value type");
+	}
+	return 1;
+}
+
+//native DHookGetParamObjectPtrVarVector(Handle:hParams, num, offset, ObjectValueType:type, Float:buffer[3]);
+cell_t Native_GetParamObjectPtrVarVector(IPluginContext *pContext, const cell_t *params)
+{
+	HookParamsStruct *paramStruct;
+
+	if(!GetHandleIfValidOrError(g_HookParamsHandle, (void **)&paramStruct, pContext, params[1]))
+	{
+		return 0;
+	}
+
+	if(params[2] <= 0 || params[2] > paramStruct->dg->params.Count())
+	{
+		return pContext->ThrowNativeError("Invalid param number %i max params is %i", params[2], paramStruct->dg->params.Count());
+	}
+
+	int index = params[2] - 1;
+
+	if(paramStruct->dg->params.Element(index).type != HookParamType_ObjectPtr && paramStruct->dg->params.Element(index).type != HookParamType_Object)
+	{
+		return pContext->ThrowNativeError("Invalid object value type %i", paramStruct->dg->params.Element(index).type);
+	}
+
+	intptr_t addr = GetObjectAddr(paramStruct->dg->params.Element(index).type, paramStruct->orgParams, index);
+
+	cell_t *buffer;
+	pContext->LocalToPhysAddr(params[5], &buffer);
+
+	if((ObjectValueType)params[4] == ObjectValueType_VectorPtr)
+	{
+		Vector *vec = *(Vector **)(addr + params[3]);
+		if(vec == NULL)
+		{
+			return pContext->ThrowNativeError("Trying to get value for null pointer.");
+		}
+		else
+		{
+			buffer[0] = sp_ftoc(vec->x);
+			buffer[1] = sp_ftoc(vec->y);
+			buffer[2] = sp_ftoc(vec->z);
+			return 1;
+		}
+	}
+	else if((ObjectValueType)params[4] == ObjectValueType_Vector)
+	{
+		Vector vec = *(Vector *)(addr + params[3]);
+		buffer[0] = sp_ftoc(vec.x);
+		buffer[1] = sp_ftoc(vec.y);
+		buffer[2] = sp_ftoc(vec.z);
+		return 1;
+	}
+	else
+	{
+		return pContext->ThrowNativeError("Invalid Object value type (not a type of vector)");
+	}
+}
+
+//native DHookSetParamObjectPtrVarVector(Handle:hParams, num, offset, ObjectValueType:type, Float:value[3]);
+cell_t Native_SetParamObjectPtrVarVector(IPluginContext *pContext, const cell_t *params)
+{
+	HookParamsStruct *paramStruct;
+
+	if(!GetHandleIfValidOrError(g_HookParamsHandle, (void **)&paramStruct, pContext, params[1]))
+	{
+		return 0;
+	}
+
+	if(params[2] <= 0 || params[2] > paramStruct->dg->params.Count())
+	{
+		return pContext->ThrowNativeError("Invalid param number %i max params is %i", params[2], paramStruct->dg->params.Count());
+	}
+
+	int index = params[2] - 1;
+
+	if(paramStruct->dg->params.Element(index).type != HookParamType_ObjectPtr)
+	{
+		return pContext->ThrowNativeError("Invalid object value type %i", paramStruct->dg->params.Element(index).type);
+	}
+
+	intptr_t addr = GetObjectAddr(paramStruct->dg->params.Element(index).type, paramStruct->orgParams, index);
+
+	cell_t *buffer;
+	pContext->LocalToPhysAddr(params[5], &buffer);
+
+	if((ObjectValueType)params[4] == ObjectValueType_VectorPtr)
+	{
+		Vector *vec = *(Vector **)(addr + params[3]);
+		if(vec == NULL)
+		{
+			return pContext->ThrowNativeError("Trying to set value for null pointer.");
+		}
+		else
+		{
+			vec->x = sp_ctof(buffer[0]);
+			vec->y = sp_ctof(buffer[1]);
+			vec->z = sp_ctof(buffer[2]);
+			return 1;
+		}
+	}
+	else if((ObjectValueType)params[4] == ObjectValueType_Vector)
+	{
+		(*(Vector *)(addr + params[3])).x = sp_ctof(buffer[0]);
+		(*(Vector *)(addr + params[3])).y = sp_ctof(buffer[1]);
+		(*(Vector *)(addr + params[3])).z = sp_ctof(buffer[2]);
+		return 1;
+	}
+	else
+	{
+		return pContext->ThrowNativeError("Invalid Object value type (not a type of vector)");
+	}
+}
+
+//native DHookGetParamObjectPtrString(Handle:hParams, num, offset, ObjectValueType:type, String:buffer[], size)
+cell_t Native_GetParamObjectPtrString(IPluginContext *pContext, const cell_t *params)
+{
+	HookParamsStruct *paramStruct;
+
+	if(!GetHandleIfValidOrError(g_HookParamsHandle, (void **)&paramStruct, pContext, params[1]))
+	{
+		return 0;
+	}
+
+	if(params[2] <= 0 || params[2] > paramStruct->dg->params.Count())
+	{
+		return pContext->ThrowNativeError("Invalid param number %i max params is %i", params[2], paramStruct->dg->params.Count());
+	}
+
+	int index = params[2] - 1;
+
+	if(paramStruct->dg->params.Element(index).type != HookParamType_ObjectPtr && paramStruct->dg->params.Element(index).type != HookParamType_Object)
+	{
+		return pContext->ThrowNativeError("Invalid object value type %i", paramStruct->dg->params.Element(index).type);
+	}
+
+	intptr_t addr = GetObjectAddr(paramStruct->dg->params.Element(index).type, paramStruct->orgParams, index);
+
+	if((ObjectValueType)params[4] == ObjectValueType_CharPtr)
+	{
+		char *ptr = *(char **)(addr + params[3]);
+		pContext->StringToLocal(params[5], params[6], ptr == NULL ? "" : (const char *)ptr);
+	}
+	else if((ObjectValueType)params[4] == ObjectValueType_String)
+	{
+		string_t string = *(string_t *)(addr + params[3]);
+		pContext->StringToLocal(params[5], params[6], string == NULL_STRING ? "" : STRING(string));
+	}
+	else
+	{
+		return pContext->ThrowNativeError("Invalid Object value type (not a type of string)");
+	}
+	return 1;
+}
 //native bool:DHookIsNullParam(Handle:hParams, num);
 cell_t Native_IsNullParam(IPluginContext *pContext, const cell_t *params)
 {
@@ -665,10 +998,11 @@ sp_nativeinfo_t g_Natives[] =
 	{"DHookSetParamString",					Native_SetParamString},
 	{"DHookAddEntityListener",				Native_AddEntityListener},
 	{"DHookRemoveEntityListener",			Native_RemoveEntityListener},
-	/*{"DHookGetParamObjectPtrVar",			Native_GetParamObjectPtrVar},
+	{"DHookGetParamObjectPtrVar",			Native_GetParamObjectPtrVar},
 	{"DHookSetParamObjectPtrVar",			Native_SetParamObjectPtrVar},
 	{"DHookGetParamObjectPtrVarVector",		Native_GetParamObjectPtrVarVector},
-	{"DHookSetParamObjectPtrVarVector",		Native_SetParamObjectPtrVarVector},*/
+	{"DHookSetParamObjectPtrVarVector",		Native_SetParamObjectPtrVarVector},
+	{"DHookGetParamObjectPtrString",		Native_GetParamObjectPtrString},
 	{"DHookIsNullParam",					Native_IsNullParam},
-	{NULL,							NULL}
+	{NULL,									NULL}
 };

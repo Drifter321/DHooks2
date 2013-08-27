@@ -15,6 +15,23 @@ enum MRESReturn
 	MRES_Supercede				// skip real function; use my return value
 };
 
+enum ObjectValueType
+{
+	ObjectValueType_Int = 0,
+	ObjectValueType_Bool,
+	ObjectValueType_Ehandle,
+	ObjectValueType_Float,
+	ObjectValueType_CBaseEntityPtr,
+	ObjectValueType_IntPtr,
+	ObjectValueType_BoolPtr,
+	ObjectValueType_EhandlePtr,
+	ObjectValueType_FloatPtr,
+	ObjectValueType_Vector,
+	ObjectValueType_VectorPtr,
+	ObjectValueType_CharPtr,
+	ObjectValueType_String
+};
+
 enum HookParamType
 {
 	HookParamType_Unknown,

@@ -47,11 +47,11 @@ DHooksManager::DHooksManager(HookSetup *setup, void *iface, IPluginFunction *rem
 	}
 	else if(this->callback->returnType == ReturnType_Float)
 	{
-		protoInfo.SetReturnType(sizeof(void *), SourceHook::PassInfo::PassType_Float, setup->returnFlag, NULL, NULL, NULL, NULL);
+		protoInfo.SetReturnType(sizeof(float), SourceHook::PassInfo::PassType_Float, setup->returnFlag, NULL, NULL, NULL, NULL);
 	}
 	else if(this->callback->returnType == ReturnType_String)
 	{
-		protoInfo.SetReturnType(sizeof(void *), SourceHook::PassInfo::PassType_Object, setup->returnFlag, NULL, NULL, NULL, NULL);
+		protoInfo.SetReturnType(sizeof(string_t), SourceHook::PassInfo::PassType_Object, setup->returnFlag, NULL, NULL, NULL, NULL);//We have to be 4 really... or else RIP
 	}
 	else
 	{

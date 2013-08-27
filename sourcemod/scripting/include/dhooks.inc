@@ -14,7 +14,9 @@ enum ObjectValueType
 	ObjectValueType_EhandlePtr,
 	ObjectValueType_FloatPtr,
 	ObjectValueType_Vector,
-	ObjectValueType_VectorPtr
+	ObjectValueType_VectorPtr,
+	ObjectValueType_CharPtr,
+	ObjectValueType_String
 };
 enum ListenType
 {
@@ -393,6 +395,11 @@ native DHookGetParamObjectPtrVarVector(Handle:hParams, num, offset, ObjectValueT
 */
 native DHookSetParamObjectPtrVarVector(Handle:hParams, num, offset, ObjectValueType:type, Float:value[3]);
 
+
+//ADD DOCS OR ELSE
+//WE SHOULD WRAP THESE AROUND STOCKS FOR NON PTR AS WE SUPPORT BOTH WITH THIS NATIVE
+native DHookGetParamObjectPtrString(Handle:hParams, num, offset, ObjectValueType:type, String:buffer[], size);
+
 /* Checks if a pointer param is null
  *
  * @param hParams		Handle to params structure
@@ -447,5 +454,6 @@ public __ext_dhooks_SetNTVOptional()
 	MarkNativeAsOptional("DHookGetParamObjectPtrVarVector");
 	MarkNativeAsOptional("DHookSetParamObjectPtrVarVector");
 	MarkNativeAsOptional("DHookIsNullParam");
+	MarkNativeAsOptional("DHookGetParamObjectPtrString");
 }
 #endif
