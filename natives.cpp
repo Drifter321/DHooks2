@@ -826,33 +826,30 @@ cell_t Native_GetParamObjectPtrVarVector(IPluginContext *pContext, const cell_t 
 	cell_t *buffer;
 	pContext->LocalToPhysAddr(params[5], &buffer);
 
-	if((ObjectValueType)params[4] == ObjectValueType_VectorPtr)
+	if((ObjectValueType)params[4] == ObjectValueType_VectorPtr || (ObjectValueType)params[4] == ObjectValueType_Vector)
 	{
-		Vector *vec = *(Vector **)(addr + params[3]);
-		if(vec == NULL)
+		Vector *vec;
+
+		if((ObjectValueType)params[4] == ObjectValueType_VectorPtr)
 		{
-			return pContext->ThrowNativeError("Trying to get value for null pointer.");
+			vec = *(Vector **)(addr + params[3]);
+			if(vec == NULL)
+			{
+				return pContext->ThrowNativeError("Trying to get value for null pointer.");
+			}
 		}
 		else
 		{
-			buffer[0] = sp_ftoc(vec->x);
-			buffer[1] = sp_ftoc(vec->y);
-			buffer[2] = sp_ftoc(vec->z);
-			return 1;
+			vec = (Vector *)(addr + params[3]);
 		}
-	}
-	else if((ObjectValueType)params[4] == ObjectValueType_Vector)
-	{
-		Vector vec = *(Vector *)(addr + params[3]);
-		buffer[0] = sp_ftoc(vec.x);
-		buffer[1] = sp_ftoc(vec.y);
-		buffer[2] = sp_ftoc(vec.z);
+
+		buffer[0] = sp_ftoc(vec->x);
+		buffer[1] = sp_ftoc(vec->y);
+		buffer[2] = sp_ftoc(vec->z);
 		return 1;
 	}
-	else
-	{
-		return pContext->ThrowNativeError("Invalid Object value type (not a type of vector)");
-	}
+
+	return pContext->ThrowNativeError("Invalid Object value type (not a type of vector)");
 }
 
 //native DHookSetParamObjectPtrVarVector(Handle:hParams, num, offset, ObjectValueType:type, Float:value[3]);
@@ -884,30 +881,27 @@ cell_t Native_SetParamObjectPtrVarVector(IPluginContext *pContext, const cell_t 
 
 	if((ObjectValueType)params[4] == ObjectValueType_VectorPtr)
 	{
-		Vector *vec = *(Vector **)(addr + params[3]);
-		if(vec == NULL)
+		Vector *vec;
+
+		if((ObjectValueType)params[4] == ObjectValueType_VectorPtr)
 		{
-			return pContext->ThrowNativeError("Trying to set value for null pointer.");
+			vec = *(Vector **)(addr + params[3]);
+			if(vec == NULL)
+			{
+				return pContext->ThrowNativeError("Trying to set value for null pointer.");
+			}
 		}
 		else
 		{
-			vec->x = sp_ctof(buffer[0]);
-			vec->y = sp_ctof(buffer[1]);
-			vec->z = sp_ctof(buffer[2]);
-			return 1;
+			vec = (Vector *)(addr + params[3]);
 		}
-	}
-	else if((ObjectValueType)params[4] == ObjectValueType_Vector)
-	{
-		(*(Vector *)(addr + params[3])).x = sp_ctof(buffer[0]);
-		(*(Vector *)(addr + params[3])).y = sp_ctof(buffer[1]);
-		(*(Vector *)(addr + params[3])).z = sp_ctof(buffer[2]);
+
+		vec->x = sp_ctof(buffer[0]);
+		vec->y = sp_ctof(buffer[1]);
+		vec->z = sp_ctof(buffer[2]);
 		return 1;
 	}
-	else
-	{
-		return pContext->ThrowNativeError("Invalid Object value type (not a type of vector)");
-	}
+	return pContext->ThrowNativeError("Invalid Object value type (not a type of vector)");
 }
 
 //native DHookGetParamObjectPtrString(Handle:hParams, num, offset, ObjectValueType:type, String:buffer[], size)
@@ -934,19 +928,22 @@ cell_t Native_GetParamObjectPtrString(IPluginContext *pContext, const cell_t *pa
 
 	intptr_t addr = GetObjectAddr(paramStruct->dg->params.Element(index).type, paramStruct->orgParams, index);
 
-	if((ObjectValueType)params[4] == ObjectValueType_CharPtr)
+	switch((ObjectValueType)params[4])
 	{
-		char *ptr = *(char **)(addr + params[3]);
-		pContext->StringToLocal(params[5], params[6], ptr == NULL ? "" : (const char *)ptr);
-	}
-	else if((ObjectValueType)params[4] == ObjectValueType_String)
-	{
-		string_t string = *(string_t *)(addr + params[3]);
-		pContext->StringToLocal(params[5], params[6], string == NULL_STRING ? "" : STRING(string));
-	}
-	else
-	{
-		return pContext->ThrowNativeError("Invalid Object value type (not a type of string)");
+		case ObjectValueType_CharPtr:
+		{
+			char *ptr = *(char **)(addr + params[3]);
+			pContext->StringToLocal(params[5], params[6], ptr == NULL ? "" : (const char *)ptr);
+			break;
+		}
+		case ObjectValueType_String:
+		{
+			string_t string = *(string_t *)(addr + params[3]);
+			pContext->StringToLocal(params[5], params[6], string == NULL_STRING ? "" : STRING(string));
+			break;
+		}
+		default:
+			return pContext->ThrowNativeError("Invalid Object value type (not a type of string)");
 	}
 	return 1;
 }
