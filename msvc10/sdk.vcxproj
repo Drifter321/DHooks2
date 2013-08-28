@@ -886,7 +886,6 @@
     <ClCompile Include="..\extension.cpp" />
     <ClCompile Include="..\listeners.cpp" />
     <ClCompile Include="..\natives.cpp" />
-    <ClCompile Include="..\vfunc_call.cpp" />
     <ClCompile Include="..\vhook.cpp" />
     <ClCompile Include="..\sdk\smsdk_ext.cpp" />
   </ItemGroup>

@@ -947,6 +947,58 @@ cell_t Native_GetParamObjectPtrString(IPluginContext *pContext, const cell_t *pa
 	}
 	return 1;
 }
+
+// DHookGetReturnVector(Handle:hReturn, Float:vec[3])
+cell_t Native_GetReturnVector(IPluginContext *pContext, const cell_t *params)
+{
+	HookReturnStruct *returnStruct;
+
+	if(!GetHandleIfValidOrError(g_HookReturnHandle, (void **)&returnStruct, pContext, params[1]))
+	{
+		return 0;
+	}
+
+	cell_t *buffer;
+	pContext->LocalToPhysAddr(params[2], &buffer);
+
+	if(returnStruct->type == ReturnType_Vector || returnStruct->type == ReturnType_VectorPtr)
+	{
+		buffer[0] = sp_ftoc((*(Vector **)returnStruct->orgResult)->x);
+		buffer[1] = sp_ftoc((*(Vector **)returnStruct->orgResult)->y);
+		buffer[2] = sp_ftoc((*(Vector **)returnStruct->orgResult)->z);
+
+		return 1;
+	}
+	return pContext->ThrowNativeError("Return type is not a vector type");
+}
+
+//DHookSetReturnVector(Handle:hReturn, Float:vec[3])
+cell_t Native_SetReturnVector(IPluginContext *pContext, const cell_t *params)
+{
+	HookReturnStruct *returnStruct;
+
+	if(!GetHandleIfValidOrError(g_HookReturnHandle, (void **)&returnStruct, pContext, params[1]))
+	{
+		return 0;
+	}
+
+	cell_t *buffer;
+	pContext->LocalToPhysAddr(params[2], &buffer);
+
+	if(returnStruct->type == ReturnType_Vector || returnStruct->type == ReturnType_VectorPtr)
+	{
+		if(*(Vector **)returnStruct->newResult != NULL)
+		{
+			delete *(Vector **)returnStruct->newResult;
+		}
+
+		*(Vector **)returnStruct->newResult = new Vector(sp_ctof(buffer[0]), sp_ctof(buffer[1]), sp_ctof(buffer[2]));
+
+		return 1;
+	}
+	return pContext->ThrowNativeError("Return type is not a vector type");
+}
+
 //native bool:DHookIsNullParam(Handle:hParams, num);
 cell_t Native_IsNullParam(IPluginContext *pContext, const cell_t *params)
 {
@@ -986,8 +1038,8 @@ sp_nativeinfo_t g_Natives[] =
 	{"DHookSetReturn",						Native_SetReturn},
 	{"DHookSetParam",						Native_SetParam},
 	{"DHookGetParamVector",					Native_GetParamVector},
-	/*{"DHookGetReturnVector",				Native_GetReturnVector},
-	{"DHookSetReturnVector",				Native_SetReturnVector},*/
+	{"DHookGetReturnVector",				Native_GetReturnVector},
+	{"DHookSetReturnVector",				Native_SetReturnVector},
 	{"DHookSetParamVector",					Native_SetParamVector},
 	{"DHookGetParamString",					Native_GetParamString},
 	{"DHookGetReturnString",				Native_GetReturnString},

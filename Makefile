@@ -24,7 +24,7 @@ PROJECT = dhooks
 #Uncomment for Metamod: Source enabled extension
 USEMETA = true
 
-OBJECTS = sdk/smsdk_ext.cpp extension.cpp vhook.cpp $(SMSDK)/public/jit/x86/assembler-x86.cpp listeners.cpp natives.cpp vfunc_call.cpp
+OBJECTS = sdk/smsdk_ext.cpp extension.cpp vhook.cpp $(SMSDK)/public/jit/x86/assembler-x86.cpp listeners.cpp natives.cpp
 
 ##############################################
 ### CONFIGURE ANY OTHER FLAGS/OPTIONS HERE ###

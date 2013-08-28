@@ -91,7 +91,7 @@ class HookReturnStruct
 public:
 	~HookReturnStruct()
 	{
-		if(this->type != ReturnType_CharPtr && this->type != ReturnType_StringPtr)
+		if(this->type != ReturnType_CharPtr && this->type != ReturnType_StringPtr && this->type != ReturnType_Vector && this->type != ReturnType_VectorPtr)
 		{
 			free(this->newResult);
 		}
@@ -105,6 +105,18 @@ public:
 			{
 				delete *(string_t **)this->newResult;
 			}
+			else if(this->type == ReturnType_Vector || this->type == ReturnType_VectorPtr)
+			{
+				delete *(Vector **)this->newResult;
+			}
+		}
+		if(this->type == ReturnType_Vector || this->type == ReturnType_VectorPtr)
+		{
+			delete *(Vector **)this->orgResult;
+		}
+		else if(this->type != ReturnType_String && this->type != ReturnType_Int && this->type != ReturnType_Bool && this->type != ReturnType_Float)
+		{
+			free(*(void **)this->orgResult);
 		}
 		free(this->orgResult);
 	}
@@ -149,6 +161,7 @@ public:
 #ifndef __linux__
 void *Callback(DHooksCallback *dg, void **stack, size_t *argsizep);
 float Callback_float(DHooksCallback *dg, void **stack, size_t *argsizep);
+Vector *Callback_vector(DHooksCallback *dg, void **stack, size_t *argsizep);
 #else
 void *Callback(DHooksCallback *dg, void **stack);
 float Callback_float(DHooksCallback *dg, void **stack);
@@ -181,23 +194,35 @@ static void *GenerateThunk(ReturnType type)
 	return base;
 }
 #else
+// HUGE THANKS TO BAILOPAN (dvander)!
 static void *GenerateThunk(ReturnType type)
 {
 	MacroAssemblerX86 masm;
- 
+	static const size_t kStackNeeded = (3 + 1) * 4; // 3 args max, 1 locals max
+	static const size_t kReserve = ke::Align(kStackNeeded+8, 16)-8;
+
 	masm.push(ebp);
 	masm.movl(ebp, esp);
-	masm.subl(esp, 4);
-	masm.push(esp);
-	masm.lea(eax, Operand(ebp, 8));
-	masm.push(eax);
-	masm.push(ecx);
+	masm.subl(esp, kReserve);
+	masm.lea(eax, Operand(esp, 3 * 4)); // ptr to 2nd var after argument space
+	masm.movl(Operand(esp, 2 * 4), eax); // set the ptr as the third argument
+	masm.lea(eax, Operand(ebp, 8)); // grab the incoming caller argument vector
+	masm.movl(Operand(esp, 1 * 4), eax); // set that as the 2nd argument
+	masm.movl(Operand(esp, 0 * 4), ecx); // set |this| as the 1st argument
 	if(type == ReturnType_Float)
+	{
 		masm.call(ExternalAddress(Callback_float));
+	}
+	else if(type == ReturnType_Vector)
+	{
+		masm.call(ExternalAddress(Callback_vector));
+	}
 	else
+	{
 		masm.call(ExternalAddress(Callback));
-	masm.addl(esp, 12);
-	masm.pop(ecx); // grab arg size
+	}
+	masm.movl(ecx, Operand(esp, 3*4));
+	masm.addl(esp, kReserve);
 	masm.pop(ebp); // restore ebp
 	masm.pop(edx); // grab return address in edx
 	masm.addl(esp, ecx); // remove arguments
