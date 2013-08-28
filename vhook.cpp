@@ -370,7 +370,7 @@ void *Callback(DHooksCallback *dg, void **argStack)
 #ifndef __linux__
 float Callback_float(DHooksCallback *dg, void **argStack, size_t *argsizep)
 #else
-void *Callback_float(DHooksCallback *dg, void **argStack)
+float Callback_float(DHooksCallback *dg, void **argStack)
 #endif
 {
 	HookReturnStruct *returnStruct = NULL;
@@ -400,7 +400,7 @@ void *Callback_float(DHooksCallback *dg, void **argStack)
 			delete returnStruct;
 		}
 		g_SHPtr->SetRes(MRES_IGNORED);
-		return NULL;
+		return 0.0;
 	}
 	dg->plugin_callback->PushCell(rHndl);
 
@@ -426,7 +426,7 @@ void *Callback_float(DHooksCallback *dg, void **argStack)
 				delete paramStruct;
 			}
 			g_SHPtr->SetRes(MRES_IGNORED);
-			return NULL;
+			return 0.0;
 		}
 		dg->plugin_callback->PushCell(pHndl);
 	}
@@ -517,11 +517,15 @@ void *Callback_float(DHooksCallback *dg, void **argStack)
 
 	if(dg->returnType == ReturnType_Void || mres <= MRES_HANDLED)
 	{
-		return NULL;
+		return 0.0;
 	}
 	return *(float *)ret;
 }
+#ifndef __linux__
 Vector *Callback_vector(DHooksCallback *dg, void **argStack, size_t *argsizep)
+#else
+Vector *Callback_vector(DHooksCallback *dg, void **argStack)
+#endif
 {
 	Vector *vec_result = (Vector *)argStack[0]; // Save the result
 
@@ -670,7 +674,6 @@ Vector *Callback_vector(DHooksCallback *dg, void **argStack, size_t *argsizep)
 
 	if(dg->returnType == ReturnType_Void || mres <= MRES_HANDLED)
 	{
-		META_CONPRINT("Returning now\n");
 		vec_result->x = 0;
 		vec_result->y = 0;
 		vec_result->z = 0;

@@ -165,6 +165,7 @@ Vector *Callback_vector(DHooksCallback *dg, void **stack, size_t *argsizep);
 #else
 void *Callback(DHooksCallback *dg, void **stack);
 float Callback_float(DHooksCallback *dg, void **stack);
+Vector Callback_vector(DHooksCallback *dg, void **stack, size_t *argsizep);
 #endif
 bool SetupHookManager(ISmmAPI *ismm);
 void CleanupHooks(IPluginContext *pContext);
