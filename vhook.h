@@ -165,7 +165,7 @@ Vector *Callback_vector(DHooksCallback *dg, void **stack, size_t *argsizep);
 #else
 void *Callback(DHooksCallback *dg, void **stack);
 float Callback_float(DHooksCallback *dg, void **stack);
-Vector Callback_vector(DHooksCallback *dg, void **stack, size_t *argsizep);
+Vector *Callback_vector(DHooksCallback *dg, void **stack);
 #endif
 bool SetupHookManager(ISmmAPI *ismm);
 void CleanupHooks(IPluginContext *pContext);
@@ -176,20 +176,32 @@ SourceHook::PassInfo::PassType GetParamTypePassType(HookParamType type);
 static void *GenerateThunk(ReturnType type)
 {
 	MacroAssemblerX86 masm;
- 
+	static const size_t kStackNeeded = (2) * 4; // 2 args max
+	static const size_t kReserve = ke::Align(kStackNeeded+8, 16)-8;
+
 	masm.push(ebp);
 	masm.movl(ebp, esp);
-	masm.lea(eax, Operand(ebp, 12));
-	masm.push(eax);
-	masm.push(Operand(ebp, 8));
+	masm.subl(esp, kReserve);
+	masm.lea(eax, Operand(ebp, 12)); // grab the incoming caller argument vector
+	masm.movl(Operand(esp, 1 * 4), eax); // set that as the 2nd argument
+	masm.lea(eax, Operand(ebp, 8)); // grab the |this|
+	masm.movl(Operand(esp, 0 * 4), eax); // set |this| as the 1st argument
 	if(type == ReturnType_Float)
+	{
 		masm.call(ExternalAddress((void *)Callback_float));
+	}
+	else if(type == ReturnType_Vector)
+	{
+		masm.call(ExternalAddress((void *)Callback_vector));
+	}
 	else
+	{
 		masm.call(ExternalAddress((void *)Callback));
-	masm.addl(esp, 8);
-	masm.pop(ebp);
+	}
+	masm.addl(esp, kReserve);
+	masm.pop(ebp); // restore ebp
 	masm.ret();
- 
+
 	void *base =  g_pSM->GetScriptingEngine()->AllocatePageMemory(masm.length());
 	masm.emitToExecutableMemory(base);
 	return base;

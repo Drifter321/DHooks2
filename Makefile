@@ -106,24 +106,25 @@ ifneq (,$(filter original orangebox,$(ENGINE)))
 	LIB_SUFFIX = _i486.$(LIB_EXT)
 else
 	LIB_PREFIX = lib
-	LIB_SUFFIX = .$(LIB_EXT)
+	LIB_SUFFIX = _srv.$(LIB_EXT)
 endif
 
 INCLUDE += -I. -I.. -Isdk -I$(SMSDK)/public -I$(SMSDK)/public/sourcepawn -I$(SMSDK)/public/extensions -I$(SMSDK)/public/jit/x86 -I$(SMSDK)/public/jit
 
 ifeq "$(USEMETA)" "true"
-	LINK_HL2 = $(HL2LIB)/tier1_i486.a $(HL2LIB)/$(LIB_PREFIX)vstdlib_srv$(LIB_SUFFIX) $(HL2LIB)/$(LIB_PREFIX)tier0_srv$(LIB_SUFFIX)
+	LINK_HL2 = $(HL2LIB)/tier1_i486.a $(LIB_PREFIX)vstdlib$(LIB_SUFFIX) $(LIB_PREFIX)tier0$(LIB_SUFFIX)
 	ifeq "$(ENGINE)" "csgo"
 		LINK_HL2 += $(HL2LIB)/interfaces_i486.a
 	endif
 
 	LINK += $(LINK_HL2)
 
-	INCLUDE += -I$(HL2PUB) -I$(HL2PUB)/engine -I$(HL2PUB)/tier0 -I$(HL2PUB)/tier1 -I$(HL2SDK)/game/shared -I$(METAMOD) \
-		-I$(METAMOD)/sourcehook 
+	INCLUDE += -I$(HL2PUB) -I$(HL2PUB)/engine -I$(HL2PUB)/tier0 -I$(HL2PUB)/tier1 -I$(HL2SDK)/game/shared\
+	-I$(METAMOD) -I$(METAMOD)/sourcehook -I$(SMSDK)/public -I$(SMSDK)/public/extensions \
+	-I$(SMSDK)/public/sourcepawn
 	CFLAGS += -DSE_EPISODEONE=1 -DSE_DARKMESSIAH=2 -DSE_ORANGEBOX=3 -DSE_BLOODYGOODTIME=4 -DSE_EYE=5 \
-		-DSE_CSS=6 -DSE_ORANGEBOXVALVE=7 -DSE_LEFT4DEAD=8 -DSE_LEFT4DEAD2=9 -DSE_ALIENSWARM=10 \
-		-DSE_PORTAL2=11 -DSE_CSGO=12
+		-DSE_ORANGEBOXVALVE=6 -DSE_LEFT4DEAD=7 -DSE_LEFT4DEAD2=8 -DSE_ALIENSWARM=9 \
+		-DSE_PORTAL2=10 -DSE_CSGO=11 -DSE_CSS=12
 endif
 
 LINK += -m32 -lm -ldl
