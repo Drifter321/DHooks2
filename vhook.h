@@ -166,6 +166,7 @@ Vector *Callback_vector(DHooksCallback *dg, void **stack, size_t *argsizep);
 void *Callback(DHooksCallback *dg, void **stack);
 float Callback_float(DHooksCallback *dg, void **stack);
 Vector *Callback_vector(DHooksCallback *dg, void **stack);
+string_t *Callback_stringt(DHooksCallback *dg, void **stack);
 #endif
 bool SetupHookManager(ISmmAPI *ismm);
 void CleanupHooks(IPluginContext *pContext);
@@ -182,10 +183,20 @@ static void *GenerateThunk(ReturnType type)
 	masm.push(ebp);
 	masm.movl(ebp, esp);
 	masm.subl(esp, kReserve);
-	masm.lea(eax, Operand(ebp, 12)); // grab the incoming caller argument vector
-	masm.movl(Operand(esp, 1 * 4), eax); // set that as the 2nd argument
-	masm.lea(eax, Operand(ebp, 8)); // grab the |this|
-	masm.movl(Operand(esp, 0 * 4), eax); // set |this| as the 1st argument
+	if(type != ReturnType_String && type != ReturnType_Vector)
+	{
+		masm.lea(eax, Operand(ebp, 12)); // grab the incoming caller argument vector
+		masm.movl(Operand(esp, 1 * 4), eax); // set that as the 2nd argument
+		masm.movl(eax, Operand(ebp, 8)); // grab the |this|
+		masm.movl(Operand(esp, 0 * 4), eax); // set |this| as the 1st argument*/
+	}
+	else
+	{
+		masm.lea(eax, Operand(ebp, 8)); // grab the incoming caller argument vector
+		masm.movl(Operand(esp, 1 * 4), eax); // set that as the 2nd argument
+		masm.movl(eax, Operand(ebp, 12)); // grab the |this|
+		masm.movl(Operand(esp, 0 * 4), eax); // set |this| as the 1st argument*/
+	}
 	if(type == ReturnType_Float)
 	{
 		masm.call(ExternalAddress((void *)Callback_float));
@@ -193,6 +204,10 @@ static void *GenerateThunk(ReturnType type)
 	else if(type == ReturnType_Vector)
 	{
 		masm.call(ExternalAddress((void *)Callback_vector));
+	}
+	else if(type == ReturnType_String)
+	{
+		masm.call(ExternalAddress((void *)Callback_stringt));
 	}
 	else
 	{

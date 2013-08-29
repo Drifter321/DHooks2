@@ -42,6 +42,7 @@ bool GetHandleIfValidOrError(HandleType_t type, void **object, IPluginContext *p
 	return true;
 }
 
+#ifndef __linux__
 intptr_t GetObjectAddr(HookParamType type, void **params, int index)
 {
 	if(type == HookParamType_Object)
@@ -51,6 +52,12 @@ intptr_t GetObjectAddr(HookParamType type, void **params, int index)
 
 	return 0;
 }
+#else
+intptr_t GetObjectAddr(HookParamType type, void **params, int index)
+{
+	return (intptr_t)params[index];
+}
+#endif
 
 //native Handle:DHookCreate(offset, HookType:hooktype, ReturnType:returntype, ThisPointerType:thistype, DHookCallback:callback);
 cell_t Native_CreateHook(IPluginContext *pContext, const cell_t *params)
@@ -495,8 +502,6 @@ cell_t Native_SetParamVector(IPluginContext *pContext, const cell_t *params)
 	}
 	return pContext->ThrowNativeError("Invalid param type to set. Param is not a vector.");
 }
-/*cell_t Native_GetReturnVector(IPluginContext *pContext, const cell_t *params);
-cell_t Native_SetReturnVector(IPluginContext *pContext, const cell_t *params);*/
 
 // native DHookGetParamString(Handle:hParams, num, String:buffer[], size)
 cell_t Native_GetParamString(IPluginContext *pContext, const cell_t *params)
@@ -526,6 +531,7 @@ cell_t Native_GetParamString(IPluginContext *pContext, const cell_t *params)
 
 	return 1;
 }
+
 // native DHookGetReturnString(Handle:hReturn, String:buffer[], size)
 cell_t Native_GetReturnString(IPluginContext *pContext, const cell_t *params)
 {

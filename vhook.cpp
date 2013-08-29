@@ -7,6 +7,11 @@ CUtlVector<DHooksManager *> g_pHooks;
 
 using namespace SourceHook;
 
+#ifndef __linux__
+#define OBJECT_OFFSET sizeof(void *)
+#else
+#define OBJECT_OFFSET (sizeof(void *)*2)
+#endif
 DHooksManager::DHooksManager(HookSetup *setup, void *iface, IPluginFunction *remove_callback, bool post)
 {
 	this->callback = MakeHandler(setup->returnType);
@@ -110,9 +115,13 @@ size_t GetStackArgsSize(DHooksCallback *dg)
 		res += dg->params.Element(i).size;
 	}
 
+	#ifndef __linux__
 	if(dg->returnType == ReturnType_Vector)//Account for result vector ptr.
+	#else
+	if(dg->returnType == ReturnType_Vector || dg->returnType == ReturnType_String)
+	#endif
 	{
-		res += sizeof(void *);
+		res += OBJECT_OFFSET;
 	}
 	return res;
 }
@@ -120,15 +129,19 @@ HookParamsStruct *GetParamStruct(DHooksCallback *dg, void **argStack, size_t arg
 {
 	HookParamsStruct *params = new HookParamsStruct();
 	params->dg = dg;
+	#ifndef __linux__
 	if(dg->returnType != ReturnType_Vector)
+	#else
+	if(dg->returnType != ReturnType_Vector && dg->returnType != ReturnType_String)
+	#endif
 	{
 		params->orgParams = (void **)malloc(argStackSize);
 		memcpy(params->orgParams, argStack, argStackSize);
 	}
 	else //Offset result ptr
 	{
-		params->orgParams = (void **)malloc(argStackSize-sizeof(void *));
-		memcpy(params->orgParams, argStack+sizeof(void *), argStackSize);
+		params->orgParams = (void **)malloc(argStackSize-OBJECT_OFFSET);
+		memcpy(params->orgParams, argStack+OBJECT_OFFSET, argStackSize-OBJECT_OFFSET);
 	}
 	params->newParams = (void **)malloc(dg->params.Count() * sizeof(void *));
 	params->isChanged = (bool *)malloc(dg->params.Count() * sizeof(bool));
@@ -681,3 +694,150 @@ Vector *Callback_vector(DHooksCallback *dg, void **argStack)
 	}
 	return vec_result;
 }
+
+#ifdef __linux__
+string_t *Callback_stringt(DHooksCallback *dg, void **argStack)
+{
+	string_t *string_result = (string_t *)argStack[0]; // Save the result
+
+	HookReturnStruct *returnStruct = NULL;
+	HookParamsStruct *paramStruct = NULL;
+	Handle_t rHndl;
+	Handle_t pHndl;
+
+	size_t argsize = GetStackArgsSize(dg);
+
+	if(dg->thisType == ThisPointer_CBaseEntity || dg->thisType == ThisPointer_Address)
+	{
+		dg->plugin_callback->PushCell(GetThisPtr(g_SHPtr->GetIfacePtr(), dg->thisType));
+	}
+
+	returnStruct = GetReturnStruct(dg);
+	rHndl = handlesys->CreateHandle(g_HookReturnHandle, returnStruct, dg->plugin_callback->GetParentRuntime()->GetDefaultContext()->GetIdentity(), myself->GetIdentity(), NULL);
+
+	if(!rHndl)
+	{
+		dg->plugin_callback->Cancel();
+		if(returnStruct)
+		{
+			delete returnStruct;
+		}
+		g_SHPtr->SetRes(MRES_IGNORED);
+		return NULL;
+	}
+	dg->plugin_callback->PushCell(rHndl);
+
+	if(argsize > 0)
+	{
+		paramStruct = GetParamStruct(dg, argStack, argsize);
+		pHndl = handlesys->CreateHandle(g_HookParamsHandle, paramStruct, dg->plugin_callback->GetParentRuntime()->GetDefaultContext()->GetIdentity(), myself->GetIdentity(), NULL);
+		if(!pHndl)
+		{
+			dg->plugin_callback->Cancel();
+			if(returnStruct)
+			{
+				delete returnStruct;
+			}
+			if(paramStruct)
+			{
+				delete paramStruct;
+			}
+			g_SHPtr->SetRes(MRES_IGNORED);
+			return NULL;
+		}
+		dg->plugin_callback->PushCell(pHndl);
+	}
+	cell_t result = (cell_t)MRES_Ignored;
+	META_RES mres = MRES_IGNORED;
+	dg->plugin_callback->Execute(&result);
+
+	void *ret = g_SHPtr->GetOverrideRetPtr();
+	ret = string_result;
+	switch((MRESReturn)result)
+	{
+		case MRES_Handled:
+		case MRES_ChangedHandled:
+			g_SHPtr->DoRecall();
+			g_SHPtr->SetRes(MRES_SUPERCEDE);
+			mres = MRES_SUPERCEDE;
+			*string_result = CallVFunction<string_t>(dg, paramStruct, g_SHPtr->GetIfacePtr());
+			break;
+		case MRES_ChangedOverride:
+			if(dg->returnType != ReturnType_Void)
+			{
+				if(returnStruct->isChanged)
+				{
+					*string_result = *(string_t *)returnStruct->newResult;
+				}
+				else //Throw an error if no override was set
+				{
+					g_SHPtr->SetRes(MRES_IGNORED);
+					mres = MRES_IGNORED;
+					dg->plugin_callback->GetParentRuntime()->GetDefaultContext()->ThrowNativeError("Tried to override return value without return value being set");
+					break;
+				}
+			}
+			g_SHPtr->DoRecall();
+			g_SHPtr->SetRes(MRES_SUPERCEDE);
+			mres = MRES_SUPERCEDE;
+			CallVFunction<Vector>(dg, paramStruct, g_SHPtr->GetIfacePtr());
+			break;
+		case MRES_Override:
+			if(dg->returnType != ReturnType_Void)
+			{
+				if(returnStruct->isChanged)
+				{
+					g_SHPtr->SetRes(MRES_OVERRIDE);
+					mres = MRES_OVERRIDE;
+					*string_result = *(string_t *)returnStruct->newResult;
+				}
+				else //Throw an error if no override was set
+				{
+					g_SHPtr->SetRes(MRES_IGNORED);
+					mres = MRES_IGNORED;
+					dg->plugin_callback->GetParentRuntime()->GetDefaultContext()->ThrowNativeError("Tried to override return value without return value being set");
+				}
+			}
+			break;
+		case MRES_Supercede:
+			if(dg->returnType != ReturnType_Void)
+			{
+				if(returnStruct->isChanged)
+				{
+					g_SHPtr->SetRes(MRES_SUPERCEDE);
+					mres = MRES_SUPERCEDE;
+					*string_result = *(string_t *)returnStruct->newResult;
+				}
+				else //Throw an error if no override was set
+				{
+					g_SHPtr->SetRes(MRES_IGNORED);
+					mres = MRES_IGNORED;
+					dg->plugin_callback->GetParentRuntime()->GetDefaultContext()->ThrowNativeError("Tried to override return value without return value being set");
+				}
+			}
+			break;
+		default:
+			g_SHPtr->SetRes(MRES_IGNORED);
+			mres = MRES_IGNORED;
+			break;
+	}
+
+	HandleSecurity sec(dg->plugin_callback->GetParentRuntime()->GetDefaultContext()->GetIdentity(), myself->GetIdentity());
+
+	if(returnStruct)
+	{
+		handlesys->FreeHandle(rHndl, &sec);
+	}
+	if(paramStruct)
+	{
+		handlesys->FreeHandle(pHndl, &sec);
+	}
+
+	if(dg->returnType == ReturnType_Void || mres <= MRES_HANDLED)
+	{
+		*string_result = NULL_STRING;
+		return string_result;
+	}
+	return string_result;
+}
+#endif
