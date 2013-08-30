@@ -94,20 +94,28 @@ cell_t Native_AddParam(IPluginContext *pContext, const cell_t *params)
 
 	info.type = (HookParamType)params[2];
 
-	if(params[0] >= 3 && params[3] != -1)
+	if(params[0] >= 4)
 	{
-		info.size = params[3];
-
-		if(params[0] >= 4)
-		{
-			info.flag = params[4];
-		}
+		info.flag = params[4];
 	}
 	else
 	{
 		info.flag = PASSFLAG_BYVAL;
+	}
+
+	if(params[0] >= 3 && params[3] != -1)
+	{
+		info.size = params[3];
+	}
+	else if(info.type == HookParamType_Object)
+	{
+		return pContext->ThrowNativeError("Object param being set with no size");
+	}
+	else
+	{
 		info.size = GetParamTypeSize(info.type);
 	}
+
 	info.pass_type = GetParamTypePassType(info.type);
 	setup->params.AddToTail(info);
 
