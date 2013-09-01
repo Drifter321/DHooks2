@@ -50,10 +50,16 @@ class SM:
 			self.compiler.DetectAll(AMBuild)
 
 			#Detect variables
-			envvars = { 'MMSOURCE19':    'mmsource-1.9',
-						'HL2SDKOBVALVE': 'hl2sdk-ob-valve',
-						'HL2SDKCSS':     'hl2sdk-css',
-						'SOURCEMOD14':   'sourcemod-central'
+			envvars = { 'MMSOURCE19':   'mmsource-1.9',
+						'HL2SDKHL2DM': 	'hl2sdk-hl2dm',
+						'HL2SDKDODS': 	'hl2sdk-dods',
+						'HL2SDKTF2': 	'hl2sdk-tf2',
+						'HL2SDKND': 	'hl2sdk-nd',
+						'HL2SDKL4D': 	'hl2sdk-l4d',
+						'HL2SDKL4D2': 	'hl2sdk-l4d2',
+						'HL2SDKCSGO': 	'hl2sdk-csgo',
+						'HL2SDKCSS':    'hl2sdk-css',
+						'SMCENTRAL':   	'sourcemod-central'
 			}
 
 			if AMBuild.target['platform'] != 'darwin':
