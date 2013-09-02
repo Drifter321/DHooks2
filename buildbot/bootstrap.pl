@@ -33,7 +33,7 @@ if ($^O eq "linux") {
 	#	print $result;
 	#}
 	
-	$ENV{'SOURCEMOD14'} = '/home/builds/common/sourcemod-1.4';
+	#$ENV{'SOURCEMOD14'} = '/home/builds/common/sourcemod-1.4';
 	$ENV{'SMCENTRAL'} = '/home/builds/common/sourcemod-central';
 	$ENV{'MMSOURCE19'} = '/home/builds/common/mmsource-1.9';
 	
@@ -52,7 +52,7 @@ if ($^O eq "linux") {
 	#	print $result;
 	#}
 	
-	$ENV{'SOURCEMOD14'} = '/Users/builds/slaves/common/sourcemod-1.4';
+	#$ENV{'SOURCEMOD14'} = '/Users/builds/slaves/common/sourcemod-1.4';
 	$ENV{'SMCENTRAL'} = '/Users/builds/slaves/common/sourcemod-central';
 	$ENV{'MMSOURCE18'} = '/Users/builds/slaves/common/mmsource-1.8';
 	$ENV{'MMSOURCE19'} = '/Users/builds/slaves/common/mmsource-central';
