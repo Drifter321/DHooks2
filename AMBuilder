@@ -10,8 +10,8 @@ for i in SM.sdkInfo:
 	compiler['CXXINCLUDES'].append(os.path.join(AMBuild.cache['SMCENTRAL'], 'public'))
 	compiler['CXXINCLUDES'].append(os.path.join(AMBuild.cache['SMCENTRAL'], 'public', 'sourcepawn'))
 	compiler['CXXINCLUDES'].append(os.path.join(AMBuild.cache['SMCENTRAL'], 'public', 'extensions'))
-	#compiler['CXXINCLUDES'].append(os.path.join(AMBuild.cache['SMCENTRAL'], 'public', 'jit'))
-	#compiler['CXXINCLUDES'].append(os.path.join(AMBuild.cache['SMCENTRAL'], 'public', 'jit', 'x86'))
+	compiler['CXXINCLUDES'].append(os.path.join(AMBuild.cache['SMCENTRAL'], 'public', 'jit'))
+	compiler['CXXINCLUDES'].append(os.path.join(AMBuild.cache['SMCENTRAL'], 'public', 'jit', 'x86'))
 
 	if compiler.cc.name == 'gcc':
 		compiler['CFLAGS'].append('-Wno-parentheses')
