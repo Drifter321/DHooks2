@@ -71,7 +71,6 @@ folders = [
 	['addons', 'sourcemod', 'extensions'],
 	['addons', 'sourcemod', 'scripting', 'include'],
 	['addons', 'sourcemod', 'gamedata'],
-	['addons', 'sourcemod', 'gamedata', 'dhooks.games']
 	]
 
 #Setup
@@ -85,8 +84,8 @@ job.AddCommand(CopyFile(os.path.join(AMBuild.sourceFolder, 'sourcemod', 'scripti
 job.AddCommand(CopyFile(os.path.join(AMBuild.sourceFolder, 'sourcemod', 'scripting', 'dhooks-test.sp'),
                         os.path.join('addons', 'sourcemod', 'scripting')))
 						
-job.AddCommand(CopyFolder([AMBuild.sourceFolder, 'sourcemod', 'gamedata', 'dhooks-test.games'],
-                        ['addons', 'sourcemod', 'gamedata', 'dhooks-test.games']))
+job.AddCommand(CopyFolder([AMBuild.sourceFolder, 'sourcemod', 'gamedata', 'dhooks-test.games.txt'],
+                        ['addons', 'sourcemod', 'gamedata']))
 
 bincopies = []
 
