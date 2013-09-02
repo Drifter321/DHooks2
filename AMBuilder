@@ -29,7 +29,7 @@ for i in SM.sdkInfo:
 		'listeners.cpp',
 		'vhook.cpp',
 		'natives.cpp',
-		'sdk/smsdk_ext.cpp'
+		'sdk/smsdk_ext.cpp',
 		'assembler-x86.cpp'
 		])
 	SM.PostSetupHL2Job(extension, binary, i)
