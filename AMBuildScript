@@ -12,8 +12,8 @@ class SM:
 
 		#Build SDK info
 		self.sdkInfo = { }
-		self.sdkInfo['ep1'] =   {'sdk': 'HL2SDK',          'ext': '1.ep1',   'def': '1',
-		                         'name': 'EPISODEONE',     'platform': ['windows', 'linux']}
+		#self.sdkInfo['ep1'] =   {'sdk': 'HL2SDK',          'ext': '1.ep1',   'def': '1',
+		#                         'name': 'EPISODEONE',     'platform': ['windows', 'linux']}
 								 
 		self.sdkInfo['ep2'] =   {'sdk': 'HL2SDKOB',        'ext': '2.ep2',   'def': '3',
 		                         'name': 'ORANGEBOX',      'platform': ['windows', 'linux']}
@@ -63,7 +63,7 @@ class SM:
 			}
 
 			if AMBuild.target['platform'] != 'darwin':
-				envvars['HL2SDK'] = 'hl2sdk'
+				#envvars['HL2SDK'] = 'hl2sdk'
 				envvars['HL2SDKOB'] = 'hl2sdk-ob'
 
 			#Dark Messiah is Windows-only
