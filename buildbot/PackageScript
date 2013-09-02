@@ -84,8 +84,8 @@ job.AddCommand(CopyFile(os.path.join(AMBuild.sourceFolder, 'sourcemod', 'scripti
 job.AddCommand(CopyFile(os.path.join(AMBuild.sourceFolder, 'sourcemod', 'scripting', 'dhooks-test.sp'),
                         os.path.join('addons', 'sourcemod', 'scripting')))
 						
-job.AddCommand(CopyFile([AMBuild.sourceFolder, 'sourcemod', 'gamedata', 'dhooks-test.games.txt'],
-                        ['addons', 'sourcemod', 'gamedata']))
+job.AddCommand(CopyFile(os.path.join(AMBuild.sourceFolder, 'sourcemod', 'gamedata', 'dhooks-test.games.txt'),
+                        os.path.join('addons', 'sourcemod', 'gamedata')))
 
 bincopies = []
 
