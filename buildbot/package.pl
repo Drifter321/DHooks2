@@ -50,7 +50,7 @@ chdir(Build::PathFormat('../../OUTPUT/package'));
 
 my ($dirlist, $filename, $cmd);
 $dirlist = "addons";
-$filename = 'sdkhooks-' . $version;
+$filename = 'dhooks-' . $version;
 if ($^O eq "linux")
 {
     $filename .= '.tar.gz';
@@ -65,7 +65,7 @@ else
 print "$cmd\n";
 system($cmd);
 
-$ftp_path .= "/sdkhooks";
+$ftp_path .= "/dhooks";
 
 my ($major,$minor) = ($version =~ /^(\d+)\.(\d+)/);
 $ftp_path .= "/$major.$minor";
