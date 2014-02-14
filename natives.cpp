@@ -581,14 +581,6 @@ cell_t Native_SetReturnString(IPluginContext *pContext, const cell_t *params)
 
 	switch(returnStruct->type)
 	{
-		case ReturnType_String:
-			*(string_t *)returnStruct->newResult = MAKE_STRING(value);
-			returnStruct->isChanged = true;
-			return 1;
-		case ReturnType_StringPtr:
-			*(string_t **)returnStruct->newResult = new string_t(MAKE_STRING(value));
-			returnStruct->isChanged = true;
-			return 1;
 		case ReturnType_CharPtr:
 			*(char **)returnStruct->newResult = new char[strlen(value)+1];
 			strcpy(*(char **)returnStruct->newResult, value);
