@@ -216,7 +216,7 @@ HookReturnStruct *GetReturnStruct(DHooksCallback *dg)
 }
 cell_t GetThisPtr(void *iface, ThisPointerType type)
 {
-	if(ThisPointer_CBaseEntity)
+	if(type == ThisPointer_CBaseEntity)
 	{
 		return gamehelpers->EntityToBCompatRef((CBaseEntity *)iface);
 	}
