@@ -88,7 +88,9 @@ public:
 	 * @param maxlength	Size of error message buffer.
 	 * @return			True if working, false otherwise.
 	 */
-	//virtual bool QueryRunning(char *error, size_t maxlength);
+	virtual bool QueryRunning(char *error, size_t maxlength);
+	//virtual bool QueryInterfaceDrop(SMInterface *pInterface);
+	virtual void NotifyInterfaceDrop(SMInterface *pInterface);
 public:
 #if defined SMEXT_CONF_METAMOD
 	/**

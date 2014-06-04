@@ -110,3 +110,47 @@ void DHooks::OnPluginUnloaded(IPlugin *plugin)
 		g_pEntityListener->CleanupListeners(plugin->GetBaseContext());
 	}
 }
+// The next 3 functions handle cleanup if our interfaces are going to be unloaded
+bool DHooks::QueryRunning(char *error, size_t maxlength)
+{
+	SM_CHECK_IFACE(SDKTOOLS, g_pSDKTools);
+	SM_CHECK_IFACE(BINTOOLS, g_pBinTools);
+	SM_CHECK_IFACE(SDKHOOKS, g_pSDKHooks);
+	return true;
+}
+/*
+// The default for this one is *supposed* to be false already
+bool DHooks::QueryInterfaceDrop(SMInterface *pInterface)
+{
+	if (strcmp(pInterface->GetInterfaceName(), SMINTERFACE_SDKTOOLS_NAME) == 0
+		|| strcmp(pInterface->GetInterfaceName(), SMINTERFACE_BINTOOL_NAME) == 0)
+		|| strcmp(pInterface->GetInterfaceName(), SMINTERFACE_SDKHOOKS_NAME) == 0)
+	{
+		return false;
+	}
+
+	return true;
+}
+*/
+void DHooks::NotifyInterfaceDrop(SMInterface *pInterface)
+{
+	if (strcmp(pInterface->GetInterfaceName(), SMINTERFACE_SDKHOOKS_NAME) == 0)
+	{
+		if (g_pEntityListener)
+		{
+			// If this fails, remove this line and just delete the ent listener instead
+			g_pSDKHooks->RemoveEntityListener(g_pEntityListener); 
+			delete g_pEntityListener;
+			g_pEntityListener = NULL;
+		}
+		g_pSDKHooks = NULL;
+	}
+	else if (strcmp(pInterface->GetInterfaceName(), SMINTERFACE_BINTOOLS_NAME) == 0)
+	{
+		g_pBinTools = NULL;
+	}
+	else if (strcmp(pInterface->GetInterfaceName(), SMINTERFACE_SDKTOOLS_NAME) == 0)
+	{
+		g_pSDKTools = NULL;
+	}
+}
