@@ -211,7 +211,7 @@ Vector CallVFunction<Vector>(DHooksCallback *dg, HookParamsStruct *paramStruct, 
 
 	return ret;
 }
-#ifdef __linux__
+#ifndef WIN32
 template <>
 string_t CallVFunction<string_t>(DHooksCallback *dg, HookParamsStruct *paramStruct, void *iface)
 {
