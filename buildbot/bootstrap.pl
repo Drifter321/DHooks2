@@ -24,9 +24,9 @@ my ($result);
 
 #configure AMBuild
 if ($^O eq "linux") {
-	$result = `CC=gcc CXX=gcc python3 ../build/configure.py --enable-optimize`;
+	$result = `CC=clang CXX=clang python ../build/configure.py --enable-optimize`;
 } elsif ($^O eq "darwin") {
-	$result = `CC=clang CXX=clang python3 ../build/configure.py --enable-optimize`;
+	$result = `CC=clang CXX=clang python ../build/configure.py --enable-optimize`;
 } else {
 	$result = `C:\\Python31\\Python.exe ..\\build\\configure.py --enable-optimize`;
 }
