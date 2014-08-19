@@ -6,7 +6,7 @@
     </ClCompile>
     <ClCompile Include="..\vhook.cpp" />
     <ClCompile Include="..\extension.cpp" />
-    <ClCompile Include="..\..\..\sourcemod-central\public\jit\x86\assembler-x86.cpp">
+    <ClCompile Include="$(SMCENTRAL)\public\jit\x86\assembler-x86.cpp">
       <Filter>JIT</Filter>
     </ClCompile>
     <ClCompile Include="..\natives.cpp" />
@@ -25,9 +25,6 @@
     <ClInclude Include="..\sdk\smsdk_ext.h">
       <Filter>sdk</Filter>
     </ClInclude>
-    <ClInclude Include="..\vhook_macros.h">
-      <Filter>Headers</Filter>
-    </ClInclude>
     <ClInclude Include="..\natives.h">
       <Filter>Headers</Filter>
     </ClInclude>
@@ -35,6 +32,9 @@
       <Filter>Headers</Filter>
     </ClInclude>
     <ClInclude Include="..\vfunc_call.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\sdk-hacks.h">
       <Filter>Headers</Filter>
     </ClInclude>
   </ItemGroup>

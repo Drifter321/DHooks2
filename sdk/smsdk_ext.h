@@ -100,7 +100,7 @@
 
 #if defined SMEXT_CONF_METAMOD
 #include <ISmmPlugin.h>
-#include <eiface.h>
+//#include <eiface.h>
 #endif
 
 using namespace SourceMod;
@@ -301,8 +301,10 @@ extern INativeInterface *ninvoke;
 
 #if defined SMEXT_CONF_METAMOD
 PLUGIN_GLOBALVARS();
-extern IVEngineServer *engine;
-extern IServerGameDLL *gamedll;
+	#if !defined META_NO_HL2SDK
+	extern IVEngineServer *engine;
+	extern IServerGameDLL *gamedll;
+	#endif
 #endif
 
 /** Creates a SourceMod interface macro pair */

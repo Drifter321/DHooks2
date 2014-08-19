@@ -3,11 +3,11 @@
 
 SourceHook::IHookManagerAutoGen *g_pHookManager = NULL;
 
-CUtlVector<DHooksManager *> g_pHooks;
+SourceHook::CVector<DHooksManager *> g_pHooks;
 
 using namespace SourceHook;
 
-#ifndef __linux__
+#ifdef  WIN32
 #define OBJECT_OFFSET sizeof(void *)
 #else
 #define OBJECT_OFFSET (sizeof(void *)*2)
@@ -24,6 +24,7 @@ DHooksManager::DHooksManager(HookSetup *setup, void *iface, IPluginFunction *rem
 	this->callback->post = post;
 	this->callback->hookType = setup->hookType;
 	this->callback->params = setup->params;
+
 	this->addr = 0;
 
 	if(this->callback->hookType == HookType_Entity)
@@ -41,9 +42,9 @@ DHooksManager::DHooksManager(HookSetup *setup, void *iface, IPluginFunction *rem
 
 	CProtoInfoBuilder protoInfo(ProtoInfo::CallConv_ThisCall);
 
-	for(int i = this->callback->params.Count() -1; i >= 0; i--)
+	for(int i = this->callback->params.size() -1; i >= 0; i--)
 	{
-		protoInfo.AddParam(this->callback->params.Element(i).size, this->callback->params.Element(i).pass_type, this->callback->params.Element(i).flag, NULL, NULL, NULL, NULL);
+		protoInfo.AddParam(this->callback->params.at(i).size, this->callback->params.at(i).pass_type, this->callback->params.at(i).flag, NULL, NULL, NULL, NULL);
 	}
 
 	if(this->callback->returnType == ReturnType_Void)
@@ -66,21 +67,21 @@ DHooksManager::DHooksManager(HookSetup *setup, void *iface, IPluginFunction *rem
 	{
 		protoInfo.SetReturnType(sizeof(void *), SourceHook::PassInfo::PassType_Basic, setup->returnFlag, NULL, NULL, NULL, NULL);
 	}
-	HookManagerPubFunc hook = g_pHookManager->MakeHookMan(protoInfo, 0, this->callback->offset);
+	this->pManager = g_pHookManager->MakeHookMan(protoInfo, 0, this->callback->offset);
 
-	this->hookid = g_SHPtr->AddHook(g_PLID,ISourceHook::Hook_Normal, iface, 0, hook, this->callback, this->callback->post);
+	this->hookid = g_SHPtr->AddHook(g_PLID,ISourceHook::Hook_Normal, iface, 0, this->pManager, this->callback, this->callback->post);
 }
 
 void CleanupHooks(IPluginContext *pContext)
 {
-	for(int i = g_pHooks.Count() -1; i >= 0; i--)
+	for(int i = g_pHooks.size() -1; i >= 0; i--)
 	{
-		DHooksManager *manager = g_pHooks.Element(i);
+		DHooksManager *manager = g_pHooks.at(i);
 
 		if(pContext == NULL || pContext == manager->callback->plugin_callback->GetParentRuntime()->GetDefaultContext())
 		{
 			delete manager;
-			g_pHooks.Remove(i);
+			g_pHooks.erase(g_pHooks.iterAt(i));
 		}
 	}
 }
@@ -110,12 +111,12 @@ SourceHook::PassInfo::PassType GetParamTypePassType(HookParamType type)
 size_t GetStackArgsSize(DHooksCallback *dg)
 {
 	size_t res = 0;
-	for(int i = dg->params.Count() - 1; i >= 0; i--)
+	for(int i = dg->params.size() - 1; i >= 0; i--)
 	{
-		res += dg->params.Element(i).size;
+		res += dg->params.at(i).size;
 	}
 
-	#ifndef __linux__
+	#ifdef  WIN32
 	if(dg->returnType == ReturnType_Vector)//Account for result vector ptr.
 	#else
 	if(dg->returnType == ReturnType_Vector || dg->returnType == ReturnType_String)
@@ -129,7 +130,7 @@ HookParamsStruct *GetParamStruct(DHooksCallback *dg, void **argStack, size_t arg
 {
 	HookParamsStruct *params = new HookParamsStruct();
 	params->dg = dg;
-	#ifndef __linux__
+	#ifdef  WIN32
 	if(dg->returnType != ReturnType_Vector)
 	#else
 	if(dg->returnType != ReturnType_Vector && dg->returnType != ReturnType_String)
@@ -143,9 +144,9 @@ HookParamsStruct *GetParamStruct(DHooksCallback *dg, void **argStack, size_t arg
 		params->orgParams = (void **)malloc(argStackSize-OBJECT_OFFSET);
 		memcpy(params->orgParams, argStack+OBJECT_OFFSET, argStackSize-OBJECT_OFFSET);
 	}
-	params->newParams = (void **)malloc(dg->params.Count() * sizeof(void *));
-	params->isChanged = (bool *)malloc(dg->params.Count() * sizeof(bool));
-	for(int i = 0; i < dg->params.Count(); i++)
+	params->newParams = (void **)malloc(dg->params.size() * sizeof(void *));
+	params->isChanged = (bool *)malloc(dg->params.size() * sizeof(bool));
+	for(int i = 0; i < (int)dg->params.size(); i++)
 	{
 		params->newParams[i] = NULL;
 		params->isChanged[i] = false;
@@ -224,7 +225,7 @@ cell_t GetThisPtr(void *iface, ThisPointerType type)
 	return (cell_t)iface;
 }
 
-#ifndef __linux__
+#ifdef  WIN32
 void *Callback(DHooksCallback *dg, void **argStack, size_t *argsizep)
 #else
 void *Callback(DHooksCallback *dg, void **argStack)
@@ -235,7 +236,7 @@ void *Callback(DHooksCallback *dg, void **argStack)
 	Handle_t rHndl;
 	Handle_t pHndl;
 
-	#ifndef __linux__
+	#ifdef  WIN32
 	*argsizep = GetStackArgsSize(dg);
 	#else
 	size_t argsize = GetStackArgsSize(dg);
@@ -262,7 +263,7 @@ void *Callback(DHooksCallback *dg, void **argStack)
 		dg->plugin_callback->PushCell(rHndl);
 	}
 
-	#ifndef __linux__
+	#ifdef  WIN32
 	if(*argsizep > 0)
 	{
 		paramStruct = GetParamStruct(dg, argStack, *argsizep);
@@ -380,7 +381,7 @@ void *Callback(DHooksCallback *dg, void **argStack)
 	}
 	return ret;
 }
-#ifndef __linux__
+#ifdef  WIN32
 float Callback_float(DHooksCallback *dg, void **argStack, size_t *argsizep)
 #else
 float Callback_float(DHooksCallback *dg, void **argStack)
@@ -391,7 +392,7 @@ float Callback_float(DHooksCallback *dg, void **argStack)
 	Handle_t rHndl;
 	Handle_t pHndl;
 
-	#ifndef __linux__
+	#ifdef  WIN32
 	*argsizep = GetStackArgsSize(dg);
 	#else
 	size_t argsize = GetStackArgsSize(dg);
@@ -417,7 +418,7 @@ float Callback_float(DHooksCallback *dg, void **argStack)
 	}
 	dg->plugin_callback->PushCell(rHndl);
 
-	#ifndef __linux__
+	#ifdef  WIN32
 	if(*argsizep > 0)
 	{
 		paramStruct = GetParamStruct(dg, argStack, *argsizep);
@@ -534,7 +535,7 @@ float Callback_float(DHooksCallback *dg, void **argStack)
 	}
 	return *(float *)ret;
 }
-#ifndef __linux__
+#ifdef  WIN32
 Vector *Callback_vector(DHooksCallback *dg, void **argStack, size_t *argsizep)
 #else
 Vector *Callback_vector(DHooksCallback *dg, void **argStack)
@@ -547,7 +548,7 @@ Vector *Callback_vector(DHooksCallback *dg, void **argStack)
 	Handle_t rHndl;
 	Handle_t pHndl;
 
-	#ifndef __linux__
+	#ifdef  WIN32
 	*argsizep = GetStackArgsSize(dg);
 	#else
 	size_t argsize = GetStackArgsSize(dg);
@@ -573,7 +574,7 @@ Vector *Callback_vector(DHooksCallback *dg, void **argStack)
 	}
 	dg->plugin_callback->PushCell(rHndl);
 
-	#ifndef __linux__
+	#ifdef  WIN32
 	if(*argsizep > 0)
 	{
 		paramStruct = GetParamStruct(dg, argStack, *argsizep);

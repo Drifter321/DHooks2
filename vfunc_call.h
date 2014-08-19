@@ -5,8 +5,8 @@
 #include "extension.h"
 
 #define PARAMINFO_SWITCH(passType) \
-		paramInfo[i].flags = dg->params.Element(i).flag; \
-		paramInfo[i].size = dg->params.Element(i).size; \
+		paramInfo[i].flags = dg->params.at(i).flag; \
+		paramInfo[i].size = dg->params.at(i).size; \
 		paramInfo[i].type = passType;
 
 #define VSTK_PARAM_SWITCH(paramType) \
@@ -18,9 +18,9 @@
 		{ \
 			*(paramType *)vptr = (paramType)(paramStruct->orgParams[i]); \
 		} \
-		if(i + 1 != dg->params.Count()) \
+		if(i + 1 != dg->params.size()) \
 		{ \
-			vptr += dg->params.Element(i).size; \
+			vptr += dg->params.at(i).size; \
 		} \
 		break;
 #define VSTK_PARAM_SWITCH_FLOAT() \
@@ -32,9 +32,9 @@
 		{ \
 			*(float *)vptr = *(float *)(paramStruct->orgParams[i]); \
 		} \
-		if(i + 1 != dg->params.Count()) \
+		if(i + 1 != dg->params.size()) \
 		{ \
-			vptr += dg->params.Element(i).size; \
+			vptr += dg->params.at(i).size; \
 		} \
 		break;
 
@@ -70,10 +70,10 @@ T CallVFunction(DHooksCallback *dg, HookParamsStruct *paramStruct, void *iface)
 	if(paramStruct)
 	{
 		vptr += sizeof(void *);
-		paramInfo = (SourceMod::PassInfo *)malloc(sizeof(SourceMod::PassInfo) * dg->params.Count());
-		for(int i = 0; i < dg->params.Count(); i++)
+		paramInfo = (SourceMod::PassInfo *)malloc(sizeof(SourceMod::PassInfo) * dg->params.size());
+		for(int i = 0; i < (int)dg->params.size(); i++)
 		{
-			switch(dg->params.Element(i).type)
+			switch(dg->params.at(i).type)
 			{
 				case HookParamType_Int:
 					PARAMINFO_SWITCH(PassType_Basic);
@@ -113,12 +113,12 @@ T CallVFunction(DHooksCallback *dg, HookParamsStruct *paramStruct, void *iface)
 	
 	if(dg->returnType == ReturnType_Void)
 	{
-		pCall = g_pBinTools->CreateVCall(dg->offset, 0, 0, NULL, paramInfo, dg->params.Count());
+		pCall = g_pBinTools->CreateVCall(dg->offset, 0, 0, NULL, paramInfo, dg->params.size());
 		pCall->Execute(vstk, NULL);
 	}
 	else
 	{
-		pCall = g_pBinTools->CreateVCall(dg->offset, 0, 0, &returnInfo, paramInfo, dg->params.Count());
+		pCall = g_pBinTools->CreateVCall(dg->offset, 0, 0, &returnInfo, paramInfo, dg->params.size());
 		pCall->Execute(vstk, &ret);
 	}
 
@@ -157,10 +157,10 @@ Vector CallVFunction<Vector>(DHooksCallback *dg, HookParamsStruct *paramStruct, 
 	if(paramStruct)
 	{
 		vptr += sizeof(void *);
-		paramInfo = (SourceMod::PassInfo *)malloc(sizeof(SourceMod::PassInfo) * dg->params.Count());
-		for(int i = 0; i < dg->params.Count(); i++)
+		paramInfo = (SourceMod::PassInfo *)malloc(sizeof(SourceMod::PassInfo) * dg->params.size());
+		for(int i = 0; i < (int)dg->params.size(); i++)
 		{
-			switch(dg->params.Element(i).type)
+			switch(dg->params.at(i).type)
 			{
 				case HookParamType_Int:
 					PARAMINFO_SWITCH(PassType_Basic);
@@ -198,7 +198,7 @@ Vector CallVFunction<Vector>(DHooksCallback *dg, HookParamsStruct *paramStruct, 
 
 	Vector ret;
 
-	pCall = g_pBinTools->CreateVCall(dg->offset, 0, 0, &returnInfo, paramInfo, dg->params.Count());
+	pCall = g_pBinTools->CreateVCall(dg->offset, 0, 0, &returnInfo, paramInfo, dg->params.size());
 	pCall->Execute(vstk, &ret);
 
 	pCall->Destroy();
@@ -237,10 +237,10 @@ string_t CallVFunction<string_t>(DHooksCallback *dg, HookParamsStruct *paramStru
 	if(paramStruct)
 	{
 		vptr += sizeof(void *);
-		paramInfo = (SourceMod::PassInfo *)malloc(sizeof(SourceMod::PassInfo) * dg->params.Count());
-		for(int i = 0; i < dg->params.Count(); i++)
+		paramInfo = (SourceMod::PassInfo *)malloc(sizeof(SourceMod::PassInfo) * dg->params.size());
+		for(int i = 0; i < dg->params.size(); i++)
 		{
-			switch(dg->params.Element(i).type)
+			switch(dg->params.at(i).type)
 			{
 				case HookParamType_Int:
 					PARAMINFO_SWITCH(PassType_Basic);
@@ -278,7 +278,7 @@ string_t CallVFunction<string_t>(DHooksCallback *dg, HookParamsStruct *paramStru
 
 	string_t ret;
 
-	pCall = g_pBinTools->CreateVCall(dg->offset, 0, 0, &returnInfo, paramInfo, dg->params.Count());
+	pCall = g_pBinTools->CreateVCall(dg->offset, 0, 0, &returnInfo, paramInfo, dg->params.size());
 	pCall->Execute(vstk, &ret);
 
 	pCall->Destroy();

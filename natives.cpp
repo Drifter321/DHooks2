@@ -1,29 +1,4 @@
 #include "natives.h"
-#include <isaverestore.h>
-
-#ifndef _DEBUG
-#include <ehandle.h>
-#else
-#undef _DEBUG
-#include <ehandle.h>
-#define _DEBUG 1
-#endif
-
-CBaseEntity *UTIL_GetCBaseEntity(int num)
-{
-	edict_t *pEdict = gamehelpers->EdictOfIndex(num);
-	if (!pEdict || pEdict->IsFree())
-	{
-		return NULL;
-	}
-	IServerUnknown *pUnk;
-	if ((pUnk=pEdict->GetUnknown()) == NULL)
-	{
-		return NULL;
-	}
-
-	return pUnk->GetBaseEntity();
-}
 
 bool GetHandleIfValidOrError(HandleType_t type, void **object, IPluginContext *pContext, cell_t param)
 {
@@ -42,22 +17,19 @@ bool GetHandleIfValidOrError(HandleType_t type, void **object, IPluginContext *p
 	return true;
 }
 
-#ifndef __linux__
 intptr_t GetObjectAddr(HookParamType type, void **params, int index)
 {
+#ifdef  WIN32
 	if(type == HookParamType_Object)
 		return (intptr_t)&params[index];
 	else if(type == HookParamType_ObjectPtr)
 		return (intptr_t)params[index];
 
 	return 0;
-}
 #else
-intptr_t GetObjectAddr(HookParamType type, void **params, int index)
-{
 	return (intptr_t)params[index];
-}
 #endif
+}
 
 //native Handle:DHookCreate(offset, HookType:hooktype, ReturnType:returntype, ThisPointerType:thistype, DHookCallback:callback);
 cell_t Native_CreateHook(IPluginContext *pContext, const cell_t *params)
@@ -117,7 +89,7 @@ cell_t Native_AddParam(IPluginContext *pContext, const cell_t *params)
 	}
 
 	info.pass_type = GetParamTypePassType(info.type);
-	setup->params.AddToTail(info);
+	setup->params.push_back(info);
 
 	return 1;
 }
@@ -137,15 +109,15 @@ cell_t Native_HookEntity(IPluginContext *pContext, const cell_t *params)
 	}
 	bool post = params[2] != 0;
 
-	for(int i = g_pHooks.Count() -1; i >= 0; i--)
+	for(int i = g_pHooks.size() -1; i >= 0; i--)
 	{
-		DHooksManager *manager = g_pHooks.Element(i);
-		if(manager->callback->hookType == HookType_Entity && manager->callback->entity == params[3] && manager->callback->offset == setup->offset && manager->callback->post == post && manager->remove_callback == pContext->GetFunctionById(params[4]) && manager->callback->plugin_callback == setup->callback)
+		DHooksManager *manager = g_pHooks.at(i);
+		if(manager->callback->hookType == HookType_Entity && manager->callback->entity == gamehelpers->ReferenceToBCompatRef(params[3]) && manager->callback->offset == setup->offset && manager->callback->post == post && manager->remove_callback == pContext->GetFunctionById(params[4]) && manager->callback->plugin_callback == setup->callback)
 		{
 			return manager->hookid;
 		}
 	}
-	CBaseEntity *pEnt = UTIL_GetCBaseEntity(params[3]);
+	CBaseEntity *pEnt = gamehelpers->ReferenceToEntity(params[3]);
 
 	if(!pEnt)
 	{
@@ -160,7 +132,7 @@ cell_t Native_HookEntity(IPluginContext *pContext, const cell_t *params)
 		return 0;
 	}
 
-	g_pHooks.AddToTail(manager);
+	g_pHooks.push_back(manager);
 
 	return manager->hookid;
 }
@@ -181,9 +153,9 @@ cell_t Native_HookGamerules(IPluginContext *pContext, const cell_t *params)
 
 	bool post = params[2] != 0;
 
-	for(int i = g_pHooks.Count() -1; i >= 0; i--)
+	for(int i = g_pHooks.size() -1; i >= 0; i--)
 	{
-		DHooksManager *manager = g_pHooks.Element(i);
+		DHooksManager *manager = g_pHooks.at(i);
 		if(manager->callback->hookType == HookType_GameRules && manager->callback->offset == setup->offset && manager->callback->post == post && manager->remove_callback == pContext->GetFunctionById(params[3]) && manager->callback->plugin_callback == setup->callback)
 		{
 			return manager->hookid;
@@ -194,7 +166,7 @@ cell_t Native_HookGamerules(IPluginContext *pContext, const cell_t *params)
 
 	if(!rules)
 	{
-		return pContext->ThrowNativeError("Could not get game rules pointer");
+		return pContext->ThrowNativeError("Could not get gamerules pointer");
 	}
 
 	DHooksManager *manager = new DHooksManager(setup, rules, pContext->GetFunctionById(params[3]), post);
@@ -205,7 +177,7 @@ cell_t Native_HookGamerules(IPluginContext *pContext, const cell_t *params)
 		return 0;
 	}
 
-	g_pHooks.AddToTail(manager);
+	g_pHooks.push_back(manager);
 
 	return manager->hookid;
 }
@@ -221,14 +193,14 @@ cell_t Native_HookRaw(IPluginContext *pContext, const cell_t *params)
 
 	if(setup->hookType != HookType_Raw)
 	{
-		return pContext->ThrowNativeError("Hook is not a gamerules hook");
+		return pContext->ThrowNativeError("Hook is not a raw hook");
 	}
 
 	bool post = params[2] != 0;
 
-	for(int i = g_pHooks.Count() -1; i >= 0; i--)
+	for(int i = g_pHooks.size() -1; i >= 0; i--)
 	{
-		DHooksManager *manager = g_pHooks.Element(i);
+		DHooksManager *manager = g_pHooks.at(i);
 		if(manager->callback->hookType == HookType_Raw && manager->callback->offset == setup->offset && manager->callback->post == post && manager->remove_callback == pContext->GetFunctionById(params[3]) && manager->callback->plugin_callback == setup->callback)
 		{
 			return manager->hookid;
@@ -250,20 +222,20 @@ cell_t Native_HookRaw(IPluginContext *pContext, const cell_t *params)
 		return 0;
 	}
 
-	g_pHooks.AddToTail(manager);
+	g_pHooks.push_back(manager);
 
 	return manager->hookid;
 }
 // native bool:DHookRemoveHookID(hookid);
 cell_t Native_RemoveHookID(IPluginContext *pContext, const cell_t *params)
 {
-	for(int i = g_pHooks.Count() -1; i >= 0; i--)
+	for(int i = g_pHooks.size() -1; i >= 0; i--)
 	{
-		DHooksManager *manager = g_pHooks.Element(i);
+		DHooksManager *manager = g_pHooks.at(i);
 		if(manager->hookid == params[1] && manager->callback->plugin_callback->GetParentRuntime()->GetDefaultContext() == pContext)
 		{
 			delete manager;
-			g_pHooks.Remove(i);
+			g_pHooks.erase(g_pHooks.iterAt(i));
 			return 1;
 		}
 	}
@@ -279,23 +251,23 @@ cell_t Native_GetParam(IPluginContext *pContext, const cell_t *params)
 		return 0;
 	}
 
-	if(params[2] < 0 || params[2] > paramStruct->dg->params.Count())
+	if(params[2] < 0 || params[2] > (int)paramStruct->dg->params.size())
 	{
-		return pContext->ThrowNativeError("Invalid param number %i max params is %i", params[2], paramStruct->dg->params.Count());
+		return pContext->ThrowNativeError("Invalid param number %i max params is %i", params[2], paramStruct->dg->params.size());
 	}
 	if(params[2] == 0)
 	{
-		return paramStruct->dg->params.Count();
+		return paramStruct->dg->params.size();
 	}
 
 	int index = params[2] - 1;
 
-	if(paramStruct->orgParams[index] == NULL && (paramStruct->dg->params.Element(index).type == HookParamType_CBaseEntity || paramStruct->dg->params.Element(index).type == HookParamType_Edict))
+	if(paramStruct->orgParams[index] == NULL && (paramStruct->dg->params.at(index).type == HookParamType_CBaseEntity || paramStruct->dg->params.at(index).type == HookParamType_Edict))
 	{
 		return pContext->ThrowNativeError("Trying to get value for null pointer.");
 	}
 
-	switch(paramStruct->dg->params.Element(index).type)
+	switch(paramStruct->dg->params.at(index).type)
 	{
 		case HookParamType_Int:
 			return (int)paramStruct->orgParams[index];
@@ -308,7 +280,7 @@ cell_t Native_GetParam(IPluginContext *pContext, const cell_t *params)
 		case HookParamType_Float:
 			return sp_ftoc(*(float *)paramStruct->orgParams[index]);
 		default:
-			return pContext->ThrowNativeError("Invalid param type (%i) to get", paramStruct->dg->params.Element(index).type);
+			return pContext->ThrowNativeError("Invalid param type (%i) to get", paramStruct->dg->params.at(index).type);
 	}
 
 	return 1;
@@ -324,14 +296,14 @@ cell_t Native_SetParam(IPluginContext *pContext, const cell_t *params)
 		return 0;
 	}
 
-	if(params[2] <= 0 || params[2] > paramStruct->dg->params.Count())
+	if(params[2] <= 0 || params[2] > (int)paramStruct->dg->params.size())
 	{
-		return pContext->ThrowNativeError("Invalid param number %i max params is %i", params[2], paramStruct->dg->params.Count());
+		return pContext->ThrowNativeError("Invalid param number %i max params is %i", params[2], paramStruct->dg->params.size());
 	}
 
 	int index = params[2] - 1;
 
-	switch(paramStruct->dg->params.Element(index).type)
+	switch(paramStruct->dg->params.at(index).type)
 	{
 		case HookParamType_Int:
 			paramStruct->newParams[index] = (void *)params[3];
@@ -341,7 +313,7 @@ cell_t Native_SetParam(IPluginContext *pContext, const cell_t *params)
 			break;
 		case HookParamType_CBaseEntity:
 		{
-			CBaseEntity *pEnt = UTIL_GetCBaseEntity(params[2]);
+			CBaseEntity *pEnt = gamehelpers->ReferenceToEntity(params[2]);
 			if(!pEnt)
 			{
 				return pContext->ThrowNativeError("Invalid entity index passed for param value");
@@ -364,7 +336,7 @@ cell_t Native_SetParam(IPluginContext *pContext, const cell_t *params)
 			*(float *)paramStruct->newParams[index] = sp_ctof(params[3]);
 			break;
 		default:
-			return pContext->ThrowNativeError("Invalid param type (%i) to set", paramStruct->dg->params.Element(index).type);
+			return pContext->ThrowNativeError("Invalid param type (%i) to set", paramStruct->dg->params.at(index).type);
 	}
 
 	paramStruct->isChanged[index] = true;
@@ -418,7 +390,7 @@ cell_t Native_SetReturn(IPluginContext *pContext, const cell_t *params)
 			break;
 		case ReturnType_CBaseEntity:
 		{
-			CBaseEntity *pEnt = UTIL_GetCBaseEntity(params[2]);
+			CBaseEntity *pEnt = gamehelpers->ReferenceToEntity(params[2]);
 			if(!pEnt)
 			{
 				return pContext->ThrowNativeError("Invalid entity index passed for return value");
@@ -455,14 +427,14 @@ cell_t Native_GetParamVector(IPluginContext *pContext, const cell_t *params)
 		return 0;
 	}
 
-	if(params[2] <= 0 || params[2] > paramStruct->dg->params.Count())
+	if(params[2] <= 0 || params[2] > (int)paramStruct->dg->params.size())
 	{
-		return pContext->ThrowNativeError("Invalid param number %i max params is %i", params[2], paramStruct->dg->params.Count());
+		return pContext->ThrowNativeError("Invalid param number %i max params is %i", params[2], paramStruct->dg->params.size());
 	}
 
 	int index = params[2] - 1;
 
-	switch(paramStruct->dg->params.Element(index).type)
+	switch(paramStruct->dg->params.at(index).type)
 	{
 		case HookParamType_VectorPtr:
 		{
@@ -487,14 +459,14 @@ cell_t Native_SetParamVector(IPluginContext *pContext, const cell_t *params)
 		return 0;
 	}
 
-	if(params[2] <= 0 || params[2] > paramStruct->dg->params.Count())
+	if(params[2] <= 0 || params[2] > (int)paramStruct->dg->params.size())
 	{
-		return pContext->ThrowNativeError("Invalid param number %i max params is %i", params[2], paramStruct->dg->params.Count());
+		return pContext->ThrowNativeError("Invalid param number %i max params is %i", params[2], paramStruct->dg->params.size());
 	}
 
 	int index = params[2] - 1;
 
-	switch(paramStruct->dg->params.Element(index).type)
+	switch(paramStruct->dg->params.at(index).type)
 	{
 		case HookParamType_VectorPtr:
 		{
@@ -521,9 +493,9 @@ cell_t Native_GetParamString(IPluginContext *pContext, const cell_t *params)
 		return 0;
 	}
 
-	if(params[2] <= 0 || params[2] > paramStruct->dg->params.Count())
+	if(params[2] <= 0 || params[2] > (int)paramStruct->dg->params.size())
 	{
-		return pContext->ThrowNativeError("Invalid param number %i max params is %i", params[2], paramStruct->dg->params.Count());
+		return pContext->ThrowNativeError("Invalid param number %i max params is %i", params[2], paramStruct->dg->params.size());
 	}
 	int index = params[2] - 1;
 
@@ -532,7 +504,7 @@ cell_t Native_GetParamString(IPluginContext *pContext, const cell_t *params)
 		return pContext->ThrowNativeError("Trying to get value for null pointer.");
 	}
 
-	if(paramStruct->dg->params.Element(index).type == HookParamType_CharPtr)
+	if(paramStruct->dg->params.at(index).type == HookParamType_CharPtr)
 	{
 		pContext->StringToLocal(params[3], params[4], (const char *)paramStruct->orgParams[index]);
 	}
@@ -601,9 +573,9 @@ cell_t Native_SetParamString(IPluginContext *pContext, const cell_t *params)
 		return 0;
 	}
 
-	if(params[2] <= 0 || params[2] > paramStruct->dg->params.Count())
+	if(params[2] <= 0 || params[2] > (int)paramStruct->dg->params.size())
 	{
-		return pContext->ThrowNativeError("Invalid param number %i max params is %i", params[2], paramStruct->dg->params.Count());
+		return pContext->ThrowNativeError("Invalid param number %i max params is %i", params[2], paramStruct->dg->params.size());
 	}
 
 	int index = params[2] - 1;
@@ -611,7 +583,7 @@ cell_t Native_SetParamString(IPluginContext *pContext, const cell_t *params)
 	char *value;
 	pContext->LocalToString(params[3], &value);
 
-	if(paramStruct->dg->params.Element(index).type == HookParamType_CharPtr)
+	if(paramStruct->dg->params.at(index).type == HookParamType_CharPtr)
 	{
 		if((char *)paramStruct->newParams[index] != NULL && paramStruct->isChanged[index])
 			delete (char *)paramStruct->newParams[index];
@@ -653,19 +625,19 @@ cell_t Native_GetParamObjectPtrVar(IPluginContext *pContext, const cell_t *param
 		return 0;
 	}
 
-	if(params[2] <= 0 || params[2] > paramStruct->dg->params.Count())
+	if(params[2] <= 0 || params[2] > (int)paramStruct->dg->params.size())
 	{
-		return pContext->ThrowNativeError("Invalid param number %i max params is %i", params[2], paramStruct->dg->params.Count());
+		return pContext->ThrowNativeError("Invalid param number %i max params is %i", params[2], paramStruct->dg->params.size());
 	}
 
 	int index = params[2] - 1;
 
-	if(paramStruct->dg->params.Element(index).type != HookParamType_ObjectPtr && paramStruct->dg->params.Element(index).type != HookParamType_Object)
+	if(paramStruct->dg->params.at(index).type != HookParamType_ObjectPtr && paramStruct->dg->params.at(index).type != HookParamType_Object)
 	{
-		return pContext->ThrowNativeError("Invalid object value type %i", paramStruct->dg->params.Element(index).type);
+		return pContext->ThrowNativeError("Invalid object value type %i", paramStruct->dg->params.at(index).type);
 	}
 	
-	intptr_t addr = GetObjectAddr(paramStruct->dg->params.Element(index).type, paramStruct->orgParams, index);
+	intptr_t addr = GetObjectAddr(paramStruct->dg->params.at(index).type, paramStruct->orgParams, index);
 
 	switch((ObjectValueType)params[4])
 	{
@@ -677,13 +649,19 @@ cell_t Native_GetParamObjectPtrVar(IPluginContext *pContext, const cell_t *param
 			return *(bool *)(addr + params[3]) ? 1 : 0;
 		case ObjectValueType_Ehandle:
 		{
-			EHANDLE hEntity = *(EHANDLE *)(addr + params[3]);
-			return hEntity.IsValid()?hEntity.GetEntryIndex():-1;
+			edict_t *pEnt = gamehelpers->GetHandleEntity(*(CBaseHandle *)(addr + params[3]));
+
+			if(!pEnt)
+			{
+				return -1;
+			}
+
+			return gamehelpers->IndexOfEdict(pEnt);
 		}
 		case ObjectValueType_Float:
 			return sp_ftoc(*(float *)(addr + params[3]));
 		case ObjectValueType_CBaseEntityPtr:
-			return gamehelpers->EntityToBCompatRef(*(CBaseEntity **)(addr + params[3]));
+			return gamehelpers->EntityToBCompatRef((CBaseEntity *)(addr + params[3]));
 		case ObjectValueType_IntPtr:
 		{
 			int *ptr = *(int **)(addr + params[3]);
@@ -694,10 +672,16 @@ cell_t Native_GetParamObjectPtrVar(IPluginContext *pContext, const cell_t *param
 			bool *ptr = *(bool **)(addr + params[3]);
 			return *ptr ? 1 : 0;
 		}
-		case ObjectValueType_EhandlePtr:
+		case ObjectValueType_EhandlePtr://Im pretty sure this is never gonna happen
 		{
-			EHANDLE *hEntity = *(EHANDLE **)(addr + params[3]);
-			return hEntity->IsValid()?hEntity->GetEntryIndex():-1;
+			edict_t *pEnt = gamehelpers->GetHandleEntity(**(CBaseHandle **)(addr + params[3]));
+
+			if(!pEnt)
+			{
+				return -1;
+			}
+
+			return gamehelpers->IndexOfEdict(pEnt);
 		}
 		case ObjectValueType_FloatPtr:
 		{
@@ -719,19 +703,19 @@ cell_t Native_SetParamObjectPtrVar(IPluginContext *pContext, const cell_t *param
 		return 0;
 	}
 
-	if(params[2] <= 0 || params[2] > paramStruct->dg->params.Count())
+	if(params[2] <= 0 || params[2] > (int)paramStruct->dg->params.size())
 	{
-		return pContext->ThrowNativeError("Invalid param number %i max params is %i", params[2], paramStruct->dg->params.Count());
+		return pContext->ThrowNativeError("Invalid param number %i max params is %i", params[2], paramStruct->dg->params.size());
 	}
 
 	int index = params[2] - 1;
 
-	if(paramStruct->dg->params.Element(index).type != HookParamType_ObjectPtr)
+	if(paramStruct->dg->params.at(index).type != HookParamType_ObjectPtr)
 	{
-		return pContext->ThrowNativeError("Invalid object value type %i", paramStruct->dg->params.Element(index).type);
+		return pContext->ThrowNativeError("Invalid object value type %i", paramStruct->dg->params.at(index).type);
 	}
 	
-	intptr_t addr = GetObjectAddr(paramStruct->dg->params.Element(index).type, paramStruct->orgParams, index);
+	intptr_t addr = GetObjectAddr(paramStruct->dg->params.at(index).type, paramStruct->orgParams, index);
 
 	switch((ObjectValueType)params[4])
 	{
@@ -743,14 +727,14 @@ cell_t Native_SetParamObjectPtrVar(IPluginContext *pContext, const cell_t *param
 			break;
 		case ObjectValueType_Ehandle:
 		{
-			CBaseEntity *pEnt = UTIL_GetCBaseEntity(params[5]);
+			edict_t *pEnt = gamehelpers->EdictOfIndex(params[5]);
 
-			if(!pEnt)
+			if(pEnt->IsFree())
 			{
 				return pContext->ThrowNativeError("Invalid entity passed");
 			}
+			gamehelpers->SetHandleEntity(*(CBaseHandle *)(addr + params[3]), pEnt);
 
-			*(EHANDLE *)(addr + params[3]) = pEnt;
 			break;
 		}
 		case ObjectValueType_Float:
@@ -758,7 +742,7 @@ cell_t Native_SetParamObjectPtrVar(IPluginContext *pContext, const cell_t *param
 			break;
 		case ObjectValueType_CBaseEntityPtr:
 		{
-			CBaseEntity *pEnt = UTIL_GetCBaseEntity(params[5]);
+			CBaseEntity *pEnt = gamehelpers->ReferenceToEntity(params[5]);
 
 			if(!pEnt)
 			{
@@ -782,15 +766,14 @@ cell_t Native_SetParamObjectPtrVar(IPluginContext *pContext, const cell_t *param
 		}
 		case ObjectValueType_EhandlePtr:
 		{
-			CBaseEntity *pEnt = UTIL_GetCBaseEntity(params[5]);
+			edict_t *pEnt = gamehelpers->EdictOfIndex(params[5]);
 
-			if(!pEnt)
+			if(pEnt->IsFree())
 			{
 				return pContext->ThrowNativeError("Invalid entity passed");
 			}
+			gamehelpers->SetHandleEntity(**(CBaseHandle **)(addr + params[3]), pEnt);
 
-			EHANDLE *hEntity = *(EHANDLE **)(addr + params[3]);
-			*hEntity = pEnt;
 			break;
 		}
 		case ObjectValueType_FloatPtr:
@@ -815,19 +798,19 @@ cell_t Native_GetParamObjectPtrVarVector(IPluginContext *pContext, const cell_t 
 		return 0;
 	}
 
-	if(params[2] <= 0 || params[2] > paramStruct->dg->params.Count())
+	if(params[2] <= 0 || params[2] > (int)paramStruct->dg->params.size())
 	{
-		return pContext->ThrowNativeError("Invalid param number %i max params is %i", params[2], paramStruct->dg->params.Count());
+		return pContext->ThrowNativeError("Invalid param number %i max params is %i", params[2], paramStruct->dg->params.size());
 	}
 
 	int index = params[2] - 1;
 
-	if(paramStruct->dg->params.Element(index).type != HookParamType_ObjectPtr && paramStruct->dg->params.Element(index).type != HookParamType_Object)
+	if(paramStruct->dg->params.at(index).type != HookParamType_ObjectPtr && paramStruct->dg->params.at(index).type != HookParamType_Object)
 	{
-		return pContext->ThrowNativeError("Invalid object value type %i", paramStruct->dg->params.Element(index).type);
+		return pContext->ThrowNativeError("Invalid object value type %i", paramStruct->dg->params.at(index).type);
 	}
 
-	intptr_t addr = GetObjectAddr(paramStruct->dg->params.Element(index).type, paramStruct->orgParams, index);
+	intptr_t addr = GetObjectAddr(paramStruct->dg->params.at(index).type, paramStruct->orgParams, index);
 
 	cell_t *buffer;
 	pContext->LocalToPhysAddr(params[5], &buffer);
@@ -868,19 +851,19 @@ cell_t Native_SetParamObjectPtrVarVector(IPluginContext *pContext, const cell_t 
 		return 0;
 	}
 
-	if(params[2] <= 0 || params[2] > paramStruct->dg->params.Count())
+	if(params[2] <= 0 || params[2] > (int)paramStruct->dg->params.size())
 	{
-		return pContext->ThrowNativeError("Invalid param number %i max params is %i", params[2], paramStruct->dg->params.Count());
+		return pContext->ThrowNativeError("Invalid param number %i max params is %i", params[2], paramStruct->dg->params.size());
 	}
 
 	int index = params[2] - 1;
 
-	if(paramStruct->dg->params.Element(index).type != HookParamType_ObjectPtr)
+	if(paramStruct->dg->params.at(index).type != HookParamType_ObjectPtr)
 	{
-		return pContext->ThrowNativeError("Invalid object value type %i", paramStruct->dg->params.Element(index).type);
+		return pContext->ThrowNativeError("Invalid object value type %i", paramStruct->dg->params.at(index).type);
 	}
 
-	intptr_t addr = GetObjectAddr(paramStruct->dg->params.Element(index).type, paramStruct->orgParams, index);
+	intptr_t addr = GetObjectAddr(paramStruct->dg->params.at(index).type, paramStruct->orgParams, index);
 
 	cell_t *buffer;
 	pContext->LocalToPhysAddr(params[5], &buffer);
@@ -920,19 +903,19 @@ cell_t Native_GetParamObjectPtrString(IPluginContext *pContext, const cell_t *pa
 		return 0;
 	}
 
-	if(params[2] <= 0 || params[2] > paramStruct->dg->params.Count())
+	if(params[2] <= 0 || params[2] > (int)paramStruct->dg->params.size())
 	{
-		return pContext->ThrowNativeError("Invalid param number %i max params is %i", params[2], paramStruct->dg->params.Count());
+		return pContext->ThrowNativeError("Invalid param number %i max params is %i", params[2], paramStruct->dg->params.size());
 	}
 
 	int index = params[2] - 1;
 
-	if(paramStruct->dg->params.Element(index).type != HookParamType_ObjectPtr && paramStruct->dg->params.Element(index).type != HookParamType_Object)
+	if(paramStruct->dg->params.at(index).type != HookParamType_ObjectPtr && paramStruct->dg->params.at(index).type != HookParamType_Object)
 	{
-		return pContext->ThrowNativeError("Invalid object value type %i", paramStruct->dg->params.Element(index).type);
+		return pContext->ThrowNativeError("Invalid object value type %i", paramStruct->dg->params.at(index).type);
 	}
 
-	intptr_t addr = GetObjectAddr(paramStruct->dg->params.Element(index).type, paramStruct->orgParams, index);
+	intptr_t addr = GetObjectAddr(paramStruct->dg->params.at(index).type, paramStruct->orgParams, index);
 
 	switch((ObjectValueType)params[4])
 	{
@@ -1015,14 +998,14 @@ cell_t Native_IsNullParam(IPluginContext *pContext, const cell_t *params)
 		return 0;
 	}
 
-	if(params[2] <= 0 || params[2] > paramStruct->dg->params.Count())
+	if(params[2] <= 0 || params[2] > (int)paramStruct->dg->params.size())
 	{
-		return pContext->ThrowNativeError("Invalid param number %i max params is %i", params[2], paramStruct->dg->params.Count());
+		return pContext->ThrowNativeError("Invalid param number %i max params is %i", params[2], paramStruct->dg->params.size());
 	}
 
 	int index = params[2] - 1;
 
-	HookParamType type = paramStruct->dg->params.Element(index).type;
+	HookParamType type = paramStruct->dg->params.at(index).type;
 
 	//Check that the type is ptr
 	if(type == HookParamType_StringPtr || type == HookParamType_CharPtr || type == HookParamType_VectorPtr || type == HookParamType_CBaseEntity || type == HookParamType_ObjectPtr || type == HookParamType_Edict || type == HookParamType_Unknown)

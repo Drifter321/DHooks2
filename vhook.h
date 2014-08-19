@@ -126,7 +126,7 @@ public:
 class DHooksInfo
 {
 public:
-	CUtlVector<ParamInfo> params;
+	SourceHook::CVector<ParamInfo> params;
 	int offset;
 	unsigned int returnFlag;
 	ReturnType returnType;
@@ -154,7 +154,7 @@ public:
 	void **oldvtable;
 };
 
-#ifndef __linux__
+#ifdef  WIN32
 void *Callback(DHooksCallback *dg, void **stack, size_t *argsizep);
 float Callback_float(DHooksCallback *dg, void **stack, size_t *argsizep);
 Vector *Callback_vector(DHooksCallback *dg, void **stack, size_t *argsizep);
@@ -164,12 +164,13 @@ float Callback_float(DHooksCallback *dg, void **stack);
 Vector *Callback_vector(DHooksCallback *dg, void **stack);
 string_t *Callback_stringt(DHooksCallback *dg, void **stack);
 #endif
+
 bool SetupHookManager(ISmmAPI *ismm);
-void CleanupHooks(IPluginContext *pContext);
+void CleanupHooks(IPluginContext *pContext = NULL);
 size_t GetParamTypeSize(HookParamType type);
 SourceHook::PassInfo::PassType GetParamTypePassType(HookParamType type);
 
-#ifdef  __linux__
+#ifndef  WIN32
 static void *GenerateThunk(ReturnType type)
 {
 	MacroAssemblerX86 masm;
@@ -293,20 +294,20 @@ public:
 		}
 		if(this->newParams != NULL)
 		{
-			for(int i = dg->params.Count() - 1; i >= 0 ; i--)
+			for(int i = dg->params.size() - 1; i >= 0 ; i--)
 			{
 				if(this->newParams[i] == NULL)
 					continue;
 
-				if(dg->params.Element(i).type == HookParamType_VectorPtr)
+				if(dg->params.at(i).type == HookParamType_VectorPtr)
 				{
 					delete (Vector *)this->newParams[i];
 				}
-				else if(dg->params.Element(i).type == HookParamType_CharPtr)
+				else if(dg->params.at(i).type == HookParamType_CharPtr)
 				{
 					delete (char *)this->newParams[i];
 				}
-				else if(dg->params.Element(i).type == HookParamType_Float)
+				else if(dg->params.at(i).type == HookParamType_Float)
 				{
 					delete (float *)this->newParams[i];
 				}
@@ -339,7 +340,7 @@ public:
 	ReturnType returnType;
 	HookType hookType;
 	ThisPointerType thisType;
-	CUtlVector<ParamInfo> params;
+	SourceHook::CVector<ParamInfo> params;
 	int offset;
 	IPluginFunction *callback;
 };
@@ -358,6 +359,10 @@ public:
 				this->remove_callback->PushCell(this->hookid);
 				this->remove_callback->Execute(NULL);
 			}
+			if(this->pManager)
+			{
+				g_pHookManager->ReleaseHookMan(this->pManager);
+			}
 		}
 	}
 public:
@@ -365,6 +370,7 @@ public:
 	int hookid;
 	DHooksCallback *callback;
 	IPluginFunction *remove_callback;
+	SourceHook::HookManagerPubFunc pManager;
 };
 
 size_t GetStackArgsSize(DHooksCallback *dg);

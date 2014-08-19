@@ -1,0 +1,9 @@
+- 2.0.0
+	- Added ability to handle params with a size other than 4
+	- Restructed how hooking was handled
+	- Fixed multiple memory leaks
+	- Use SDKHooks for entity listeners
+	- Remove the need for SDK specific builds
+	- Updated to use AMBuild2
+	- General code rewrite
+	- Add mac support.
