@@ -1,0 +1,5 @@
+dvander - Helping with asm and being a huge help overall.
+KyleS - Input and reviewing my shitty commits.
+psychonic - Quacking and helping with buildbot along with coding questions.
+asherkin - SourceHook knowledge.
+Powerlord - Debugging and fixing crashes.

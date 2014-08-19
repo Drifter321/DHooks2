@@ -15,8 +15,7 @@ class DHooksEntityListener : public ISMEntityListener
 public:
 	virtual void OnEntityCreated(CBaseEntity *pEntity, const char *classname);
 	virtual void OnEntityDestroyed(CBaseEntity *pEntity);
-	void CleanupListeners(IPluginContext *func);
-	virtual void LevelShutdown();
+	void CleanupListeners(IPluginContext *func = NULL);
 	bool AddPluginEntityListener(ListenType type, IPluginFunction *callback);
 	bool RemovePluginEntityListener(ListenType type, IPluginFunction *callback);
 };
@@ -28,5 +27,5 @@ struct EntityListener
 	IPluginFunction *callback;
 };
 
-extern CUtlVector<DHooksManager *> g_pHooks;
+extern SourceHook::CVector<DHooksManager *> g_pHooks;
 #endif

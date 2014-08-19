@@ -42,6 +42,8 @@
 #include <ISDKHooks.h>
 #include <IBinTools.h>
 #include <ISDKTools.h>
+#include <sh_vector.h>
+#include "sdk-hacks.h"
 
 /**
  * @brief Sample implementation of the SDK Extension.
@@ -91,6 +93,7 @@ public:
 	virtual bool QueryRunning(char *error, size_t maxlength);
 	//virtual bool QueryInterfaceDrop(SMInterface *pInterface);
 	virtual void NotifyInterfaceDrop(SMInterface *pInterface);
+	virtual void OnCoreMapEnd();
 public:
 #if defined SMEXT_CONF_METAMOD
 	/**

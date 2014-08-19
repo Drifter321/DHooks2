@@ -3,28 +3,28 @@
 
 using namespace SourceHook;
 
-CUtlVector<EntityListener> g_EntityListeners;
+SourceHook::CVector<EntityListener> g_EntityListeners;
 
-void DHooksEntityListener::LevelShutdown()
+void DHooks::OnCoreMapEnd()
 {
-	for(int i = g_pHooks.Count() -1; i >= 0; i--)
+	for(int i = g_pHooks.size() -1; i >= 0; i--)
 	{
-		DHooksManager *manager = g_pHooks.Element(i);
+		DHooksManager *manager = g_pHooks.at(i);
 		if(manager->callback->hookType == HookType_GameRules)
 		{
 			delete manager;
-			g_pHooks.Remove(i);
+			g_pHooks.erase(g_pHooks.iterAt(i));
 		}
 	}
 }
 
 void DHooksEntityListener::CleanupListeners(IPluginContext *pContext)
 {
-	for(int i = g_EntityListeners.Count() -1; i >= 0; i--)
+	for(int i = g_EntityListeners.size() -1; i >= 0; i--)
 	{
-		if(pContext == NULL || pContext == g_EntityListeners.Element(i).callback->GetParentRuntime()->GetDefaultContext())
+		if(pContext == NULL || pContext == g_EntityListeners.at(i).callback->GetParentRuntime()->GetDefaultContext())
 		{
-			g_EntityListeners.Remove(i);
+			g_EntityListeners.erase(g_EntityListeners.iterAt(i));
 		}
 	}
 }
@@ -33,9 +33,9 @@ void DHooksEntityListener::OnEntityCreated(CBaseEntity *pEntity, const char *cla
 {
 	int entity = gamehelpers->EntityToBCompatRef(pEntity);
 
-	for(int i = g_EntityListeners.Count() -1; i >= 0; i--)
+	for(int i = g_EntityListeners.size() -1; i >= 0; i--)
 	{
-		EntityListener listerner = g_EntityListeners.Element(i);
+		EntityListener listerner = g_EntityListeners.at(i);
 		if(listerner.type == ListenType_Created)
 		{
 			IPluginFunction *callback = listerner.callback;
@@ -50,9 +50,9 @@ void DHooksEntityListener::OnEntityDestroyed(CBaseEntity *pEntity)
 {
 	int entity = gamehelpers->EntityToBCompatRef(pEntity);
 
-	for(int i = g_EntityListeners.Count() -1; i >= 0; i--)
+	for(int i = g_EntityListeners.size() -1; i >= 0; i--)
 	{
-		EntityListener listerner = g_EntityListeners.Element(i);
+		EntityListener listerner = g_EntityListeners.at(i);
 		if(listerner.type == ListenType_Deleted)
 		{
 			IPluginFunction *callback = listerner.callback;
@@ -61,21 +61,21 @@ void DHooksEntityListener::OnEntityDestroyed(CBaseEntity *pEntity)
 		}
 	}
 
-	for(int i = g_pHooks.Count() -1; i >= 0; i--)
+	for(int i = g_pHooks.size() -1; i >= 0; i--)
 	{
-		DHooksManager *manager = g_pHooks.Element(i);
+		DHooksManager *manager = g_pHooks.at(i);
 		if(manager->callback->entity == entity)
 		{
 			delete manager;
-			g_pHooks.Remove(i);
+			g_pHooks.erase(g_pHooks.iterAt(i));
 		}
 	}
 }
 bool DHooksEntityListener::AddPluginEntityListener(ListenType type, IPluginFunction *callback)
 {
-	for(int i = g_EntityListeners.Count() -1; i >= 0; i--)
+	for(int i = g_EntityListeners.size() -1; i >= 0; i--)
 	{
-		EntityListener listerner = g_EntityListeners.Element(i);
+		EntityListener listerner = g_EntityListeners.at(i);
 		if(listerner.callback == callback && listerner.type == type)
 		{
 			return true;
@@ -84,17 +84,17 @@ bool DHooksEntityListener::AddPluginEntityListener(ListenType type, IPluginFunct
 	EntityListener listener;
 	listener.callback = callback;
 	listener.type = type;
-	g_EntityListeners.AddToTail(listener);
+	g_EntityListeners.push_back(listener);
 	return true;
 }
 bool DHooksEntityListener::RemovePluginEntityListener(ListenType type, IPluginFunction *callback)
 {
-	for(int i = g_EntityListeners.Count() -1; i >= 0; i--)
+	for(int i = g_EntityListeners.size() -1; i >= 0; i--)
 	{
-		EntityListener listerner = g_EntityListeners.Element(i);
+		EntityListener listerner = g_EntityListeners.at(i);
 		if(listerner.callback == callback && listerner.type == type)
 		{
-			g_EntityListeners.Remove(i);
+			g_EntityListeners.erase(g_EntityListeners.iterAt(i));
 			return true;
 		}
 	}

@@ -1,7 +1,5 @@
 #include "extension.h"
-#include "vhook.h"
 #include "listeners.h"
-#include <macro-assembler-x86.h>
 
 DHooks g_DHooksIface;		/**< Global singleton for extension's main interface */
 SMEXT_LINK(&g_DHooksIface);
@@ -14,8 +12,6 @@ DHooksEntityListener *g_pEntityListener = NULL;
 HandleType_t g_HookSetupHandle = 0;
 HandleType_t g_HookParamsHandle = 0;
 HandleType_t g_HookReturnHandle = 0;
-
-SH_DECL_HOOK0_void(IServerGameDLL, LevelShutdown, SH_NOATTRIB, false);
 
 bool DHooks::SDK_OnLoad(char *error, size_t maxlength, bool late)
 {
@@ -49,8 +45,6 @@ bool DHooks::SDK_OnLoad(char *error, size_t maxlength, bool late)
 
 	g_pEntityListener = new DHooksEntityListener();
 
-	SH_ADD_HOOK_MEMFUNC(IServerGameDLL, LevelShutdown, gamedll, g_pEntityListener, &DHooksEntityListener::LevelShutdown, false);
-
 	return true;
 }
 
@@ -81,15 +75,18 @@ void DHooks::SDK_OnAllLoaded()
 
 void DHooks::SDK_OnUnload()
 {
-	CleanupHooks(NULL);
+	CleanupHooks();
 	if(g_pEntityListener)
 	{
-		g_pEntityListener->CleanupListeners(NULL);
+		g_pEntityListener->CleanupListeners();
 		g_pSDKHooks->RemoveEntityListener(g_pEntityListener);
-		SH_REMOVE_HOOK_MEMFUNC(IServerGameDLL, LevelShutdown, gamedll, g_pEntityListener, &DHooksEntityListener::LevelShutdown, false);
 		delete g_pEntityListener;
 	}
 	plsys->RemovePluginsListener(this);
+
+	handlesys->RemoveType(g_HookSetupHandle, myself->GetIdentity());
+	handlesys->RemoveType(g_HookParamsHandle, myself->GetIdentity());
+	handlesys->RemoveType(g_HookReturnHandle, myself->GetIdentity());
 }
 
 bool DHooks::SDK_OnMetamodLoad(ISmmAPI *ismm, char *error, size_t maxlength, bool late)
@@ -118,38 +115,26 @@ bool DHooks::QueryRunning(char *error, size_t maxlength)
 	SM_CHECK_IFACE(SDKHOOKS, g_pSDKHooks);
 	return true;
 }
-/*
-// The default for this one is *supposed* to be false already
-bool DHooks::QueryInterfaceDrop(SMInterface *pInterface)
-{
-	if (strcmp(pInterface->GetInterfaceName(), SMINTERFACE_SDKTOOLS_NAME) == 0
-		|| strcmp(pInterface->GetInterfaceName(), SMINTERFACE_BINTOOL_NAME) == 0)
-		|| strcmp(pInterface->GetInterfaceName(), SMINTERFACE_SDKHOOKS_NAME) == 0)
-	{
-		return false;
-	}
-
-	return true;
-}
-*/
 void DHooks::NotifyInterfaceDrop(SMInterface *pInterface)
 {
-	if (strcmp(pInterface->GetInterfaceName(), SMINTERFACE_SDKHOOKS_NAME) == 0)
+	if(strcmp(pInterface->GetInterfaceName(), SMINTERFACE_SDKHOOKS_NAME) == 0)
 	{
-		if (g_pEntityListener)
+		if(g_pEntityListener)
 		{
 			// If this fails, remove this line and just delete the ent listener instead
-			g_pSDKHooks->RemoveEntityListener(g_pEntityListener); 
+			g_pSDKHooks->RemoveEntityListener(g_pEntityListener);
+
+			g_pEntityListener->CleanupListeners();
 			delete g_pEntityListener;
 			g_pEntityListener = NULL;
 		}
 		g_pSDKHooks = NULL;
 	}
-	else if (strcmp(pInterface->GetInterfaceName(), SMINTERFACE_BINTOOLS_NAME) == 0)
+	else if(strcmp(pInterface->GetInterfaceName(), SMINTERFACE_BINTOOLS_NAME) == 0)
 	{
 		g_pBinTools = NULL;
 	}
-	else if (strcmp(pInterface->GetInterfaceName(), SMINTERFACE_SDKTOOLS_NAME) == 0)
+	else if(strcmp(pInterface->GetInterfaceName(), SMINTERFACE_SDKTOOLS_NAME) == 0)
 	{
 		g_pSDKTools = NULL;
 	}
