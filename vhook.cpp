@@ -696,7 +696,7 @@ Vector *Callback_vector(DHooksCallback *dg, void **argStack)
 	return vec_result;
 }
 
-#ifdef __linux__
+#ifndef WIN32
 string_t *Callback_stringt(DHooksCallback *dg, void **argStack)
 {
 	string_t *string_result = (string_t *)argStack[0]; // Save the result
