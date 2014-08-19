@@ -649,14 +649,14 @@ cell_t Native_GetParamObjectPtrVar(IPluginContext *pContext, const cell_t *param
 			return *(bool *)(addr + params[3]) ? 1 : 0;
 		case ObjectValueType_Ehandle:
 		{
-			edict_t *pEnt = gamehelpers->GetHandleEntity(*(CBaseHandle *)(addr + params[3]));
+			edict_t *pEdict = gamehelpers->GetHandleEntity(*(CBaseHandle *)(addr + params[3]));
 
-			if(!pEnt)
+			if(!pEdict)
 			{
 				return -1;
 			}
 
-			return gamehelpers->IndexOfEdict(pEnt);
+			return gamehelpers->IndexOfEdict(pEdict);
 		}
 		case ObjectValueType_Float:
 			return sp_ftoc(*(float *)(addr + params[3]));
@@ -674,14 +674,14 @@ cell_t Native_GetParamObjectPtrVar(IPluginContext *pContext, const cell_t *param
 		}
 		case ObjectValueType_EhandlePtr://Im pretty sure this is never gonna happen
 		{
-			edict_t *pEnt = gamehelpers->GetHandleEntity(**(CBaseHandle **)(addr + params[3]));
+			edict_t *pEdict = gamehelpers->GetHandleEntity(**(CBaseHandle **)(addr + params[3]));
 
-			if(!pEnt)
+			if(!pEdict)
 			{
 				return -1;
 			}
 
-			return gamehelpers->IndexOfEdict(pEnt);
+			return gamehelpers->IndexOfEdict(pEdict);
 		}
 		case ObjectValueType_FloatPtr:
 		{
@@ -727,13 +727,13 @@ cell_t Native_SetParamObjectPtrVar(IPluginContext *pContext, const cell_t *param
 			break;
 		case ObjectValueType_Ehandle:
 		{
-			edict_t *pEnt = gamehelpers->EdictOfIndex(params[5]);
+			edict_t *pEdict = gamehelpers->EdictOfIndex(params[5]);
 
-			if(pEnt->IsFree())
+			if(!pEdict || pEdict->IsFree())
 			{
-				return pContext->ThrowNativeError("Invalid entity passed");
+				return pContext->ThrowNativeError("Invalid edict passed");
 			}
-			gamehelpers->SetHandleEntity(*(CBaseHandle *)(addr + params[3]), pEnt);
+			gamehelpers->SetHandleEntity(*(CBaseHandle *)(addr + params[3]), pEdict);
 
 			break;
 		}
@@ -766,13 +766,13 @@ cell_t Native_SetParamObjectPtrVar(IPluginContext *pContext, const cell_t *param
 		}
 		case ObjectValueType_EhandlePtr:
 		{
-			edict_t *pEnt = gamehelpers->EdictOfIndex(params[5]);
+			edict_t *pEdict = gamehelpers->EdictOfIndex(params[5]);
 
-			if(pEnt->IsFree())
+			if(!pEdict || pEdict->IsFree())
 			{
-				return pContext->ThrowNativeError("Invalid entity passed");
+				return pContext->ThrowNativeError("Invalid edict passed");
 			}
-			gamehelpers->SetHandleEntity(**(CBaseHandle **)(addr + params[3]), pEnt);
+			gamehelpers->SetHandleEntity(**(CBaseHandle **)(addr + params[3]), pEdict);
 
 			break;
 		}
