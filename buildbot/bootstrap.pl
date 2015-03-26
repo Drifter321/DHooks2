@@ -17,6 +17,11 @@ chdir(Build::PathFormat('../..'));
 #Get the source path.
 our ($root) = getcwd();
 
+#update and configure shiz
+if ($^O eq "darwin") {
+	$ENV{'SOURCEMOD17'} = '/Users/builds/slaves/common/sourcemod-1.7';
+}
+
 rmtree('OUTPUT');
 mkdir('OUTPUT') or die("Failed to create output folder: $!\n");
 chdir('OUTPUT');
