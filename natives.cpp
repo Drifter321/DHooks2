@@ -360,9 +360,9 @@ cell_t Native_GetReturn(IPluginContext *pContext, const cell_t *params)
 		case ReturnType_Bool:
 			return *(bool *)returnStruct->orgResult? 1 : 0;
 		case ReturnType_CBaseEntity:
-			return gamehelpers->EntityToBCompatRef(*(CBaseEntity **)returnStruct->orgResult);
+			return gamehelpers->EntityToBCompatRef((CBaseEntity *)returnStruct->orgResult);
 		case ReturnType_Edict:
-			return gamehelpers->IndexOfEdict(*(edict_t **)returnStruct->orgResult);
+			return gamehelpers->IndexOfEdict((edict_t *)returnStruct->orgResult);
 		case ReturnType_Float:
 			return sp_ftoc(*(float *)returnStruct->orgResult);
 		default:
@@ -395,7 +395,7 @@ cell_t Native_SetReturn(IPluginContext *pContext, const cell_t *params)
 			{
 				return pContext->ThrowNativeError("Invalid entity index passed for return value");
 			}
-			*(CBaseEntity **)returnStruct->newResult = pEnt;
+			returnStruct->newResult = pEnt;
 			break;
 		}
 		case ReturnType_Edict:
@@ -405,7 +405,7 @@ cell_t Native_SetReturn(IPluginContext *pContext, const cell_t *params)
 			{
 				pContext->ThrowNativeError("Invalid entity index passed for return value");
 			}
-			*(edict_t **)returnStruct->newResult = pEdict;
+			returnStruct->newResult = pEdict;
 			break;
 		}
 		case ReturnType_Float:
@@ -528,10 +528,10 @@ cell_t Native_GetReturnString(IPluginContext *pContext, const cell_t *params)
 			pContext->StringToLocal(params[2], params[3], (*(string_t *)returnStruct->orgResult == NULL_STRING) ? "" : STRING(*(string_t *)returnStruct->orgResult));
 			return 1;
 		case ReturnType_StringPtr:
-			pContext->StringToLocal(params[2], params[3], (*(string_t **)returnStruct->orgResult == NULL) ? "" : (*(string_t **)returnStruct->orgResult)->ToCStr());
+			pContext->StringToLocal(params[2], params[3], ((string_t *)returnStruct->orgResult == NULL) ? "" : ((string_t *)returnStruct->orgResult)->ToCStr());
 			return 1;
 		case ReturnType_CharPtr:
-			pContext->StringToLocal(params[2], params[3], (*(char **)returnStruct->orgResult == NULL) ? "" : *(const char **)returnStruct->orgResult);
+			pContext->StringToLocal(params[2], params[3], ((char *)returnStruct->orgResult == NULL) ? "" : (const char *)returnStruct->orgResult);
 			return 1;
 		default:
 			return pContext->ThrowNativeError("Invalid param type to get. Param is not a string.");
@@ -554,12 +554,12 @@ cell_t Native_SetReturnString(IPluginContext *pContext, const cell_t *params)
 	switch(returnStruct->type)
 	{
 		case ReturnType_CharPtr:
-			*(char **)returnStruct->newResult = new char[strlen(value)+1];
-			strcpy(*(char **)returnStruct->newResult, value);
+			returnStruct->newResult = new char[strlen(value)+1];
+			strcpy((char *)returnStruct->newResult, value);
 			returnStruct->isChanged = true;
 			return 1;
 		default:
-			return pContext->ThrowNativeError("Invalid param type to get. Param is not a string.");
+			return pContext->ThrowNativeError("Invalid param type to get. Param is not a char pointer.");
 	}
 }
 
@@ -950,11 +950,19 @@ cell_t Native_GetReturnVector(IPluginContext *pContext, const cell_t *params)
 	cell_t *buffer;
 	pContext->LocalToPhysAddr(params[2], &buffer);
 
-	if(returnStruct->type == ReturnType_Vector || returnStruct->type == ReturnType_VectorPtr)
+	if(returnStruct->type == ReturnType_Vector)
 	{
-		buffer[0] = sp_ftoc((*(Vector **)returnStruct->orgResult)->x);
-		buffer[1] = sp_ftoc((*(Vector **)returnStruct->orgResult)->y);
-		buffer[2] = sp_ftoc((*(Vector **)returnStruct->orgResult)->z);
+		buffer[0] = sp_ftoc((*(Vector *)returnStruct->orgResult).x);
+		buffer[1] = sp_ftoc((*(Vector *)returnStruct->orgResult).y);
+		buffer[2] = sp_ftoc((*(Vector *)returnStruct->orgResult).z);
+
+		return 1;
+	}
+	else if(returnStruct->type == ReturnType_VectorPtr)
+	{
+		buffer[0] = sp_ftoc(((Vector *)returnStruct->orgResult)->x);
+		buffer[1] = sp_ftoc(((Vector *)returnStruct->orgResult)->y);
+		buffer[2] = sp_ftoc(((Vector *)returnStruct->orgResult)->z);
 
 		return 1;
 	}
@@ -974,16 +982,15 @@ cell_t Native_SetReturnVector(IPluginContext *pContext, const cell_t *params)
 	cell_t *buffer;
 	pContext->LocalToPhysAddr(params[2], &buffer);
 
-	if(returnStruct->type == ReturnType_Vector || returnStruct->type == ReturnType_VectorPtr)
+	if(returnStruct->type == ReturnType_Vector)
 	{
-		if(*(Vector **)returnStruct->newResult != NULL)
-		{
-			delete *(Vector **)returnStruct->newResult;
-		}
-
-		*(Vector **)returnStruct->newResult = new Vector(sp_ctof(buffer[0]), sp_ctof(buffer[1]), sp_ctof(buffer[2]));
+		*(Vector *)returnStruct->newResult = Vector(sp_ctof(buffer[0]), sp_ctof(buffer[1]), sp_ctof(buffer[2]));
 
 		return 1;
+	}
+	else if(returnStruct->type == ReturnType_VectorPtr)
+	{
+		returnStruct->newResult = new Vector(sp_ctof(buffer[0]), sp_ctof(buffer[1]), sp_ctof(buffer[2]));
 	}
 	return pContext->ThrowNativeError("Return type is not a vector type");
 }

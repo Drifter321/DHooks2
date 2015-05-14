@@ -91,30 +91,23 @@ class HookReturnStruct
 public:
 	~HookReturnStruct()
 	{
-		if(this->type != ReturnType_CharPtr && this->type != ReturnType_Vector && this->type != ReturnType_VectorPtr)
+		if(this->type == ReturnType_String || this->type == ReturnType_Int || this->type == ReturnType_Bool || this->type == ReturnType_Float || this->type == ReturnType_Vector)
 		{
 			free(this->newResult);
+			free(this->orgResult);
 		}
 		else if(this->isChanged)
 		{
 			if(this->type == ReturnType_CharPtr)
 			{
-				delete *(char **)this->newResult;
+				delete [] (char *)this->newResult;
 			}
-			else if(this->type == ReturnType_Vector || this->type == ReturnType_VectorPtr)
+			else if(this->type == ReturnType_VectorPtr)
 			{
-				delete *(Vector **)this->newResult;
+				delete (Vector *)this->newResult;
 			}
 		}
-		if(this->type == ReturnType_Vector || this->type == ReturnType_VectorPtr)
-		{
-			delete *(Vector **)this->orgResult;
-		}
-		else if(this->type != ReturnType_String && this->type != ReturnType_Int && this->type != ReturnType_Bool && this->type != ReturnType_Float)
-		{
-			free(*(void **)this->orgResult);
-		}
-		free(this->orgResult);
+		
 	}
 public:
 	ReturnType type;

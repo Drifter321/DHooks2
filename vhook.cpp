@@ -158,35 +158,43 @@ HookReturnStruct *GetReturnStruct(DHooksCallback *dg)
 	HookReturnStruct *res = new HookReturnStruct();
 	res->isChanged = false;
 	res->type = dg->returnType;
-	res->newResult = malloc(sizeof(void *));
-	*(void **)res->newResult = NULL;
-	res->orgResult = malloc(sizeof(void *));
+	res->orgResult = NULL;
+	res->newResult = NULL;
 
 	if(g_SHPtr->GetOrigRet() && dg->post)
 	{
 		switch(dg->returnType)
 		{
 			case ReturnType_String:
+				res->orgResult = malloc(sizeof(string_t));
+				res->newResult = malloc(sizeof(string_t));
 				*(string_t *)res->orgResult = META_RESULT_ORIG_RET(string_t);
 				break;
 			case ReturnType_Int:
+				res->orgResult = malloc(sizeof(int));
+				res->newResult = malloc(sizeof(int));
 				*(int *)res->orgResult = META_RESULT_ORIG_RET(int);
 				break;
 			case ReturnType_Bool:
+				res->orgResult = malloc(sizeof(bool));
+				res->newResult = malloc(sizeof(bool));
 				*(bool *)res->orgResult = META_RESULT_ORIG_RET(bool);
 				break;
 			case ReturnType_Float:
+				res->orgResult = malloc(sizeof(float));
+				res->newResult = malloc(sizeof(float));
 				*(float *)res->orgResult = META_RESULT_ORIG_RET(float);
 				break;
 			case ReturnType_Vector:
 			{
+				res->orgResult = malloc(sizeof(Vector));
+				res->newResult = malloc(sizeof(Vector));
 				Vector vec = META_RESULT_ORIG_RET(Vector);
-				*(Vector **)res->orgResult = new Vector(vec);
+				*(Vector *)res->orgResult = vec;
 				break;
 			}
 			default:
-				*(void **)res->orgResult = malloc(sizeof(void **));
-				*(void **)res->orgResult = META_RESULT_ORIG_RET(void *);
+				res->orgResult = META_RESULT_ORIG_RET(void *);
 				break;
 		}
 	}
@@ -195,26 +203,40 @@ HookReturnStruct *GetReturnStruct(DHooksCallback *dg)
 		switch(dg->returnType)
 		{
 			case ReturnType_String:
+				res->orgResult = malloc(sizeof(string_t));
+				res->newResult = malloc(sizeof(string_t));
 				*(string_t *)res->orgResult = NULL_STRING;
 				break;
-			//ReturnType_Vector,
+			case ReturnType_Vector:
+				res->orgResult = malloc(sizeof(Vector));
+				res->newResult = malloc(sizeof(Vector));
+				*(Vector *)res->orgResult = Vector();
+				break;
 			case ReturnType_Int:
+				res->orgResult = malloc(sizeof(int));
+				res->newResult = malloc(sizeof(int));
 				*(int *)res->orgResult = 0;
 				break;
 			case ReturnType_Bool:
+				res->orgResult = malloc(sizeof(bool));
+				res->newResult = malloc(sizeof(bool));
 				*(bool *)res->orgResult = false;
 				break;
 			case ReturnType_Float:
+				res->orgResult = malloc(sizeof(float));
+				res->newResult = malloc(sizeof(float));
 				*(float *)res->orgResult = 0.0;
 				break;
 			default:
-				*(void **)res->orgResult = NULL;
+				res->orgResult = malloc(sizeof(void *));
+				res->orgResult = NULL;
 				break;
 		}
 	}
 
 	return res;
 }
+
 cell_t GetThisPtr(void *iface, ThisPointerType type)
 {
 	if(type == ThisPointer_CBaseEntity)
@@ -309,7 +331,14 @@ void *Callback(DHooksCallback *dg, void **argStack)
 			{
 				if(returnStruct->isChanged)
 				{
-					ret = *(void **)returnStruct->newResult;
+					if(dg->returnType == ReturnType_String || dg->returnType == ReturnType_Int || dg->returnType == ReturnType_Bool)
+					{
+						ret = *(void **)returnStruct->newResult;
+					}
+					else
+					{
+						ret = returnStruct->newResult;
+					}
 				}
 				else //Throw an error if no override was set
 				{
@@ -331,7 +360,14 @@ void *Callback(DHooksCallback *dg, void **argStack)
 				{
 					g_SHPtr->SetRes(MRES_OVERRIDE);
 					mres = MRES_OVERRIDE;
-					ret = *(void **)returnStruct->newResult;
+					if(dg->returnType == ReturnType_String || dg->returnType == ReturnType_Int || dg->returnType == ReturnType_Bool)
+					{
+						ret = *(void **)returnStruct->newResult;
+					}
+					else
+					{
+						ret = returnStruct->newResult;
+					}
 				}
 				else //Throw an error if no override was set
 				{
@@ -348,7 +384,14 @@ void *Callback(DHooksCallback *dg, void **argStack)
 				{
 					g_SHPtr->SetRes(MRES_SUPERCEDE);
 					mres = MRES_SUPERCEDE;
-					ret = *(void **)returnStruct->newResult;
+					if(dg->returnType == ReturnType_String || dg->returnType == ReturnType_Int || dg->returnType == ReturnType_Bool)
+					{
+						ret = *(void **)returnStruct->newResult;
+					}
+					else
+					{
+						ret = returnStruct->newResult;
+					}
 				}
 				else //Throw an error if no override was set
 				{
