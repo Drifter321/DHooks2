@@ -232,6 +232,10 @@ class DHooksConfig(object):
       os.path.join(self.sm_root, 'public', 'amtl'),
       os.path.join(self.sm_root, 'public', 'jit'),
       os.path.join(self.sm_root, 'public', 'jit', 'x86'),
+      os.path.join(self.sm_root, 'sourcepawn', 'include'),
+      os.path.join(self.sm_root, 'sourcepawn', 'vm'),
+      os.path.join(self.sm_root, 'sourcepawn', 'vm', 'x86'),
+      os.path.join(self.sm_root, 'public', 'amtl', 'include'),
     ]
 	
 
@@ -249,7 +253,13 @@ program.sources += [
   'vhook.cpp',
   'sdk/smsdk_ext.cpp',
 ]
-program.sources += [os.path.join(DHooks.sm_root, 'public', 'jit', 'x86', "assembler-x86.cpp"),]
+
+if os.path.isfile(os.path.join(DHooks.sm_root, 'sourcepawn', 'vm', 'x86', 'assembler-x86.cpp')):
+  program.sources += [os.path.join(DHooks.sm_root, 'sourcepawn', 'vm', 'x86', 'assembler-x86.cpp'),]
+elif os.path.isfile(os.path.join(DHooks.sm_root, 'public', 'jit', 'x86', 'assembler-x86.cpp')):
+  program.sources += [os.path.join(DHooks.sm_root, 'public', 'jit', 'x86', 'assembler-x86.cpp'),]
+else:
+  raise Exception('Could not find assembler-x86.cpp.  Did you checkout SourceMod\'s submodules?')
 
 DHooks.task = builder.Add(program)
 
