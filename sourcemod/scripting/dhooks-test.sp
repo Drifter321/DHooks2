@@ -92,7 +92,7 @@ public OnPluginStart()
 	
 	DHookAddEntityListener(ListenType_Created, EntityCreated);
 	
-	//Add client printf hook this requires effort
+	//Add client printf hook pThis requires effort
 	StartPrepSDKCall(SDKCall_Static);
 	if(!PrepSDKCall_SetFromConf(temp, SDKConf_Signature, "CreateInterface"))
 	{
@@ -104,15 +104,15 @@ public OnPluginStart()
 	PrepSDKCall_AddParameter(SDKType_PlainOldData, SDKPass_Pointer, VDECODE_FLAG_ALLOWNULL);
 	PrepSDKCall_SetReturnInfo(SDKType_PlainOldData, SDKPass_Plain);
 	
-	new String:interface[64];
-	if(!GameConfGetKeyValue(temp, "EngineInterface", interface, sizeof(interface)))
+	new String:iface[64];
+	if(!GameConfGetKeyValue(temp, "EngineInterface", iface, sizeof(iface)))
 	{
 		SetFailState("Failed to get engine interface name");
 		CloseHandle(temp);
 	}
 	
 	new Handle:call = EndPrepSDKCall();
-	new Address:addr = SDKCall(call, interface, 0);
+	new Address:addr = SDKCall(call, iface, 0);
 	CloseHandle(call);
 	
 	if(!addr)
@@ -139,7 +139,7 @@ public MRESReturn:Hook_ClientPrintf(Handle:hParams)
 	return MRES_Ignored;
 }
 
-public MRESReturn:AcceptInput(this, Handle:hReturn, Handle:hParams)
+public MRESReturn:AcceptInput(pThis, Handle:hReturn, Handle:hParams)
 {
 	new String:command[128];
 	DHookGetParamString(hParams, 1, command, sizeof(command));
@@ -178,29 +178,29 @@ public EntityCreated(entity, const String:classname[])
 }
 
 //int CCSPlayer::OnTakeDamage(CTakeDamageInfo const&)
-public MRESReturn:OnTakeDamage(this, Handle:hReturn, Handle:hParams)
+public MRESReturn:OnTakeDamage(pThis, Handle:hReturn, Handle:hParams)
 {
-	PrintToServer("DHooksHacks = Victim %i, Attacker %i, Inflictor %i, Damage %f", this, DHookGetParamObjectPtrVar(hParams, 1, 40, ObjectValueType_Ehandle), DHookGetParamObjectPtrVar(hParams, 1, 36, ObjectValueType_Ehandle), DHookGetParamObjectPtrVar(hParams, 1, 48, ObjectValueType_Float));
+	PrintToServer("DHooksHacks = Victim %i, Attacker %i, Inflictor %i, Damage %f", pThis, DHookGetParamObjectPtrVar(hParams, 1, 40, ObjectValueType_Ehandle), DHookGetParamObjectPtrVar(hParams, 1, 36, ObjectValueType_Ehandle), DHookGetParamObjectPtrVar(hParams, 1, 48, ObjectValueType_Float));
 	
-	if(this <= MaxClients && this > 0 && !IsFakeClient(this))
+	if(pThis <= MaxClients && pThis > 0 && !IsFakeClient(pThis))
 	{
 		DHookSetParamObjectPtrVar(hParams, 1, 48, ObjectValueType_Float, 0.0);
-		PrintToChat(this, "Pimping your hp");
+		PrintToChat(pThis, "Pimping your hp");
 	}
 }
 
 // int CBaseCombatCharacter::GiveAmmo(int, int, bool)
-public MRESReturn:GiveAmmo(this, Handle:hReturn, Handle:hParams)
+public MRESReturn:GiveAmmo(pThis, Handle:hReturn, Handle:hParams)
 {
-	PrintToChat(this, "Giving %i of %i supress %i", DHookGetParam(hParams, 1), DHookGetParam(hParams, 2), DHookGetParam(hParams, 3));
+	PrintToChat(pThis, "Giving %i of %i supress %i", DHookGetParam(hParams, 1), DHookGetParam(hParams, 2), DHookGetParam(hParams, 3));
 	return MRES_Ignored;
 }
 
 // void CBaseEntity::SetModel(char  const*)
-public MRESReturn:SetModel(this, Handle:hParams)
+public MRESReturn:SetModel(pThis, Handle:hParams)
 {
 	//Change all bot skins to phoenix one
-	if(IsFakeClient(this))
+	if(IsFakeClient(pThis))
 	{
 		DHookSetParamString(hParams, 1, "models/player/t_phoenix.mdl");
 		return MRES_ChangedHandled;
@@ -209,10 +209,10 @@ public MRESReturn:SetModel(this, Handle:hParams)
 }
 
 //float CCSPlayer::GetPlayerMaxSpeed()
-public MRESReturn:GetMaxPlayerSpeedPost(this, Handle:hReturn)
+public MRESReturn:GetMaxPlayerSpeedPost(pThis, Handle:hReturn)
 {
 	//Make bots slow
-	if(IsFakeClient(this))
+	if(IsFakeClient(pThis))
 	{
 		DHookSetReturn(hReturn, 100.0);
 		return MRES_Override;
@@ -228,12 +228,12 @@ public MRESReturn:CanHaveAmmoPost(Handle:hReturn, Handle:hParams)
 }
 
 // string_t CBaseEntity::GetModelName(void)
-public MRESReturn:GetModelName(this, Handle:hReturn)
+public MRESReturn:GetModelName(pThis, Handle:hReturn)
 {
 	new String:returnval[128];
 	DHookGetReturnString(hReturn, returnval, sizeof(returnval));
 	
-	if(IsFakeClient(this))
+	if(IsFakeClient(pThis))
 	{
 		PrintToServer("It is a bot, Model should be: models/player/t_phoenix.mdl It is %s", returnval);
 	}
@@ -252,10 +252,10 @@ public MRESReturn:GetMaxsPost(Handle:hReturn)
 }
 
 // bool CBaseCombatCharacter::Weapon_CanUse(CBaseCombatWeapon *)
-public MRESReturn:CanUsePost(this, Handle:hReturn, Handle:hParams)
+public MRESReturn:CanUsePost(pThis, Handle:hReturn, Handle:hParams)
 {
 	//Bots get nothing.
-	if(IsFakeClient(this))
+	if(IsFakeClient(pThis))
 	{
 		DHookSetReturn(hReturn, false);
 		return MRES_Override;
@@ -264,10 +264,10 @@ public MRESReturn:CanUsePost(this, Handle:hReturn, Handle:hParams)
 }
 
 // int CBaseCombatCharacter::BloodColor(void)
-public MRESReturn:BloodColorPost(this, Handle:hReturn)
+public MRESReturn:BloodColorPost(pThis, Handle:hReturn)
 {
 	//Change the bots blood color to goldish yellow
-	if(IsFakeClient(this))
+	if(IsFakeClient(pThis))
 	{
 		DHookSetReturn(hReturn, 2);
 		return MRES_Supercede;
