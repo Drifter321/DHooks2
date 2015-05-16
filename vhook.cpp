@@ -227,10 +227,6 @@ HookReturnStruct *GetReturnStruct(DHooksCallback *dg)
 				res->newResult = malloc(sizeof(float));
 				*(float *)res->orgResult = 0.0;
 				break;
-			default:
-				res->orgResult = malloc(sizeof(void *));
-				res->orgResult = NULL;
-				break;
 		}
 	}
 
