@@ -6,11 +6,9 @@
     </ClCompile>
     <ClCompile Include="..\vhook.cpp" />
     <ClCompile Include="..\extension.cpp" />
-    <ClCompile Include="$(SMCENTRAL)\public\jit\x86\assembler-x86.cpp">
-      <Filter>JIT</Filter>
-    </ClCompile>
     <ClCompile Include="..\natives.cpp" />
     <ClCompile Include="..\listeners.cpp" />
+    <ClCompile Include="$(SOURCEMOD)\public\jit\x86\assembler-x86.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\extension.h">
