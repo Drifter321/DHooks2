@@ -396,6 +396,12 @@ void *Callback(DHooksCallback *dg, void **argStack)
 					dg->plugin_callback->GetParentRuntime()->GetDefaultContext()->ThrowNativeError("Tried to override return value without return value being set");
 				}
 			}
+			else
+			{
+				g_SHPtr->DoRecall();
+				g_SHPtr->SetRes(MRES_SUPERCEDE);
+				mres = MRES_SUPERCEDE;
+			}
 			break;
 		default:
 			g_SHPtr->SetRes(MRES_IGNORED);
