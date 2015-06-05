@@ -477,6 +477,7 @@ cell_t Native_SetParamVector(IPluginContext *pContext, const cell_t *params)
 			pContext->LocalToPhysAddr(params[3], &buffer);
 
 			paramStruct->newParams[index] = new Vector(sp_ctof(buffer[0]), sp_ctof(buffer[1]), sp_ctof(buffer[2]));
+			paramStruct->isChanged[index] = true;
 			return 1;
 		}
 	}
