@@ -197,24 +197,23 @@ cell_t Native_HookRaw(IPluginContext *pContext, const cell_t *params)
 	}
 
 	bool post = params[2] != 0;
+	void *iface = (void *)(params[3]);
 
 	for(int i = g_pHooks.size() -1; i >= 0; i--)
 	{
 		DHooksManager *manager = g_pHooks.at(i);
-		if(manager->callback->hookType == HookType_Raw && manager->callback->offset == setup->offset && manager->callback->post == post && manager->remove_callback == pContext->GetFunctionById(params[3]) && manager->callback->plugin_callback == setup->callback)
+		if(manager->callback->hookType == HookType_Raw && manager->addr == (intptr_t)iface && manager->callback->offset == setup->offset && manager->callback->post == post && manager->remove_callback == pContext->GetFunctionById(params[4]) && manager->callback->plugin_callback == setup->callback)
 		{
 			return manager->hookid;
 		}
 	}
-
-	void *iface = (void *)(params[3]);
 
 	if(!iface)
 	{
 		return pContext->ThrowNativeError("Invalid address passed");
 	}
 
-	DHooksManager *manager = new DHooksManager(setup, iface, pContext->GetFunctionById(params[3]), post);
+	DHooksManager *manager = new DHooksManager(setup, iface, pContext->GetFunctionById(params[4]), post);
 
 	if(!manager->hookid)
 	{
@@ -869,7 +868,7 @@ cell_t Native_SetParamObjectPtrVarVector(IPluginContext *pContext, const cell_t 
 	cell_t *buffer;
 	pContext->LocalToPhysAddr(params[5], &buffer);
 
-	if((ObjectValueType)params[4] == ObjectValueType_VectorPtr)
+	if((ObjectValueType)params[4] == ObjectValueType_VectorPtr || (ObjectValueType)params[4] == ObjectValueType_Vector)
 	{
 		Vector *vec;
 
