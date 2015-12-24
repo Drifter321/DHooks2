@@ -227,10 +227,6 @@ HookReturnStruct *GetReturnStruct(DHooksCallback *dg)
 				res->newResult = malloc(sizeof(float));
 				*(float *)res->orgResult = 0.0;
 				break;
-			default:
-				res->orgResult = malloc(sizeof(void *));
-				res->orgResult = NULL;
-				break;
 		}
 	}
 
@@ -399,6 +395,12 @@ void *Callback(DHooksCallback *dg, void **argStack)
 					mres = MRES_IGNORED;
 					dg->plugin_callback->GetParentRuntime()->GetDefaultContext()->ThrowNativeError("Tried to override return value without return value being set");
 				}
+			}
+			else
+			{
+				g_SHPtr->DoRecall();
+				g_SHPtr->SetRes(MRES_SUPERCEDE);
+				mres = MRES_SUPERCEDE;
 			}
 			break;
 		default:
