@@ -19,7 +19,7 @@ our ($root) = getcwd();
 
 #update and configure shiz
 if ($^O eq "darwin") {
-	$ENV{'SOURCEMOD17'} = '/Users/builds/slaves/common/sourcemod-1.7';
+	$ENV{'SOURCEMOD18'} = '/Users/builds/slaves/common/sourcemod-1.8';
 }
 
 rmtree('OUTPUT');

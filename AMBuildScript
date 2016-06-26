@@ -67,7 +67,7 @@ class DHooksConfig(object):
     if builder.options.sm_path:
       self.sm_root = builder.options.sm_path
     else:
-      self.sm_root = ResolveEnvPath('SOURCEMOD17', 'sourcemod-1.7')
+      self.sm_root = ResolveEnvPath('SOURCEMOD18', 'sourcemod-1.8')
 
     if not self.sm_root or not os.path.isdir(self.sm_root):
       raise Exception('Could not find a source copy of Sourcemod')
@@ -235,7 +235,8 @@ class DHooksConfig(object):
       os.path.join(self.sm_root, 'sourcepawn', 'include'),
       os.path.join(self.sm_root, 'sourcepawn', 'vm'),
       os.path.join(self.sm_root, 'sourcepawn', 'vm', 'x86'),
-      os.path.join(self.sm_root, 'public', 'amtl', 'include'),
+	  os.path.join(self.sm_root, 'public', 'amtl', 'include'),
+      os.path.join(self.sm_root, 'public', 'amtl', 'amtl'),
     ]
 	
 
@@ -253,6 +254,8 @@ program.sources += [
   'vhook.cpp',
   'sdk/smsdk_ext.cpp',
 ]
+
+project.sources += [os.path.join(DHooks.sm_root, 'public', 'smsdk_ext.cpp')]
 
 if os.path.isfile(os.path.join(DHooks.sm_root, 'sourcepawn', 'vm', 'x86', 'assembler-x86.cpp')):
   program.sources += [os.path.join(DHooks.sm_root, 'sourcepawn', 'vm', 'x86', 'assembler-x86.cpp'),]
