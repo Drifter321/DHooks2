@@ -108,6 +108,8 @@ class DHooksConfig(object):
 
       have_gcc = cxx.vendor == 'gcc'
       have_clang = cxx.vendor == 'clang'
+      if cxx.version >= 'clang-3.6':
+        cxx.cxxflags += ['-Wno-inconsistent-missing-override']
       if have_clang or (have_gcc and cxx.version >= '4'):
         cxx.cflags += ['-fvisibility=hidden']
         cxx.cxxflags += ['-fvisibility-inlines-hidden']
