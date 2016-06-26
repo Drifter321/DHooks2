@@ -95,7 +95,7 @@ T CallVFunction(DHooksCallback *dg, HookParamsStruct *paramStruct, void *iface)
 					VSTK_PARAM_SWITCH(char *);
 				case HookParamType_VectorPtr:
 					PARAMINFO_SWITCH(PassType_Basic);
-					VSTK_PARAM_SWITCH(Vector *);
+					VSTK_PARAM_SWITCH(SDKVector *);
 				case HookParamType_CBaseEntity:
 					PARAMINFO_SWITCH(PassType_Basic);
 					VSTK_PARAM_SWITCH(CBaseEntity *);
@@ -133,7 +133,7 @@ T CallVFunction(DHooksCallback *dg, HookParamsStruct *paramStruct, void *iface)
 	return ret;
 }
 template <>
-Vector CallVFunction<Vector>(DHooksCallback *dg, HookParamsStruct *paramStruct, void *iface)
+SDKVector CallVFunction<SDKVector>(DHooksCallback *dg, HookParamsStruct *paramStruct, void *iface)
 {
 	SourceMod::PassInfo *paramInfo = NULL;
 	SourceMod::PassInfo returnInfo;
@@ -141,7 +141,7 @@ Vector CallVFunction<Vector>(DHooksCallback *dg, HookParamsStruct *paramStruct, 
 	if(dg->returnType != ReturnType_Void)
 	{
 		returnInfo.flags = dg->returnFlag;
-		returnInfo.size = sizeof(Vector);
+		returnInfo.size = sizeof(SDKVector);
 		returnInfo.type = PassType_Object;
 	}
 
@@ -182,7 +182,7 @@ Vector CallVFunction<Vector>(DHooksCallback *dg, HookParamsStruct *paramStruct, 
 					VSTK_PARAM_SWITCH(char *);
 				case HookParamType_VectorPtr:
 					PARAMINFO_SWITCH(PassType_Basic);
-					VSTK_PARAM_SWITCH(Vector *);
+					VSTK_PARAM_SWITCH(SDKVector *);
 				case HookParamType_CBaseEntity:
 					PARAMINFO_SWITCH(PassType_Basic);
 					VSTK_PARAM_SWITCH(CBaseEntity *);
@@ -196,7 +196,7 @@ Vector CallVFunction<Vector>(DHooksCallback *dg, HookParamsStruct *paramStruct, 
 		}
 	}
 
-	Vector ret;
+	SDKVector ret;
 
 	pCall = g_pBinTools->CreateVCall(dg->offset, 0, 0, &returnInfo, paramInfo, dg->params.size());
 	pCall->Execute(vstk, &ret);
@@ -262,7 +262,7 @@ string_t CallVFunction<string_t>(DHooksCallback *dg, HookParamsStruct *paramStru
 					VSTK_PARAM_SWITCH(char *);
 				case HookParamType_VectorPtr:
 					PARAMINFO_SWITCH(PassType_Basic);
-					VSTK_PARAM_SWITCH(Vector *);
+					VSTK_PARAM_SWITCH(SDKVector *);
 				case HookParamType_CBaseEntity:
 					PARAMINFO_SWITCH(PassType_Basic);
 					VSTK_PARAM_SWITCH(CBaseEntity *);

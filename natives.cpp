@@ -439,9 +439,9 @@ cell_t Native_GetParamVector(IPluginContext *pContext, const cell_t *params)
 		{
 			cell_t *buffer;
 			pContext->LocalToPhysAddr(params[3], &buffer);
-			buffer[0] = sp_ftoc(((Vector *)paramStruct->orgParams[index])->x);
-			buffer[1] = sp_ftoc(((Vector *)paramStruct->orgParams[index])->y);
-			buffer[2] = sp_ftoc(((Vector *)paramStruct->orgParams[index])->z);
+			buffer[0] = sp_ftoc(((SDKVector *)paramStruct->orgParams[index])->x);
+			buffer[1] = sp_ftoc(((SDKVector *)paramStruct->orgParams[index])->y);
+			buffer[2] = sp_ftoc(((SDKVector *)paramStruct->orgParams[index])->z);
 			return 1;
 		}	
 	}
@@ -470,12 +470,12 @@ cell_t Native_SetParamVector(IPluginContext *pContext, const cell_t *params)
 		case HookParamType_VectorPtr:
 		{
 			if(paramStruct->newParams[index] != NULL)
-				delete (Vector *)paramStruct->newParams[index];
+				delete (SDKVector *)paramStruct->newParams[index];
 
 			cell_t *buffer;
 			pContext->LocalToPhysAddr(params[3], &buffer);
 
-			paramStruct->newParams[index] = new Vector(sp_ctof(buffer[0]), sp_ctof(buffer[1]), sp_ctof(buffer[2]));
+			paramStruct->newParams[index] = new SDKVector(sp_ctof(buffer[0]), sp_ctof(buffer[1]), sp_ctof(buffer[2]));
 			paramStruct->isChanged[index] = true;
 			return 1;
 		}
@@ -817,11 +817,11 @@ cell_t Native_GetParamObjectPtrVarVector(IPluginContext *pContext, const cell_t 
 
 	if((ObjectValueType)params[4] == ObjectValueType_VectorPtr || (ObjectValueType)params[4] == ObjectValueType_Vector)
 	{
-		Vector *vec;
+		SDKVector *vec;
 
 		if((ObjectValueType)params[4] == ObjectValueType_VectorPtr)
 		{
-			vec = *(Vector **)(addr + params[3]);
+			vec = *(SDKVector **)(addr + params[3]);
 			if(vec == NULL)
 			{
 				return pContext->ThrowNativeError("Trying to get value for null pointer.");
@@ -829,7 +829,7 @@ cell_t Native_GetParamObjectPtrVarVector(IPluginContext *pContext, const cell_t 
 		}
 		else
 		{
-			vec = (Vector *)(addr + params[3]);
+			vec = (SDKVector *)(addr + params[3]);
 		}
 
 		buffer[0] = sp_ftoc(vec->x);
@@ -870,11 +870,11 @@ cell_t Native_SetParamObjectPtrVarVector(IPluginContext *pContext, const cell_t 
 
 	if((ObjectValueType)params[4] == ObjectValueType_VectorPtr || (ObjectValueType)params[4] == ObjectValueType_Vector)
 	{
-		Vector *vec;
+		SDKVector *vec;
 
 		if((ObjectValueType)params[4] == ObjectValueType_VectorPtr)
 		{
-			vec = *(Vector **)(addr + params[3]);
+			vec = *(SDKVector **)(addr + params[3]);
 			if(vec == NULL)
 			{
 				return pContext->ThrowNativeError("Trying to set value for null pointer.");
@@ -882,7 +882,7 @@ cell_t Native_SetParamObjectPtrVarVector(IPluginContext *pContext, const cell_t 
 		}
 		else
 		{
-			vec = (Vector *)(addr + params[3]);
+			vec = (SDKVector *)(addr + params[3]);
 		}
 
 		vec->x = sp_ctof(buffer[0]);
@@ -952,17 +952,17 @@ cell_t Native_GetReturnVector(IPluginContext *pContext, const cell_t *params)
 
 	if(returnStruct->type == ReturnType_Vector)
 	{
-		buffer[0] = sp_ftoc((*(Vector *)returnStruct->orgResult).x);
-		buffer[1] = sp_ftoc((*(Vector *)returnStruct->orgResult).y);
-		buffer[2] = sp_ftoc((*(Vector *)returnStruct->orgResult).z);
+		buffer[0] = sp_ftoc((*(SDKVector *)returnStruct->orgResult).x);
+		buffer[1] = sp_ftoc((*(SDKVector *)returnStruct->orgResult).y);
+		buffer[2] = sp_ftoc((*(SDKVector *)returnStruct->orgResult).z);
 
 		return 1;
 	}
 	else if(returnStruct->type == ReturnType_VectorPtr)
 	{
-		buffer[0] = sp_ftoc(((Vector *)returnStruct->orgResult)->x);
-		buffer[1] = sp_ftoc(((Vector *)returnStruct->orgResult)->y);
-		buffer[2] = sp_ftoc(((Vector *)returnStruct->orgResult)->z);
+		buffer[0] = sp_ftoc(((SDKVector *)returnStruct->orgResult)->x);
+		buffer[1] = sp_ftoc(((SDKVector *)returnStruct->orgResult)->y);
+		buffer[2] = sp_ftoc(((SDKVector *)returnStruct->orgResult)->z);
 
 		return 1;
 	}
@@ -984,13 +984,13 @@ cell_t Native_SetReturnVector(IPluginContext *pContext, const cell_t *params)
 
 	if(returnStruct->type == ReturnType_Vector)
 	{
-		*(Vector *)returnStruct->newResult = Vector(sp_ctof(buffer[0]), sp_ctof(buffer[1]), sp_ctof(buffer[2]));
+		*(SDKVector *)returnStruct->newResult = SDKVector(sp_ctof(buffer[0]), sp_ctof(buffer[1]), sp_ctof(buffer[2]));
 
 		return 1;
 	}
 	else if(returnStruct->type == ReturnType_VectorPtr)
 	{
-		returnStruct->newResult = new Vector(sp_ctof(buffer[0]), sp_ctof(buffer[1]), sp_ctof(buffer[2]));
+		returnStruct->newResult = new SDKVector(sp_ctof(buffer[0]), sp_ctof(buffer[1]), sp_ctof(buffer[2]));
 	}
 	return pContext->ThrowNativeError("Return type is not a vector type");
 }

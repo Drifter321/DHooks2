@@ -104,7 +104,7 @@ public:
 			}
 			else if(this->type == ReturnType_VectorPtr)
 			{
-				delete (Vector *)this->newResult;
+				delete (SDKVector *)this->newResult;
 			}
 		}
 		
@@ -150,11 +150,11 @@ public:
 #ifdef  WIN32
 void *Callback(DHooksCallback *dg, void **stack, size_t *argsizep);
 float Callback_float(DHooksCallback *dg, void **stack, size_t *argsizep);
-Vector *Callback_vector(DHooksCallback *dg, void **stack, size_t *argsizep);
+SDKVector *Callback_vector(DHooksCallback *dg, void **stack, size_t *argsizep);
 #else
 void *Callback(DHooksCallback *dg, void **stack);
 float Callback_float(DHooksCallback *dg, void **stack);
-Vector *Callback_vector(DHooksCallback *dg, void **stack);
+SDKVector *Callback_vector(DHooksCallback *dg, void **stack);
 string_t *Callback_stringt(DHooksCallback *dg, void **stack);
 #endif
 
@@ -166,7 +166,7 @@ SourceHook::PassInfo::PassType GetParamTypePassType(HookParamType type);
 #ifndef  WIN32
 static void *GenerateThunk(ReturnType type)
 {
-	MacroAssemblerX86 masm;
+	sp::MacroAssemblerX86 masm;
 	static const size_t kStackNeeded = (2) * 4; // 2 args max
 	static const size_t kReserve = ke::Align(kStackNeeded+8, 16)-8;
 
@@ -215,7 +215,7 @@ static void *GenerateThunk(ReturnType type)
 // HUGE THANKS TO BAILOPAN (dvander)!
 static void *GenerateThunk(ReturnType type)
 {
-	MacroAssemblerX86 masm;
+	sp::MacroAssemblerX86 masm;
 	static const size_t kStackNeeded = (3 + 1) * 4; // 3 args max, 1 locals max
 	static const size_t kReserve = ke::Align(kStackNeeded+8, 16)-8;
 
@@ -294,7 +294,7 @@ public:
 
 				if(dg->params.at(i).type == HookParamType_VectorPtr)
 				{
-					delete (Vector *)this->newParams[i];
+					delete (SDKVector *)this->newParams[i];
 				}
 				else if(dg->params.at(i).type == HookParamType_CharPtr)
 				{

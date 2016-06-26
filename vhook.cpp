@@ -61,7 +61,7 @@ DHooksManager::DHooksManager(HookSetup *setup, void *iface, IPluginFunction *rem
 	}
 	else if(this->callback->returnType == ReturnType_Vector)
 	{
-		protoInfo.SetReturnType(sizeof(Vector), SourceHook::PassInfo::PassType_Object, setup->returnFlag, NULL, NULL, NULL, NULL);
+		protoInfo.SetReturnType(sizeof(SDKVector), SourceHook::PassInfo::PassType_Object, setup->returnFlag, NULL, NULL, NULL, NULL);
 	}
 	else
 	{
@@ -187,10 +187,10 @@ HookReturnStruct *GetReturnStruct(DHooksCallback *dg)
 				break;
 			case ReturnType_Vector:
 			{
-				res->orgResult = malloc(sizeof(Vector));
-				res->newResult = malloc(sizeof(Vector));
-				Vector vec = META_RESULT_ORIG_RET(Vector);
-				*(Vector *)res->orgResult = vec;
+				res->orgResult = malloc(sizeof(SDKVector));
+				res->newResult = malloc(sizeof(SDKVector));
+				SDKVector vec = META_RESULT_ORIG_RET(SDKVector);
+				*(SDKVector *)res->orgResult = vec;
 				break;
 			}
 			default:
@@ -208,9 +208,9 @@ HookReturnStruct *GetReturnStruct(DHooksCallback *dg)
 				*(string_t *)res->orgResult = NULL_STRING;
 				break;
 			case ReturnType_Vector:
-				res->orgResult = malloc(sizeof(Vector));
-				res->newResult = malloc(sizeof(Vector));
-				*(Vector *)res->orgResult = Vector();
+				res->orgResult = malloc(sizeof(SDKVector));
+				res->newResult = malloc(sizeof(SDKVector));
+				*(SDKVector *)res->orgResult = SDKVector();
 				break;
 			case ReturnType_Int:
 				res->orgResult = malloc(sizeof(int));
@@ -581,12 +581,12 @@ float Callback_float(DHooksCallback *dg, void **argStack)
 	return *(float *)ret;
 }
 #ifdef  WIN32
-Vector *Callback_vector(DHooksCallback *dg, void **argStack, size_t *argsizep)
+SDKVector *Callback_vector(DHooksCallback *dg, void **argStack, size_t *argsizep)
 #else
-Vector *Callback_vector(DHooksCallback *dg, void **argStack)
+SDKVector *Callback_vector(DHooksCallback *dg, void **argStack)
 #endif
 {
-	Vector *vec_result = (Vector *)argStack[0]; // Save the result
+	SDKVector *vec_result = (SDKVector *)argStack[0]; // Save the result
 
 	HookReturnStruct *returnStruct = NULL;
 	HookParamsStruct *paramStruct = NULL;
@@ -658,14 +658,14 @@ Vector *Callback_vector(DHooksCallback *dg, void **argStack)
 			g_SHPtr->DoRecall();
 			g_SHPtr->SetRes(MRES_SUPERCEDE);
 			mres = MRES_SUPERCEDE;
-			*vec_result = CallVFunction<Vector>(dg, paramStruct, g_SHPtr->GetIfacePtr());
+			*vec_result = CallVFunction<SDKVector>(dg, paramStruct, g_SHPtr->GetIfacePtr());
 			break;
 		case MRES_ChangedOverride:
 			if(dg->returnType != ReturnType_Void)
 			{
 				if(returnStruct->isChanged)
 				{
-					*vec_result = **(Vector **)returnStruct->newResult;
+					*vec_result = **(SDKVector **)returnStruct->newResult;
 				}
 				else //Throw an error if no override was set
 				{
@@ -678,7 +678,7 @@ Vector *Callback_vector(DHooksCallback *dg, void **argStack)
 			g_SHPtr->DoRecall();
 			g_SHPtr->SetRes(MRES_SUPERCEDE);
 			mres = MRES_SUPERCEDE;
-			CallVFunction<Vector>(dg, paramStruct, g_SHPtr->GetIfacePtr());
+			CallVFunction<SDKVector>(dg, paramStruct, g_SHPtr->GetIfacePtr());
 			break;
 		case MRES_Override:
 			if(dg->returnType != ReturnType_Void)
@@ -687,7 +687,7 @@ Vector *Callback_vector(DHooksCallback *dg, void **argStack)
 				{
 					g_SHPtr->SetRes(MRES_OVERRIDE);
 					mres = MRES_OVERRIDE;
-					*vec_result = **(Vector **)returnStruct->newResult;
+					*vec_result = **(SDKVector **)returnStruct->newResult;
 				}
 				else //Throw an error if no override was set
 				{
@@ -704,7 +704,7 @@ Vector *Callback_vector(DHooksCallback *dg, void **argStack)
 				{
 					g_SHPtr->SetRes(MRES_SUPERCEDE);
 					mres = MRES_SUPERCEDE;
-					*vec_result = **(Vector **)returnStruct->newResult;
+					*vec_result = **(SDKVector **)returnStruct->newResult;
 				}
 				else //Throw an error if no override was set
 				{
@@ -826,7 +826,7 @@ string_t *Callback_stringt(DHooksCallback *dg, void **argStack)
 			g_SHPtr->DoRecall();
 			g_SHPtr->SetRes(MRES_SUPERCEDE);
 			mres = MRES_SUPERCEDE;
-			CallVFunction<Vector>(dg, paramStruct, g_SHPtr->GetIfacePtr());
+			CallVFunction<SDKVector>(dg, paramStruct, g_SHPtr->GetIfacePtr());
 			break;
 		case MRES_Override:
 			if(dg->returnType != ReturnType_Void)
