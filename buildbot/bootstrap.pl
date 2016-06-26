@@ -29,7 +29,7 @@ my ($result);
 
 #configure AMBuild
 if ($^O eq "linux") {
-	$result = `CC=clang CXX=clang python ../build/configure.py --enable-optimize`;
+	$result = `CC=clang-3.8 CXX=clang-3.8 python ../build/configure.py --enable-optimize`;
 } elsif ($^O eq "darwin") {
 	$result = `CC=clang CXX=clang python ../build/configure.py --enable-optimize`;
 } else {
