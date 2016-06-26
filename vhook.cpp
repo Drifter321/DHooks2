@@ -340,7 +340,7 @@ void *Callback(DHooksCallback *dg, void **argStack)
 				{
 					g_SHPtr->SetRes(MRES_IGNORED);
 					mres = MRES_IGNORED;
-					dg->plugin_callback->GetParentRuntime()->GetDefaultContext()->ThrowNativeError("Tried to override return value without return value being set");
+					dg->plugin_callback->GetParentRuntime()->GetDefaultContext()->BlamePluginError(dg->plugin_callback, "Tried to override return value without return value being set");
 					break;
 				}
 			}
@@ -369,7 +369,7 @@ void *Callback(DHooksCallback *dg, void **argStack)
 				{
 					g_SHPtr->SetRes(MRES_IGNORED);
 					mres = MRES_IGNORED;
-					dg->plugin_callback->GetParentRuntime()->GetDefaultContext()->ThrowNativeError("Tried to override return value without return value being set");
+					dg->plugin_callback->GetParentRuntime()->GetDefaultContext()->BlamePluginError(dg->plugin_callback, "Tried to override return value without return value being set");
 				}
 			}
 			break;
@@ -393,7 +393,7 @@ void *Callback(DHooksCallback *dg, void **argStack)
 				{
 					g_SHPtr->SetRes(MRES_IGNORED);
 					mres = MRES_IGNORED;
-					dg->plugin_callback->GetParentRuntime()->GetDefaultContext()->ThrowNativeError("Tried to override return value without return value being set");
+					dg->plugin_callback->GetParentRuntime()->GetDefaultContext()->BlamePluginError(dg->plugin_callback, "Tried to override return value without return value being set");
 				}
 			}
 			else
@@ -514,7 +514,7 @@ float Callback_float(DHooksCallback *dg, void **argStack)
 				{
 					g_SHPtr->SetRes(MRES_IGNORED);
 					mres = MRES_IGNORED;
-					dg->plugin_callback->GetParentRuntime()->GetDefaultContext()->ThrowNativeError("Tried to override return value without return value being set");
+					dg->plugin_callback->GetParentRuntime()->GetDefaultContext()->BlamePluginError(dg->plugin_callback, "Tried to override return value without return value being set");
 					break;
 				}
 			}
@@ -536,7 +536,7 @@ float Callback_float(DHooksCallback *dg, void **argStack)
 				{
 					g_SHPtr->SetRes(MRES_IGNORED);
 					mres = MRES_IGNORED;
-					dg->plugin_callback->GetParentRuntime()->GetDefaultContext()->ThrowNativeError("Tried to override return value without return value being set");
+					dg->plugin_callback->GetParentRuntime()->GetDefaultContext()->BlamePluginError(dg->plugin_callback, "Tried to override return value without return value being set");
 				}
 			}
 			break;
@@ -553,7 +553,7 @@ float Callback_float(DHooksCallback *dg, void **argStack)
 				{
 					g_SHPtr->SetRes(MRES_IGNORED);
 					mres = MRES_IGNORED;
-					dg->plugin_callback->GetParentRuntime()->GetDefaultContext()->ThrowNativeError("Tried to override return value without return value being set");
+					dg->plugin_callback->GetParentRuntime()->GetDefaultContext()->BlamePluginError(dg->plugin_callback, "Tried to override return value without return value being set");
 				}
 			}
 			break;
@@ -671,7 +671,7 @@ Vector *Callback_vector(DHooksCallback *dg, void **argStack)
 				{
 					g_SHPtr->SetRes(MRES_IGNORED);
 					mres = MRES_IGNORED;
-					dg->plugin_callback->GetParentRuntime()->GetDefaultContext()->ThrowNativeError("Tried to override return value without return value being set");
+					dg->plugin_callback->GetParentRuntime()->GetDefaultContext()->BlamePluginError(dg->plugin_callback, "Tried to override return value without return value being set");
 					break;
 				}
 			}
@@ -693,7 +693,7 @@ Vector *Callback_vector(DHooksCallback *dg, void **argStack)
 				{
 					g_SHPtr->SetRes(MRES_IGNORED);
 					mres = MRES_IGNORED;
-					dg->plugin_callback->GetParentRuntime()->GetDefaultContext()->ThrowNativeError("Tried to override return value without return value being set");
+					dg->plugin_callback->GetParentRuntime()->GetDefaultContext()->BlamePluginError(dg->plugin_callback, "Tried to override return value without return value being set");
 				}
 			}
 			break;
@@ -710,7 +710,7 @@ Vector *Callback_vector(DHooksCallback *dg, void **argStack)
 				{
 					g_SHPtr->SetRes(MRES_IGNORED);
 					mres = MRES_IGNORED;
-					dg->plugin_callback->GetParentRuntime()->GetDefaultContext()->ThrowNativeError("Tried to override return value without return value being set");
+					dg->plugin_callback->GetParentRuntime()->GetDefaultContext()->BlamePluginError(dg->plugin_callback, "Tried to override return value without return value being set");
 				}
 			}
 			break;
@@ -819,7 +819,7 @@ string_t *Callback_stringt(DHooksCallback *dg, void **argStack)
 				{
 					g_SHPtr->SetRes(MRES_IGNORED);
 					mres = MRES_IGNORED;
-					dg->plugin_callback->GetParentRuntime()->GetDefaultContext()->ThrowNativeError("Tried to override return value without return value being set");
+					dg->plugin_callback->GetParentRuntime()->GetDefaultContext()->BlamePluginError(dg->plugin_callback, "Tried to override return value without return value being set");
 					break;
 				}
 			}
@@ -841,7 +841,7 @@ string_t *Callback_stringt(DHooksCallback *dg, void **argStack)
 				{
 					g_SHPtr->SetRes(MRES_IGNORED);
 					mres = MRES_IGNORED;
-					dg->plugin_callback->GetParentRuntime()->GetDefaultContext()->ThrowNativeError("Tried to override return value without return value being set");
+					dg->plugin_callback->GetParentRuntime()->GetDefaultContext()->BlamePluginError(dg->plugin_callback, "Tried to override return value without return value being set");
 				}
 			}
 			break;
@@ -858,7 +858,7 @@ string_t *Callback_stringt(DHooksCallback *dg, void **argStack)
 				{
 					g_SHPtr->SetRes(MRES_IGNORED);
 					mres = MRES_IGNORED;
-					dg->plugin_callback->GetParentRuntime()->GetDefaultContext()->ThrowNativeError("Tried to override return value without return value being set");
+					dg->plugin_callback->GetParentRuntime()->GetDefaultContext()->BlamePluginError(dg->plugin_callback, "Tried to override return value without return value being set");
 				}
 			}
 			break;
