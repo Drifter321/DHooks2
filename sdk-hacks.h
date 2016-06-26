@@ -1,16 +1,16 @@
 #ifndef _INCLUDE_SDK_HACKS_H_
 #define _INCLUDE_SDK_HACKS_H_
 
-class Vector
+class SDKVector
 {
 public:
-	Vector(float x1, float y1, float z1)
+	SDKVector(float x1, float y1, float z1)
 	{
 		this->x = x1;
 		this->y = y1;
 		this->z = z1;
 	}
-	Vector(void)
+	SDKVector(void)
 	{
 		this->x = 0.0;
 		this->y = 0.0;
