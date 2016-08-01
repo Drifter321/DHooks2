@@ -985,12 +985,14 @@ cell_t Native_SetReturnVector(IPluginContext *pContext, const cell_t *params)
 	if(returnStruct->type == ReturnType_Vector)
 	{
 		*(SDKVector *)returnStruct->newResult = SDKVector(sp_ctof(buffer[0]), sp_ctof(buffer[1]), sp_ctof(buffer[2]));
+		returnStruct->isChanged = true;
 
 		return 1;
 	}
 	else if(returnStruct->type == ReturnType_VectorPtr)
 	{
 		returnStruct->newResult = new SDKVector(sp_ctof(buffer[0]), sp_ctof(buffer[1]), sp_ctof(buffer[2]));
+		returnStruct->isChanged = true;
 		
 		return 1;
 	}
