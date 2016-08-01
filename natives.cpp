@@ -991,6 +991,8 @@ cell_t Native_SetReturnVector(IPluginContext *pContext, const cell_t *params)
 	else if(returnStruct->type == ReturnType_VectorPtr)
 	{
 		returnStruct->newResult = new SDKVector(sp_ctof(buffer[0]), sp_ctof(buffer[1]), sp_ctof(buffer[2]));
+		
+		return 1;
 	}
 	return pContext->ThrowNativeError("Return type is not a vector type");
 }
