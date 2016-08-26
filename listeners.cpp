@@ -5,6 +5,20 @@ using namespace SourceHook;
 
 SourceHook::CVector<EntityListener> g_EntityListeners;
 
+
+void FrameCleanupHooks(void *data)
+{
+	for (int i = g_pHooks.size() - 1; i >= 0; i--)
+	{
+		DHooksManager *manager = g_pHooks.at(i);
+		if (manager->bDelete)
+		{
+			delete manager;
+			g_pHooks.erase(g_pHooks.iterAt(i));
+		}
+	}
+}
+
 void DHooks::OnCoreMapEnd()
 {
 	for(int i = g_pHooks.size() -1; i >= 0; i--)
@@ -66,8 +80,8 @@ void DHooksEntityListener::OnEntityDestroyed(CBaseEntity *pEntity)
 		DHooksManager *manager = g_pHooks.at(i);
 		if(manager->callback->entity == entity)
 		{
-			delete manager;
-			g_pHooks.erase(g_pHooks.iterAt(i));
+			manager->bDelete = true;
+			smutils->AddFrameAction(&FrameCleanupHooks, NULL);
 		}
 	}
 }
