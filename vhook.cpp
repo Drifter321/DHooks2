@@ -26,6 +26,7 @@ DHooksManager::DHooksManager(HookSetup *setup, void *iface, IPluginFunction *rem
 	this->callback->params = setup->params;
 
 	this->addr = 0;
+	this->bDelete = false;
 
 	if(this->callback->hookType == HookType_Entity)
 	{

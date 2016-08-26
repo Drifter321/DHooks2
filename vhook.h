@@ -364,6 +364,7 @@ public:
 	DHooksCallback *callback;
 	IPluginFunction *remove_callback;
 	SourceHook::HookManagerPubFunc pManager;
+	bool bDelete;
 };
 
 size_t GetStackArgsSize(DHooksCallback *dg);
