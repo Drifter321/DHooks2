@@ -3,7 +3,7 @@
 
 SourceHook::IHookManagerAutoGen *g_pHookManager = NULL;
 
-SourceHook::CVector<DHooksManager *> g_pHooks;
+ke::Vector<DHooksManager *> g_pHooks;
 
 using namespace SourceHook;
 
@@ -26,7 +26,6 @@ DHooksManager::DHooksManager(HookSetup *setup, void *iface, IPluginFunction *rem
 	this->callback->params = setup->params;
 
 	this->addr = 0;
-	this->bDelete = false;
 
 	if(this->callback->hookType == HookType_Entity)
 	{
@@ -75,14 +74,14 @@ DHooksManager::DHooksManager(HookSetup *setup, void *iface, IPluginFunction *rem
 
 void CleanupHooks(IPluginContext *pContext)
 {
-	for(int i = g_pHooks.size() -1; i >= 0; i--)
+	for(int i = g_pHooks.length() -1; i >= 0; i--)
 	{
 		DHooksManager *manager = g_pHooks.at(i);
 
 		if(pContext == NULL || pContext == manager->callback->plugin_callback->GetParentRuntime()->GetDefaultContext())
 		{
 			delete manager;
-			g_pHooks.erase(g_pHooks.iterAt(i));
+			g_pHooks.remove(i);
 		}
 	}
 }

@@ -27,5 +27,5 @@ struct EntityListener
 	IPluginFunction *callback;
 };
 
-extern SourceHook::CVector<DHooksManager *> g_pHooks;
+extern ke::Vector<DHooksManager *> g_pHooks;
 #endif

@@ -42,7 +42,6 @@
 #include <ISDKHooks.h>
 #include <IBinTools.h>
 #include <ISDKTools.h>
-#include <sh_vector.h>
 #include "sdk-hacks.h"
 
 /**
