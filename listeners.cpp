@@ -3,42 +3,39 @@
 
 using namespace SourceHook;
 
-SourceHook::CVector<EntityListener> g_EntityListeners;
-
+ke::Vector<EntityListener> g_EntityListeners;
+ke::Vector<DHooksManager *>g_pRemoveList;
 
 void FrameCleanupHooks(void *data)
 {
-	for (int i = g_pHooks.size() - 1; i >= 0; i--)
+	for (int i = g_pRemoveList.length() - 1; i >= 0; i--)
 	{
-		DHooksManager *manager = g_pHooks.at(i);
-		if (manager->bDelete)
-		{
-			delete manager;
-			g_pHooks.erase(g_pHooks.iterAt(i));
-		}
+		DHooksManager *manager = g_pRemoveList.at(i);
+		delete manager;
+		g_pRemoveList.remove(i);
 	}
 }
 
 void DHooks::OnCoreMapEnd()
 {
-	for(int i = g_pHooks.size() -1; i >= 0; i--)
+	for(int i = g_pHooks.length() -1; i >= 0; i--)
 	{
 		DHooksManager *manager = g_pHooks.at(i);
 		if(manager->callback->hookType == HookType_GameRules)
 		{
 			delete manager;
-			g_pHooks.erase(g_pHooks.iterAt(i));
+			g_pHooks.remove(i);
 		}
 	}
 }
 
 void DHooksEntityListener::CleanupListeners(IPluginContext *pContext)
 {
-	for(int i = g_EntityListeners.size() -1; i >= 0; i--)
+	for(int i = g_EntityListeners.length() -1; i >= 0; i--)
 	{
 		if(pContext == NULL || pContext == g_EntityListeners.at(i).callback->GetParentRuntime()->GetDefaultContext())
 		{
-			g_EntityListeners.erase(g_EntityListeners.iterAt(i));
+			g_EntityListeners.remove(i);
 		}
 	}
 }
@@ -47,7 +44,7 @@ void DHooksEntityListener::OnEntityCreated(CBaseEntity *pEntity, const char *cla
 {
 	int entity = gamehelpers->EntityToBCompatRef(pEntity);
 
-	for(int i = g_EntityListeners.size() -1; i >= 0; i--)
+	for(int i = g_EntityListeners.length() -1; i >= 0; i--)
 	{
 		EntityListener listerner = g_EntityListeners.at(i);
 		if(listerner.type == ListenType_Created)
@@ -64,7 +61,7 @@ void DHooksEntityListener::OnEntityDestroyed(CBaseEntity *pEntity)
 {
 	int entity = gamehelpers->EntityToBCompatRef(pEntity);
 
-	for(int i = g_EntityListeners.size() -1; i >= 0; i--)
+	for(int i = g_EntityListeners.length() -1; i >= 0; i--)
 	{
 		EntityListener listerner = g_EntityListeners.at(i);
 		if(listerner.type == ListenType_Deleted)
@@ -75,25 +72,24 @@ void DHooksEntityListener::OnEntityDestroyed(CBaseEntity *pEntity)
 		}
 	}
 
-	bool bDeleting = false;
-
-	for(int i = g_pHooks.size() -1; i >= 0; i--)
+	for(int i = g_pHooks.length() -1; i >= 0; i--)
 	{
 		DHooksManager *manager = g_pHooks.at(i);
 		if(manager->callback->entity == entity)
 		{
-			manager->bDelete = true;
-			if (!bDeleting)
+			if(g_pRemoveList.length() == 0)
 			{
 				smutils->AddFrameAction(&FrameCleanupHooks, NULL);
-				bDeleting = true;
 			}
+
+			g_pRemoveList.append(manager);
+			g_pHooks.remove(i);
 		}
 	}
 }
 bool DHooksEntityListener::AddPluginEntityListener(ListenType type, IPluginFunction *callback)
 {
-	for(int i = g_EntityListeners.size() -1; i >= 0; i--)
+	for(int i = g_EntityListeners.length() -1; i >= 0; i--)
 	{
 		EntityListener listerner = g_EntityListeners.at(i);
 		if(listerner.callback == callback && listerner.type == type)
@@ -104,17 +100,17 @@ bool DHooksEntityListener::AddPluginEntityListener(ListenType type, IPluginFunct
 	EntityListener listener;
 	listener.callback = callback;
 	listener.type = type;
-	g_EntityListeners.push_back(listener);
+	g_EntityListeners.append(listener);
 	return true;
 }
 bool DHooksEntityListener::RemovePluginEntityListener(ListenType type, IPluginFunction *callback)
 {
-	for(int i = g_EntityListeners.size() -1; i >= 0; i--)
+	for(int i = g_EntityListeners.length() -1; i >= 0; i--)
 	{
 		EntityListener listerner = g_EntityListeners.at(i);
 		if(listerner.callback == callback && listerner.type == type)
 		{
-			g_EntityListeners.erase(g_EntityListeners.iterAt(i));
+			g_EntityListeners.remove(i);
 			return true;
 		}
 	}
