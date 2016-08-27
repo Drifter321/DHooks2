@@ -75,13 +75,19 @@ void DHooksEntityListener::OnEntityDestroyed(CBaseEntity *pEntity)
 		}
 	}
 
+	bool bDeleting = false;
+
 	for(int i = g_pHooks.size() -1; i >= 0; i--)
 	{
 		DHooksManager *manager = g_pHooks.at(i);
 		if(manager->callback->entity == entity)
 		{
 			manager->bDelete = true;
-			smutils->AddFrameAction(&FrameCleanupHooks, NULL);
+			if (!bDeleting)
+			{
+				smutils->AddFrameAction(&FrameCleanupHooks, NULL);
+				bDeleting = true;
+			}
 		}
 	}
 }
