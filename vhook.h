@@ -82,7 +82,7 @@ struct ParamInfo
 {
 	HookParamType type;
 	size_t size;
-	unsigned int flag;
+	unsigned int flags;
 	SourceHook::PassInfo::PassType pass_type;
 };
 

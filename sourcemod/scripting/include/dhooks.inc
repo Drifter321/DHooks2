@@ -84,8 +84,11 @@ enum MRESReturn
 
 enum DHookPassFlag
 {
-	DHookPass_ByVal = (1<<0),
-	DHookPass_ByRef = (1<<1)
+	DHookPass_ByVal = 		(1<<0),		/**< Passing by value */
+	DHookPass_ByRef = 		(1<<1),		/**< Passing by reference */
+	DHookPass_ODTOR =		(1<<2),		/**< Object has a destructor */
+	DHookPass_OCTOR =		(1<<3),		/**< Object has a constructor */
+	DHookPass_OASSIGNOP	=	(1<<4),		/**< Object has an assignment operator */
 };
 
 typeset ListenCB
