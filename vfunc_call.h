@@ -3,35 +3,30 @@
 
 #include "vhook.h"
 #include "extension.h"
+#include "natives.h"
 
 #define PARAMINFO_SWITCH(passType) \
-		paramInfo[i].flags = dg->params.at(i).flag; \
+		paramInfo[i].flags = dg->params.at(i).flags; \
 		paramInfo[i].size = dg->params.at(i).size; \
 		paramInfo[i].type = passType;
 
 #define VSTK_PARAM_SWITCH(paramType) \
 		if(paramStruct->isChanged[i]) \
 		{ \
-			*(paramType *)vptr = (paramType)(paramStruct->newParams[i]); \
+			*(paramType *)vptr = *(paramType *)newAddr; \
 		} \
 		else \
 		{ \
-			*(paramType *)vptr = (paramType)(paramStruct->orgParams[i]); \
+			*(paramType *)vptr = *(paramType *)orgAddr; \
 		} \
 		if(i + 1 != dg->params.size()) \
 		{ \
 			vptr += dg->params.at(i).size; \
 		} \
 		break;
-#define VSTK_PARAM_SWITCH_FLOAT() \
-		if(paramStruct->isChanged[i]) \
-		{ \
-			*(float *)vptr = *(float *)(paramStruct->newParams[i]); \
-		} \
-		else \
-		{ \
-			*(float *)vptr = *(float *)(paramStruct->orgParams[i]); \
-		} \
+
+#define VSTK_PARAM_SWITCH_OBJECT() \
+		memcpy(vptr, objAddr, dg->params.at(i).size); \
 		if(i + 1 != dg->params.size()) \
 		{ \
 			vptr += dg->params.at(i).size; \
@@ -71,8 +66,14 @@ T CallVFunction(DHooksCallback *dg, HookParamsStruct *paramStruct, void *iface)
 	{
 		vptr += sizeof(void *);
 		paramInfo = (SourceMod::PassInfo *)malloc(sizeof(SourceMod::PassInfo) * dg->params.size());
+
 		for(int i = 0; i < (int)dg->params.size(); i++)
 		{
+			size_t offset = GetParamOffset(paramStruct, i);
+
+			void *orgAddr = (void **)((intptr_t)paramStruct->orgParams + offset);
+			void *newAddr = (void **)((intptr_t)paramStruct->newParams + offset);
+
 			switch(dg->params.at(i).type)
 			{
 				case HookParamType_Int:
@@ -83,10 +84,10 @@ T CallVFunction(DHooksCallback *dg, HookParamsStruct *paramStruct, void *iface)
 					VSTK_PARAM_SWITCH(cell_t);
 				case HookParamType_Float:
 					PARAMINFO_SWITCH(PassType_Float);
-					VSTK_PARAM_SWITCH_FLOAT();
+					VSTK_PARAM_SWITCH(float);
 				case HookParamType_String:
 					PARAMINFO_SWITCH(PassType_Object);
-					VSTK_PARAM_SWITCH(int);
+					VSTK_PARAM_SWITCH(string_t);
 				case HookParamType_StringPtr:
 					PARAMINFO_SWITCH(PassType_Basic);
 					VSTK_PARAM_SWITCH(string_t *);
@@ -102,6 +103,12 @@ T CallVFunction(DHooksCallback *dg, HookParamsStruct *paramStruct, void *iface)
 				case HookParamType_Edict:
 					PARAMINFO_SWITCH(PassType_Basic);
 					VSTK_PARAM_SWITCH(edict_t *);
+				case HookParamType_Object:
+				{
+					void *objAddr = GetObjectAddr(HookParamType_Object, paramStruct->dg->params.at(i).flags, paramStruct->orgParams, offset);
+					PARAMINFO_SWITCH(PassType_Object);
+					VSTK_PARAM_SWITCH_OBJECT();
+				}
 				default:
 					PARAMINFO_SWITCH(PassType_Basic);
 					VSTK_PARAM_SWITCH(void *);
@@ -110,7 +117,7 @@ T CallVFunction(DHooksCallback *dg, HookParamsStruct *paramStruct, void *iface)
 	}
 
 	T ret = 0;
-	
+
 	if(dg->returnType == ReturnType_Void)
 	{
 		pCall = g_pBinTools->CreateVCall(dg->offset, 0, 0, NULL, paramInfo, dg->params.size());
@@ -160,7 +167,12 @@ SDKVector CallVFunction<SDKVector>(DHooksCallback *dg, HookParamsStruct *paramSt
 		paramInfo = (SourceMod::PassInfo *)malloc(sizeof(SourceMod::PassInfo) * dg->params.size());
 		for(int i = 0; i < (int)dg->params.size(); i++)
 		{
-			switch(dg->params.at(i).type)
+			size_t offset = GetParamOffset(paramStruct, i);
+
+			void *orgAddr = *(void **)((intptr_t)paramStruct->orgParams + offset);
+			void *newAddr = *(void **)((intptr_t)paramStruct->newParams + offset);
+
+			switch (dg->params.at(i).type)
 			{
 				case HookParamType_Int:
 					PARAMINFO_SWITCH(PassType_Basic);
@@ -170,10 +182,10 @@ SDKVector CallVFunction<SDKVector>(DHooksCallback *dg, HookParamsStruct *paramSt
 					VSTK_PARAM_SWITCH(cell_t);
 				case HookParamType_Float:
 					PARAMINFO_SWITCH(PassType_Float);
-					VSTK_PARAM_SWITCH_FLOAT();
+					VSTK_PARAM_SWITCH(float);
 				case HookParamType_String:
 					PARAMINFO_SWITCH(PassType_Object);
-					VSTK_PARAM_SWITCH(int);
+					VSTK_PARAM_SWITCH(string_t);
 				case HookParamType_StringPtr:
 					PARAMINFO_SWITCH(PassType_Basic);
 					VSTK_PARAM_SWITCH(string_t *);
@@ -189,6 +201,12 @@ SDKVector CallVFunction<SDKVector>(DHooksCallback *dg, HookParamsStruct *paramSt
 				case HookParamType_Edict:
 					PARAMINFO_SWITCH(PassType_Basic);
 					VSTK_PARAM_SWITCH(edict_t *);
+				case HookParamType_Object:
+				{
+					void *objAddr = GetObjectAddr(HookParamType_Object, paramStruct->dg->params.at(i).flags, paramStruct->orgParams, offset);
+					PARAMINFO_SWITCH(PassType_Object);
+					VSTK_PARAM_SWITCH_OBJECT();
+				}
 				default:
 					PARAMINFO_SWITCH(PassType_Basic);
 					VSTK_PARAM_SWITCH(void *);
@@ -240,7 +258,12 @@ string_t CallVFunction<string_t>(DHooksCallback *dg, HookParamsStruct *paramStru
 		paramInfo = (SourceMod::PassInfo *)malloc(sizeof(SourceMod::PassInfo) * dg->params.size());
 		for(int i = 0; i < dg->params.size(); i++)
 		{
-			switch(dg->params.at(i).type)
+			size_t offset = GetParamOffset(paramStruct, i);
+
+			void *orgAddr = *(void **)((intptr_t)paramStruct->orgParams + offset);
+			void *newAddr = *(void **)((intptr_t)paramStruct->newParams + offset);
+
+			switch (dg->params.at(i).type)
 			{
 				case HookParamType_Int:
 					PARAMINFO_SWITCH(PassType_Basic);
@@ -250,10 +273,10 @@ string_t CallVFunction<string_t>(DHooksCallback *dg, HookParamsStruct *paramStru
 					VSTK_PARAM_SWITCH(cell_t);
 				case HookParamType_Float:
 					PARAMINFO_SWITCH(PassType_Float);
-					VSTK_PARAM_SWITCH_FLOAT();
+					VSTK_PARAM_SWITCH(float);
 				case HookParamType_String:
 					PARAMINFO_SWITCH(PassType_Object);
-					VSTK_PARAM_SWITCH(int);
+					VSTK_PARAM_SWITCH(string_t);
 				case HookParamType_StringPtr:
 					PARAMINFO_SWITCH(PassType_Basic);
 					VSTK_PARAM_SWITCH(string_t *);
@@ -269,6 +292,12 @@ string_t CallVFunction<string_t>(DHooksCallback *dg, HookParamsStruct *paramStru
 				case HookParamType_Edict:
 					PARAMINFO_SWITCH(PassType_Basic);
 					VSTK_PARAM_SWITCH(edict_t *);
+				case HookParamType_Object:
+				{
+					void *objAddr = GetObjectAddr(HookParamType_Object, paramStruct->dg->params.at(i).flags, paramStruct->orgParams, offset);
+					PARAMINFO_SWITCH(PassType_Object);
+					VSTK_PARAM_SWITCH_OBJECT();
+				}
 				default:
 					PARAMINFO_SWITCH(PassType_Basic);
 					VSTK_PARAM_SWITCH(void *);

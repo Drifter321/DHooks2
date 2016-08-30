@@ -44,7 +44,7 @@ DHooksManager::DHooksManager(HookSetup *setup, void *iface, IPluginFunction *rem
 
 	for(int i = this->callback->params.size() -1; i >= 0; i--)
 	{
-		protoInfo.AddParam(this->callback->params.at(i).size, this->callback->params.at(i).pass_type, this->callback->params.at(i).flag, NULL, NULL, NULL, NULL);
+		protoInfo.AddParam(this->callback->params.at(i).size, this->callback->params.at(i).pass_type, PASSFLAG_BYVAL, NULL, NULL, NULL, NULL);//This seems like we need to do something about it at some point...
 	}
 
 	if(this->callback->returnType == ReturnType_Void)
