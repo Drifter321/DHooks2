@@ -41,6 +41,13 @@ size_t GetParamsSize(DHooksCallback *dg)
 
 	for (int i = dg->params.size() - 1; i >= 0; i--)
 	{
+#ifndef WIN32
+		if (dg->params.at(i).type == HookParamType_Object && (dg->params.at(i).flags & PASSFLAG_ODTOR)) //Passed by refrence
+		{
+			res += sizeof(void *);
+			continue;
+		}
+#endif
 		res += dg->params.at(i).size;
 	}
 
