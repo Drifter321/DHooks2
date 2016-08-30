@@ -275,39 +275,7 @@ public:
 		this->dg = NULL;
 		this->isChanged = NULL;
 	}
-	~HookParamsStruct()
-	{
-		if(this->orgParams != NULL)
-		{
-			free(this->orgParams);
-		}
-		if(this->isChanged != NULL)
-		{
-			free(this->isChanged);
-		}
-		if(this->newParams != NULL)
-		{
-			for(int i = dg->params.size() - 1; i >= 0 ; i--)
-			{
-				if(this->newParams[i] == NULL)
-					continue;
-
-				if(dg->params.at(i).type == HookParamType_VectorPtr)
-				{
-					delete (SDKVector *)this->newParams[i];
-				}
-				else if(dg->params.at(i).type == HookParamType_CharPtr)
-				{
-					delete (char *)this->newParams[i];
-				}
-				else if(dg->params.at(i).type == HookParamType_Float)
-				{
-					delete (float *)this->newParams[i];
-				}
-			}
-			free(this->newParams);
-		}
-	}
+	~HookParamsStruct();
 public:
 	void **orgParams;
 	void **newParams;

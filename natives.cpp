@@ -1,4 +1,5 @@
 #include "natives.h"
+#include "util.h"
 
 bool GetHandleIfValidOrError(HandleType_t type, void **object, IPluginContext *pContext, cell_t param)
 {
@@ -15,36 +16,6 @@ bool GetHandleIfValidOrError(HandleType_t type, void **object, IPluginContext *p
 		return pContext->ThrowNativeError("Invalid Handle %x (error %d)", param, err) != 0;
 	}
 	return true;
-}
-
-void * GetObjectAddr(HookParamType type, unsigned int flags, void **params, size_t offset)
-{
-#ifdef  WIN32
-	if(type == HookParamType_Object)
-		return (void *)((intptr_t)params + offset);
-#elif POSIX
-	if(type == HookParamType_Object && !(flags & PASSFLAG_ODTOR)) //Objects are passed by rrefrence if they contain destructors.
-		return (void *)((intptr_t)params + offset);
-#endif
-	return *(void **)((intptr_t)params + offset);
-
-}
-
-size_t GetParamOffset(HookParamsStruct *paramStruct, unsigned int index)
-{
-	size_t offset = 0;
-	for (unsigned int i = 0; i < index; i++)
-	{
-#ifndef WIN32
-		if (paramStruct->dg->params.at(i).type == HookParamType_Object && (paramStruct->dg->params.at(i).flags & PASSFLAG_ODTOR)) //Passed by refrence
-		{
-			offset += sizeof(void *);
-			continue;
-		}
-#endif
-		offset += paramStruct->dg->params.at(i).size;
-	}
-	return offset;
 }
 
 //native Handle:DHookCreate(offset, HookType:hooktype, ReturnType:returntype, ThisPointerType:thistype, DHookCallback:callback);
@@ -639,7 +610,7 @@ cell_t Native_SetParamString(IPluginContext *pContext, const cell_t *params)
 		if(paramStruct->isChanged[index])
 			delete *(char **)addr;
 
-		paramStruct->newParams[index] = new char[strlen(value)+1];
+		*(char **)addr = new char[strlen(value)+1];
 		strcpy(*(char **)addr, value);
 		paramStruct->isChanged[index] = true;
 	}

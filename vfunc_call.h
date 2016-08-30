@@ -3,7 +3,7 @@
 
 #include "vhook.h"
 #include "extension.h"
-#include "natives.h"
+#include "util.h"
 
 #define PARAMINFO_SWITCH(passType) \
 		paramInfo[i].flags = dg->params.at(i).flags; \

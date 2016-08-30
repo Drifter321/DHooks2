@@ -1,5 +1,6 @@
 #include "vhook.h"
 #include "vfunc_call.h"
+#include "util.h"
 
 SourceHook::IHookManagerAutoGen *g_pHookManager = NULL;
 
@@ -12,6 +13,7 @@ using namespace SourceHook;
 #else
 #define OBJECT_OFFSET (sizeof(void *)*2)
 #endif
+
 DHooksManager::DHooksManager(HookSetup *setup, void *iface, IPluginFunction *remove_callback, bool post)
 {
 	this->callback = MakeHandler(setup->returnType);
@@ -93,10 +95,6 @@ bool SetupHookManager(ISmmAPI *ismm)
 	return g_pHookManager != NULL;
 }
 
-size_t GetParamTypeSize(HookParamType type)
-{
-	return sizeof(void *);
-}
 SourceHook::PassInfo::PassType GetParamTypePassType(HookParamType type)
 {
 	switch(type)
@@ -108,14 +106,10 @@ SourceHook::PassInfo::PassType GetParamTypePassType(HookParamType type)
 	}
 	return SourceHook::PassInfo::PassType_Basic;
 }
+
 size_t GetStackArgsSize(DHooksCallback *dg)
 {
-	size_t res = 0;
-	for(int i = dg->params.size() - 1; i >= 0; i--)
-	{
-		res += dg->params.at(i).size;
-	}
-
+	size_t res = GetParamsSize(dg);
 	#ifdef  WIN32
 	if(dg->returnType == ReturnType_Vector)//Account for result vector ptr.
 	#else
@@ -126,6 +120,40 @@ size_t GetStackArgsSize(DHooksCallback *dg)
 	}
 	return res;
 }
+
+HookParamsStruct::~HookParamsStruct()
+{
+	if (this->orgParams != NULL)
+	{
+		free(this->orgParams);
+	}
+	if (this->isChanged != NULL)
+	{
+		free(this->isChanged);
+	}
+	if (this->newParams != NULL)
+	{
+		for (int i = dg->params.size() - 1; i >= 0; i--)
+		{
+			size_t offset = GetParamOffset(this, i);
+			void *addr = (void **)((intptr_t)this->newParams + offset);
+
+			if (*(void **)addr == NULL)
+				continue;
+
+			if (dg->params.at(i).type == HookParamType_VectorPtr)
+			{
+				delete *(SDKVector **)addr;
+			}
+			else if (dg->params.at(i).type == HookParamType_CharPtr)
+			{
+				delete *(char **)addr;
+			}
+		}
+		free(this->newParams);
+	}
+}
+
 HookParamsStruct *GetParamStruct(DHooksCallback *dg, void **argStack, size_t argStackSize)
 {
 	HookParamsStruct *params = new HookParamsStruct();
@@ -144,15 +172,23 @@ HookParamsStruct *GetParamStruct(DHooksCallback *dg, void **argStack, size_t arg
 		params->orgParams = (void **)malloc(argStackSize-OBJECT_OFFSET);
 		memcpy(params->orgParams, argStack+OBJECT_OFFSET, argStackSize-OBJECT_OFFSET);
 	}
-	params->newParams = (void **)malloc(dg->params.size() * sizeof(void *));
+	size_t paramsSize = GetParamsSize(dg);
+
+	params->newParams = (void **)malloc(paramsSize);
 	params->isChanged = (bool *)malloc(dg->params.size() * sizeof(bool));
-	for(int i = 0; i < (int)dg->params.size(); i++)
+
+	for (unsigned int i = 0; i < dg->params.size(); i++)
 	{
-		params->newParams[i] = NULL;
 		params->isChanged[i] = false;
+	}
+
+	for(unsigned int i = 0; i < paramsSize; i++)
+	{
+		*(void **)((intptr_t)params->newParams + i) = NULL;
 	}
 	return params;
 }
+
 HookReturnStruct *GetReturnStruct(DHooksCallback *dg)
 {
 	HookReturnStruct *res = new HookReturnStruct();
