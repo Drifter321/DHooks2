@@ -17,18 +17,34 @@ bool GetHandleIfValidOrError(HandleType_t type, void **object, IPluginContext *p
 	return true;
 }
 
-intptr_t GetObjectAddr(HookParamType type, void **params, int index)
+void * GetObjectAddr(HookParamType type, unsigned int flags, void **params, size_t offset)
 {
 #ifdef  WIN32
 	if(type == HookParamType_Object)
-		return (intptr_t)&params[index];
-	else if(type == HookParamType_ObjectPtr)
-		return (intptr_t)params[index];
-
-	return 0;
-#else
-	return (intptr_t)params[index];
+		return (void *)((intptr_t)params + offset);
+#elif POSIX
+	if(type == HookParamType_Object && !(flags & PASSFLAG_ODTOR)) //Objects are passed by rrefrence if they contain destructors.
+		return (void *)((intptr_t)params + offset);
 #endif
+	return *(void **)((intptr_t)params + offset);
+
+}
+
+size_t GetParamOffset(HookParamsStruct *paramStruct, unsigned int index)
+{
+	size_t offset = 0;
+	for (unsigned int i = 0; i < index; i++)
+	{
+#ifndef WIN32
+		if (paramStruct->dg->params.at(i).type == HookParamType_Object && (paramStruct->dg->params.at(i).flags & PASSFLAG_ODTOR)) //Passed by refrence
+		{
+			offset += sizeof(void *);
+			continue;
+		}
+#endif
+		offset += paramStruct->dg->params.at(i).size;
+	}
+	return offset;
 }
 
 //native Handle:DHookCreate(offset, HookType:hooktype, ReturnType:returntype, ThisPointerType:thistype, DHookCallback:callback);
@@ -39,7 +55,7 @@ cell_t Native_CreateHook(IPluginContext *pContext, const cell_t *params)
 		return pContext->ThrowNativeError("Failed to retrieve function by id");
 	}
 
-	HookSetup *setup = new HookSetup((ReturnType)params[3], PASSFLAG_BYVAL,(HookType)params[2], (ThisPointerType)params[4], params[1], pContext->GetFunctionById(params[5]));
+	HookSetup *setup = new HookSetup((ReturnType)params[3], PASSFLAG_BYVAL, (HookType)params[2], (ThisPointerType)params[4], params[1], pContext->GetFunctionById(params[5]));
 
 	Handle_t hndl = handlesys->CreateHandle(g_HookSetupHandle, setup, pContext->GetIdentity(), myself->GetIdentity(), NULL);
 
@@ -68,11 +84,11 @@ cell_t Native_AddParam(IPluginContext *pContext, const cell_t *params)
 
 	if(params[0] >= 4)
 	{
-		info.flag = params[4];
+		info.flags = params[4];
 	}
 	else
 	{
-		info.flag = PASSFLAG_BYVAL;
+		info.flags = PASSFLAG_BYVAL;
 	}
 
 	if(params[0] >= 3 && params[3] != -1)
@@ -261,7 +277,11 @@ cell_t Native_GetParam(IPluginContext *pContext, const cell_t *params)
 
 	int index = params[2] - 1;
 
-	if(paramStruct->orgParams[index] == NULL && (paramStruct->dg->params.at(index).type == HookParamType_CBaseEntity || paramStruct->dg->params.at(index).type == HookParamType_Edict))
+	size_t offset = GetParamOffset(paramStruct, index);
+
+	void *addr = (void **)((intptr_t)paramStruct->orgParams + offset);
+
+	if(*(void **)addr == NULL && (paramStruct->dg->params.at(index).type == HookParamType_CBaseEntity || paramStruct->dg->params.at(index).type == HookParamType_Edict))
 	{
 		return pContext->ThrowNativeError("Trying to get value for null pointer.");
 	}
@@ -269,15 +289,15 @@ cell_t Native_GetParam(IPluginContext *pContext, const cell_t *params)
 	switch(paramStruct->dg->params.at(index).type)
 	{
 		case HookParamType_Int:
-			return (int)paramStruct->orgParams[index];
+			return *(int *)addr;
 		case HookParamType_Bool:
-			return (cell_t)paramStruct->orgParams[index] != 0;
+			return *(cell_t *)addr != 0;
 		case HookParamType_CBaseEntity:
-			return gamehelpers->EntityToBCompatRef((CBaseEntity *)paramStruct->orgParams[index]);
+			return gamehelpers->EntityToBCompatRef(*(CBaseEntity **)addr);
 		case HookParamType_Edict:
-			return gamehelpers->IndexOfEdict((edict_t *)paramStruct->orgParams[index]);
+			return gamehelpers->IndexOfEdict(*(edict_t **)addr);
 		case HookParamType_Float:
-			return sp_ftoc(*(float *)paramStruct->orgParams[index]);
+			return sp_ftoc(*(float *)addr);
 		default:
 			return pContext->ThrowNativeError("Invalid param type (%i) to get", paramStruct->dg->params.at(index).type);
 	}
@@ -302,37 +322,43 @@ cell_t Native_SetParam(IPluginContext *pContext, const cell_t *params)
 
 	int index = params[2] - 1;
 
+	size_t offset = GetParamOffset(paramStruct, index);
+	void *addr = (void **)((intptr_t)paramStruct->newParams + offset);
+
 	switch(paramStruct->dg->params.at(index).type)
 	{
 		case HookParamType_Int:
-			paramStruct->newParams[index] = (void *)params[3];
+			*(int *)addr = params[3];
 			break;
 		case HookParamType_Bool:
-			paramStruct->newParams[index] = (void *)(params[3] ? 1 : 0);
+			*(bool *)addr = (params[3] ? true : false);
 			break;
 		case HookParamType_CBaseEntity:
 		{
 			CBaseEntity *pEnt = gamehelpers->ReferenceToEntity(params[2]);
+
 			if(!pEnt)
 			{
 				return pContext->ThrowNativeError("Invalid entity index passed for param value");
 			}
-			paramStruct->newParams[index] = pEnt;
+
+			*(CBaseEntity **)addr = pEnt;
 			break;
 		}
 		case HookParamType_Edict:
 		{
 			edict_t *pEdict = gamehelpers->EdictOfIndex(params[2]);
+
 			if(!pEdict || pEdict->IsFree())
 			{
 				pContext->ThrowNativeError("Invalid entity index passed for param value");
 			}
-			paramStruct->newParams[index] = pEdict;
+
+			*(edict_t **)addr = pEdict;
 			break;
 		}
 		case HookParamType_Float:
-			paramStruct->newParams[index] = new float;
-			*(float *)paramStruct->newParams[index] = sp_ctof(params[3]);
+			*(float *)addr = sp_ctof(params[3]);
 			break;
 		default:
 			return pContext->ThrowNativeError("Invalid param type (%i) to set", paramStruct->dg->params.at(index).type);
@@ -433,15 +459,25 @@ cell_t Native_GetParamVector(IPluginContext *pContext, const cell_t *params)
 
 	int index = params[2] - 1;
 
+	size_t offset = GetParamOffset(paramStruct, index);
+	void *addr = (void **)((intptr_t)paramStruct->orgParams + offset);
+
+	if (*(void **)addr == NULL)
+	{
+		return pContext->ThrowNativeError("Trying to get value for null pointer.");
+	}
+
 	switch(paramStruct->dg->params.at(index).type)
 	{
 		case HookParamType_VectorPtr:
 		{
 			cell_t *buffer;
 			pContext->LocalToPhysAddr(params[3], &buffer);
-			buffer[0] = sp_ftoc(((SDKVector *)paramStruct->orgParams[index])->x);
-			buffer[1] = sp_ftoc(((SDKVector *)paramStruct->orgParams[index])->y);
-			buffer[2] = sp_ftoc(((SDKVector *)paramStruct->orgParams[index])->z);
+			SDKVector *vec = *(SDKVector **)addr;
+
+			buffer[0] = sp_ftoc(vec->x);
+			buffer[1] = sp_ftoc(vec->y);
+			buffer[2] = sp_ftoc(vec->z);
 			return 1;
 		}	
 	}
@@ -465,17 +501,20 @@ cell_t Native_SetParamVector(IPluginContext *pContext, const cell_t *params)
 
 	int index = params[2] - 1;
 
+	size_t offset = GetParamOffset(paramStruct, index);
+	void *addr = (void **)((intptr_t)paramStruct->newParams + offset);
+
 	switch(paramStruct->dg->params.at(index).type)
 	{
 		case HookParamType_VectorPtr:
 		{
-			if(paramStruct->newParams[index] != NULL)
-				delete (SDKVector *)paramStruct->newParams[index];
+			if(paramStruct->isChanged[index])
+				delete *(SDKVector **)addr;
 
 			cell_t *buffer;
 			pContext->LocalToPhysAddr(params[3], &buffer);
 
-			paramStruct->newParams[index] = new SDKVector(sp_ctof(buffer[0]), sp_ctof(buffer[1]), sp_ctof(buffer[2]));
+			*(SDKVector **)addr = new SDKVector(sp_ctof(buffer[0]), sp_ctof(buffer[1]), sp_ctof(buffer[2]));
 			paramStruct->isChanged[index] = true;
 			return 1;
 		}
@@ -497,16 +536,20 @@ cell_t Native_GetParamString(IPluginContext *pContext, const cell_t *params)
 	{
 		return pContext->ThrowNativeError("Invalid param number %i max params is %i", params[2], paramStruct->dg->params.size());
 	}
+
 	int index = params[2] - 1;
 
-	if(paramStruct->orgParams[index] == NULL)
+	size_t offset = GetParamOffset(paramStruct, index);
+	void *addr = (void **)((intptr_t)paramStruct->orgParams + offset);
+
+	if(*(void **)addr == NULL)
 	{
 		return pContext->ThrowNativeError("Trying to get value for null pointer.");
 	}
 
 	if(paramStruct->dg->params.at(index).type == HookParamType_CharPtr)
 	{
-		pContext->StringToLocal(params[3], params[4], (const char *)paramStruct->orgParams[index]);
+		pContext->StringToLocal(params[3], params[4], *(const char **)addr);
 	}
 
 	return 1;
@@ -554,10 +597,16 @@ cell_t Native_SetReturnString(IPluginContext *pContext, const cell_t *params)
 	switch(returnStruct->type)
 	{
 		case ReturnType_CharPtr:
-			returnStruct->newResult = new char[strlen(value)+1];
+		{
+			if(returnStruct->isChanged == true)
+			{
+				delete (char *)returnStruct->newResult;
+			}
+			returnStruct->newResult = new char[strlen(value) + 1];
 			strcpy((char *)returnStruct->newResult, value);
 			returnStruct->isChanged = true;
 			return 1;
+		}
 		default:
 			return pContext->ThrowNativeError("Invalid param type to get. Param is not a char pointer.");
 	}
@@ -579,17 +628,19 @@ cell_t Native_SetParamString(IPluginContext *pContext, const cell_t *params)
 	}
 
 	int index = params[2] - 1;
+	size_t offset = GetParamOffset(paramStruct, index);
+	void *addr = (void **)((intptr_t)paramStruct->newParams + offset);
 
 	char *value;
 	pContext->LocalToString(params[3], &value);
 
 	if(paramStruct->dg->params.at(index).type == HookParamType_CharPtr)
 	{
-		if((char *)paramStruct->newParams[index] != NULL && paramStruct->isChanged[index])
-			delete (char *)paramStruct->newParams[index];
+		if(paramStruct->isChanged[index])
+			delete *(char **)addr;
 
 		paramStruct->newParams[index] = new char[strlen(value)+1];
-		strcpy((char *)paramStruct->newParams[index], value);
+		strcpy(*(char **)addr, value);
 		paramStruct->isChanged[index] = true;
 	}
 	return 1;
@@ -636,20 +687,22 @@ cell_t Native_GetParamObjectPtrVar(IPluginContext *pContext, const cell_t *param
 	{
 		return pContext->ThrowNativeError("Invalid object value type %i", paramStruct->dg->params.at(index).type);
 	}
-	
-	intptr_t addr = GetObjectAddr(paramStruct->dg->params.at(index).type, paramStruct->orgParams, index);
+
+	size_t offset = GetParamOffset(paramStruct, index);
+	void *addr = GetObjectAddr(paramStruct->dg->params.at(index).type, paramStruct->dg->params.at(index).flags, paramStruct->orgParams, offset);
 
 	switch((ObjectValueType)params[4])
 	{
 		case ObjectValueType_Int:
 		{
-			return *(int *)(addr + params[3]);
+			return *(int *)((intptr_t)addr + params[3]);
 		}
 		case ObjectValueType_Bool:
-			return *(bool *)(addr + params[3]) ? 1 : 0;
+			return (*(bool *)((intptr_t)addr + params[3])) ? 1 : 0;
 		case ObjectValueType_Ehandle:
+		case ObjectValueType_EhandlePtr:
 		{
-			edict_t *pEdict = gamehelpers->GetHandleEntity(*(CBaseHandle *)(addr + params[3]));
+			edict_t *pEdict = gamehelpers->GetHandleEntity(*(CBaseHandle *)((intptr_t)addr +params[3]));
 
 			if(!pEdict)
 			{
@@ -659,33 +712,24 @@ cell_t Native_GetParamObjectPtrVar(IPluginContext *pContext, const cell_t *param
 			return gamehelpers->IndexOfEdict(pEdict);
 		}
 		case ObjectValueType_Float:
-			return sp_ftoc(*(float *)(addr + params[3]));
+		{
+			return sp_ftoc(*(float *)((intptr_t)addr + params[3]));
+		}
 		case ObjectValueType_CBaseEntityPtr:
-			return gamehelpers->EntityToBCompatRef((CBaseEntity *)(addr + params[3]));
+			return gamehelpers->EntityToBCompatRef(*(CBaseEntity **)((intptr_t)addr + params[3]));
 		case ObjectValueType_IntPtr:
 		{
-			int *ptr = *(int **)(addr + params[3]);
+			int *ptr = *(int **)((intptr_t)addr + params[3]);
 			return *ptr;
 		}
 		case ObjectValueType_BoolPtr:
 		{
-			bool *ptr = *(bool **)(addr + params[3]);
+			bool *ptr = *(bool **)((intptr_t)addr + params[3]);
 			return *ptr ? 1 : 0;
-		}
-		case ObjectValueType_EhandlePtr://Im pretty sure this is never gonna happen
-		{
-			edict_t *pEdict = gamehelpers->GetHandleEntity(**(CBaseHandle **)(addr + params[3]));
-
-			if(!pEdict)
-			{
-				return -1;
-			}
-
-			return gamehelpers->IndexOfEdict(pEdict);
 		}
 		case ObjectValueType_FloatPtr:
 		{
-			float *ptr = *(float **)(addr + params[3]);
+			float *ptr = *(float **)((intptr_t)addr + params[3]);
 			return sp_ftoc(*ptr);
 		}
 		default:
@@ -710,22 +754,24 @@ cell_t Native_SetParamObjectPtrVar(IPluginContext *pContext, const cell_t *param
 
 	int index = params[2] - 1;
 
-	if(paramStruct->dg->params.at(index).type != HookParamType_ObjectPtr)
+	if(paramStruct->dg->params.at(index).type != HookParamType_ObjectPtr && paramStruct->dg->params.at(index).type != HookParamType_Object)
 	{
 		return pContext->ThrowNativeError("Invalid object value type %i", paramStruct->dg->params.at(index).type);
 	}
 	
-	intptr_t addr = GetObjectAddr(paramStruct->dg->params.at(index).type, paramStruct->orgParams, index);
+	size_t offset = GetParamOffset(paramStruct, index);
+	void *addr = GetObjectAddr(paramStruct->dg->params.at(index).type, paramStruct->dg->params.at(index).flags, paramStruct->orgParams, offset);
 
 	switch((ObjectValueType)params[4])
 	{
 		case ObjectValueType_Int:
-			*(int *)(addr + params[3]) = params[5];
+			*(int *)((intptr_t)addr + params[3]) = params[5];
 			break;
 		case ObjectValueType_Bool:
-			*(bool *)(addr + params[3]) = params[5] != 0;
+			*(bool *)((intptr_t)addr + params[3]) = params[5] != 0;
 			break;
 		case ObjectValueType_Ehandle:
+		case ObjectValueType_EhandlePtr:
 		{
 			edict_t *pEdict = gamehelpers->EdictOfIndex(params[5]);
 
@@ -733,12 +779,12 @@ cell_t Native_SetParamObjectPtrVar(IPluginContext *pContext, const cell_t *param
 			{
 				return pContext->ThrowNativeError("Invalid edict passed");
 			}
-			gamehelpers->SetHandleEntity(*(CBaseHandle *)(addr + params[3]), pEdict);
+			gamehelpers->SetHandleEntity(*(CBaseHandle *)((intptr_t)addr + params[3]), pEdict);
 
 			break;
 		}
 		case ObjectValueType_Float:
-			*(float *)(addr + params[3]) = sp_ctof(params[5]);
+			*(float *)((intptr_t)addr + params[3]) = sp_ctof(params[5]);
 			break;
 		case ObjectValueType_CBaseEntityPtr:
 		{
@@ -749,36 +795,24 @@ cell_t Native_SetParamObjectPtrVar(IPluginContext *pContext, const cell_t *param
 				return pContext->ThrowNativeError("Invalid entity passed");
 			}
 
-			*(CBaseEntity **)(addr + params[3]) = pEnt;
+			*(CBaseEntity **)((intptr_t)addr + params[3]) = pEnt;
 			break;
 		}
 		case ObjectValueType_IntPtr:
 		{
-			int *ptr = *(int **)(addr + params[3]);
+			int *ptr = *(int **)((intptr_t)addr + params[3]);
 			*ptr = params[5];
 			break;
 		}
 		case ObjectValueType_BoolPtr:
 		{
-			bool *ptr = *(bool **)(addr + params[3]);
+			bool *ptr = *(bool **)((intptr_t)addr + params[3]);
 			*ptr = params[5] != 0;
-			break;
-		}
-		case ObjectValueType_EhandlePtr:
-		{
-			edict_t *pEdict = gamehelpers->EdictOfIndex(params[5]);
-
-			if(!pEdict || pEdict->IsFree())
-			{
-				return pContext->ThrowNativeError("Invalid edict passed");
-			}
-			gamehelpers->SetHandleEntity(**(CBaseHandle **)(addr + params[3]), pEdict);
-
 			break;
 		}
 		case ObjectValueType_FloatPtr:
 		{
-			float *ptr = *(float **)(addr + params[3]);
+			float *ptr = *(float **)((intptr_t)addr + params[3]);
 			*ptr = sp_ctof(params[5]);
 			break;
 		}
@@ -810,7 +844,8 @@ cell_t Native_GetParamObjectPtrVarVector(IPluginContext *pContext, const cell_t 
 		return pContext->ThrowNativeError("Invalid object value type %i", paramStruct->dg->params.at(index).type);
 	}
 
-	intptr_t addr = GetObjectAddr(paramStruct->dg->params.at(index).type, paramStruct->orgParams, index);
+	size_t offset = GetParamOffset(paramStruct, index);
+	void *addr = GetObjectAddr(paramStruct->dg->params.at(index).type, paramStruct->dg->params.at(index).flags, paramStruct->orgParams, offset);
 
 	cell_t *buffer;
 	pContext->LocalToPhysAddr(params[5], &buffer);
@@ -821,7 +856,7 @@ cell_t Native_GetParamObjectPtrVarVector(IPluginContext *pContext, const cell_t 
 
 		if((ObjectValueType)params[4] == ObjectValueType_VectorPtr)
 		{
-			vec = *(SDKVector **)(addr + params[3]);
+			vec = *(SDKVector **)((intptr_t)addr + params[3]);
 			if(vec == NULL)
 			{
 				return pContext->ThrowNativeError("Trying to get value for null pointer.");
@@ -829,7 +864,7 @@ cell_t Native_GetParamObjectPtrVarVector(IPluginContext *pContext, const cell_t 
 		}
 		else
 		{
-			vec = (SDKVector *)(addr + params[3]);
+			vec = (SDKVector *)((intptr_t)addr + params[3]);
 		}
 
 		buffer[0] = sp_ftoc(vec->x);
@@ -858,12 +893,13 @@ cell_t Native_SetParamObjectPtrVarVector(IPluginContext *pContext, const cell_t 
 
 	int index = params[2] - 1;
 
-	if(paramStruct->dg->params.at(index).type != HookParamType_ObjectPtr)
+	if(paramStruct->dg->params.at(index).type != HookParamType_ObjectPtr && paramStruct->dg->params.at(index).type != HookParamType_Object)
 	{
 		return pContext->ThrowNativeError("Invalid object value type %i", paramStruct->dg->params.at(index).type);
 	}
 
-	intptr_t addr = GetObjectAddr(paramStruct->dg->params.at(index).type, paramStruct->orgParams, index);
+	size_t offset = GetParamOffset(paramStruct, index);
+	void *addr = GetObjectAddr(paramStruct->dg->params.at(index).type, paramStruct->dg->params.at(index).flags, paramStruct->orgParams, offset);
 
 	cell_t *buffer;
 	pContext->LocalToPhysAddr(params[5], &buffer);
@@ -874,7 +910,7 @@ cell_t Native_SetParamObjectPtrVarVector(IPluginContext *pContext, const cell_t 
 
 		if((ObjectValueType)params[4] == ObjectValueType_VectorPtr)
 		{
-			vec = *(SDKVector **)(addr + params[3]);
+			vec = *(SDKVector **)((intptr_t)addr + params[3]);
 			if(vec == NULL)
 			{
 				return pContext->ThrowNativeError("Trying to set value for null pointer.");
@@ -882,7 +918,7 @@ cell_t Native_SetParamObjectPtrVarVector(IPluginContext *pContext, const cell_t 
 		}
 		else
 		{
-			vec = (SDKVector *)(addr + params[3]);
+			vec = (SDKVector *)((intptr_t)addr + params[3]);
 		}
 
 		vec->x = sp_ctof(buffer[0]);
@@ -915,19 +951,20 @@ cell_t Native_GetParamObjectPtrString(IPluginContext *pContext, const cell_t *pa
 		return pContext->ThrowNativeError("Invalid object value type %i", paramStruct->dg->params.at(index).type);
 	}
 
-	intptr_t addr = GetObjectAddr(paramStruct->dg->params.at(index).type, paramStruct->orgParams, index);
+	size_t offset = GetParamOffset(paramStruct, index);
+	void *addr = GetObjectAddr(paramStruct->dg->params.at(index).type, paramStruct->dg->params.at(index).flags, paramStruct->orgParams, offset);
 
 	switch((ObjectValueType)params[4])
 	{
 		case ObjectValueType_CharPtr:
 		{
-			char *ptr = *(char **)(addr + params[3]);
+			char *ptr = *(char **)((intptr_t)addr + params[3]);
 			pContext->StringToLocal(params[5], params[6], ptr == NULL ? "" : (const char *)ptr);
 			break;
 		}
 		case ObjectValueType_String:
 		{
-			string_t string = *(string_t *)(addr + params[3]);
+			string_t string = *(string_t *)((intptr_t)addr + params[3]);
 			pContext->StringToLocal(params[5], params[6], string == NULL_STRING ? "" : STRING(string));
 			break;
 		}
