@@ -74,7 +74,7 @@ public OnPluginStart()
 	DHookAddParam(hAcceptInput, HookParamType_CharPtr);
 	DHookAddParam(hAcceptInput, HookParamType_CBaseEntity);
 	DHookAddParam(hAcceptInput, HookParamType_CBaseEntity);
-	DHookAddParam(hAcceptInput, HookParamType_Object, 20); //varaint_t is a union of 12 (float[3]) plus two int type params 12 + 8 = 20
+	DHookAddParam(hAcceptInput, HookParamType_Object, 20, DHookPass_ByVal|DHookPass_ODTOR|DHookPass_OCTOR|DHookPass_OASSIGNOP); //varaint_t is a union of 12 (float[3]) plus two int type params 12 + 8 = 20
 	DHookAddParam(hAcceptInput, HookParamType_Int);
 		
 	offset = GameConfGetOffset(temp, "GetMaxPlayerSpeed");
