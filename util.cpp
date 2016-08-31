@@ -35,19 +35,12 @@ size_t GetParamTypeSize(HookParamType type)
 	return sizeof(void *);
 }
 
-size_t GetParamsSize(DHooksCallback *dg)
+size_t GetParamsSize(DHooksCallback *dg)//Get the full size, this is for creating the STACK.
 {
 	size_t res = 0;
 
 	for (int i = dg->params.size() - 1; i >= 0; i--)
 	{
-#ifndef WIN32
-		if (dg->params.at(i).type == HookParamType_Object && (dg->params.at(i).flags & PASSFLAG_ODTOR)) //Passed by refrence
-		{
-			res += sizeof(void *);
-			continue;
-		}
-#endif
 		res += dg->params.at(i).size;
 	}
 
