@@ -55,7 +55,7 @@ T CallVFunction(DHooksCallback *dg, HookParamsStruct *paramStruct, void *iface)
 
 	ICallWrapper *pCall;
 
-	size_t size = GetStackArgsSize(dg);
+	size_t size = GetParamsSize(dg);
 
 	unsigned char *vstk = (unsigned char *)malloc(sizeof(void *) + size);
 	unsigned char *vptr = vstk;
@@ -154,7 +154,7 @@ SDKVector CallVFunction<SDKVector>(DHooksCallback *dg, HookParamsStruct *paramSt
 
 	ICallWrapper *pCall;
 
-	size_t size = GetStackArgsSize(dg);
+	size_t size = GetParamsSize(dg);
 
 	unsigned char *vstk = (unsigned char *)malloc(sizeof(void *) + size);
 	unsigned char *vptr = vstk;
@@ -245,7 +245,7 @@ string_t CallVFunction<string_t>(DHooksCallback *dg, HookParamsStruct *paramStru
 
 	ICallWrapper *pCall;
 
-	size_t size = GetStackArgsSize(dg);
+	size_t size = GetParamsSize(dg);
 
 	unsigned char *vstk = (unsigned char *)malloc(sizeof(void *) + size);
 	unsigned char *vptr = vstk;
