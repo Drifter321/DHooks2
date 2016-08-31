@@ -255,6 +255,7 @@ program.sources += [
   'listeners.cpp',
   'natives.cpp',
   'vhook.cpp',
+  'util.cpp',
 ]
 
 program.sources += [os.path.join(DHooks.sm_root, 'public', 'smsdk_ext.cpp')]
