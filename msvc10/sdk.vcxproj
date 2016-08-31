@@ -110,6 +110,7 @@
     <ClCompile Include="..\extension.cpp" />
     <ClCompile Include="..\listeners.cpp" />
     <ClCompile Include="..\natives.cpp" />
+    <ClCompile Include="..\util.cpp" />
     <ClCompile Include="..\vhook.cpp" />
     <ClCompile Include="$(SOURCEMOD18)\public\smsdk_ext.cpp" />
   </ItemGroup>
@@ -118,6 +119,7 @@
     <ClInclude Include="..\listeners.h" />
     <ClInclude Include="..\natives.h" />
     <ClInclude Include="..\sdk-hacks.h" />
+    <ClInclude Include="..\util.h" />
     <ClInclude Include="..\vfunc_call.h" />
     <ClInclude Include="..\vhook.h" />
     <ClInclude Include="..\sdk\smsdk_config.h" />
