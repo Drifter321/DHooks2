@@ -6,7 +6,10 @@
     <ClCompile Include="..\natives.cpp" />
     <ClCompile Include="..\listeners.cpp" />
     <ClCompile Include="$(SOURCEMOD18)\sourcepawn\vm\x86\assembler-x86.cpp" />
-    <ClCompile Include="$(SOURCEMOD18)\public\smsdk_ext.cpp" />
+    <ClCompile Include="..\util.cpp" />
+    <ClCompile Include="$(SOURCEMOD18)\public\smsdk_ext.cpp">
+      <Filter>sdk</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\extension.h">
@@ -30,7 +33,12 @@
     <ClInclude Include="..\sdk-hacks.h">
       <Filter>Headers</Filter>
     </ClInclude>
-    <ClInclude Include="$(SOURCEMOD18)\public\smsdk_ext.h" />
+    <ClInclude Include="..\util.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="$(SOURCEMOD18)\public\smsdk_ext.h">
+      <Filter>sdk</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Headers">
