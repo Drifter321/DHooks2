@@ -179,13 +179,10 @@ HookParamsStruct *GetParamStruct(DHooksCallback *dg, void **argStack, size_t arg
 
 	for (unsigned int i = 0; i < dg->params.size(); i++)
 	{
+		*(void **)((intptr_t)params->newParams + GetParamOffset(params, i)) = NULL;
 		params->isChanged[i] = false;
 	}
 
-	for(unsigned int i = 0; i < paramsSize; i++)
-	{
-		*(void **)((intptr_t)params->newParams + i) = NULL;
-	}
 	return params;
 }
 
