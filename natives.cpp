@@ -1,5 +1,14 @@
 #include "natives.h"
 #include "util.h"
+#include "dynhooks_sourcepawn.h"
+
+// Must match same enum in sdktools.inc
+enum SDKFuncConfSource
+{
+	SDKConf_Virtual,
+	SDKConf_Signature,
+	SDKConf_Address
+};
 
 bool GetHandleIfValidOrError(HandleType_t type, void **object, IPluginContext *pContext, cell_t param)
 {
@@ -38,6 +47,77 @@ cell_t Native_CreateHook(IPluginContext *pContext, const cell_t *params)
 
 	return hndl;
 }
+
+//native Handle:DHookCreateDetour(Address:funcaddr, CallingConvention callConv, ReturnType:returntype, ThisPointerType:thistype);
+cell_t Native_CreateDetour(IPluginContext *pContext, const cell_t *params)
+{
+	HookSetup *setup = new HookSetup((ReturnType)params[3], PASSFLAG_BYVAL, (CallingConvention)params[2], (ThisPointerType)params[4], (void *)params[1]);
+
+	Handle_t hndl = handlesys->CreateHandle(g_HookSetupHandle, setup, pContext->GetIdentity(), myself->GetIdentity(), NULL);
+
+	if (!hndl)
+	{
+		delete setup;
+		return pContext->ThrowNativeError("Failed to create hook");
+	}
+
+	return hndl;
+}
+
+
+//native bool:DHookSetFromConf(Handle:setup, Handle:gameconf, SDKFuncConfSource:source, const String:name[]);
+cell_t Native_SetFromConf(IPluginContext *pContext, const cell_t *params)
+{
+	HookSetup *setup;
+	if (!GetHandleIfValidOrError(g_HookSetupHandle, (void **)&setup, pContext, params[1]))
+	{
+		return 0;
+	}
+
+	IGameConfig *conf;
+	HandleError err;
+	if ((conf = gameconfs->ReadHandle(params[2], pContext->GetIdentity(), &err)) == nullptr)
+	{
+		return pContext->ThrowNativeError("Invalid Handle %x (error %d)", params[2], err);
+	}
+
+	char *key;
+	pContext->LocalToString(params[4], &key);
+
+	int offset = -1;
+	void *addr = nullptr;;
+	switch (params[3])
+	{
+	case SDKConf_Virtual:
+		if (!conf->GetOffset(key, &offset))
+		{
+			return 0;
+		}
+		break;
+	case SDKConf_Signature:
+		if (!conf->GetMemSig(key, &addr) || !addr)
+		{
+			return 0;
+		}
+		break;
+	case SDKConf_Address:
+		if (!conf->GetAddress(key, &addr) || !addr)
+		{
+			return 0;
+		}
+		break;
+	default:
+		return pContext->ThrowNativeError("Unknown SDKFuncConfSource: %d", params[3]);
+	}
+
+	// Save the new info. This always invalidates the other option.
+	// Detour or vhook.
+	setup->funcAddr = addr;
+	setup->offset = offset;
+
+	return 1;
+}
+
 //native bool:DHookAddParam(Handle:setup, HookParamType:type); OLD
 //native bool:DHookAddParam(Handle:setup, HookParamType:type, size=-1, DHookPassFlag:flag=DHookPass_ByVal);
 cell_t Native_AddParam(IPluginContext *pContext, const cell_t *params)
@@ -80,6 +160,87 @@ cell_t Native_AddParam(IPluginContext *pContext, const cell_t *params)
 
 	return 1;
 }
+
+
+// native bool:DHookEnableDetour(Handle:setup, bool:post, DHookCallback:callback);
+cell_t Native_EnableDetour(IPluginContext *pContext, const cell_t *params)
+{
+	HookSetup *setup;
+
+	if (!GetHandleIfValidOrError(g_HookSetupHandle, (void **)&setup, pContext, params[1]))
+	{
+		return 0;
+	}
+
+	if (setup->funcAddr == nullptr)
+	{
+		return pContext->ThrowNativeError("Hook not setup for a detour.");
+	}
+
+	IPluginFunction *callback = pContext->GetFunctionById(params[3]);
+	if (!callback)
+	{
+		return pContext->ThrowNativeError("Failed to retrieve function by id");
+	}
+
+	bool post = params[2] != 0;
+	HookType_t hookType = post ? HOOKTYPE_POST : HOOKTYPE_PRE;
+
+	// Check if we already detoured that function.
+	CHookManager *pDetourManager = GetHookManager();
+	CHook* pDetour = pDetourManager->FindHook(setup->funcAddr);
+
+	// If there is no detour on this function yet, create it.
+	if (!pDetour)
+	{
+		ICallingConvention *pCallConv = ConstructCallingConvention(setup);
+		pDetour = pDetourManager->HookFunction(setup->funcAddr, pCallConv);
+	}
+
+	// Register our pre/post handler.
+	pDetour->AddCallback(hookType, (HookHandlerFn *)&HandleDetour);
+
+	// Add the plugin callback to the map.
+	return AddDetourPluginHook(hookType, pDetour, setup, callback);
+}
+
+// native bool:DHookDisableDetour(Handle:setup, bool:post, DHookCallback:callback);
+cell_t Native_DisableDetour(IPluginContext *pContext, const cell_t *params)
+{
+	HookSetup *setup;
+
+	if (!GetHandleIfValidOrError(g_HookSetupHandle, (void **)&setup, pContext, params[1]))
+	{
+		return 0;
+	}
+
+	if (setup->funcAddr == nullptr)
+	{
+		return pContext->ThrowNativeError("Hook not setup for a detour.");
+	}
+
+	IPluginFunction *callback = pContext->GetFunctionById(params[3]);
+	if (!callback)
+	{
+		return pContext->ThrowNativeError("Failed to retrieve function by id");
+	}
+
+	bool post = params[2] != 0;
+	HookType_t hookType = post ? HOOKTYPE_POST : HOOKTYPE_PRE;
+
+	// Check if we already detoured that function.
+	CHookManager *pDetourManager = GetHookManager();
+	CHook* pDetour = pDetourManager->FindHook(setup->funcAddr);
+
+	if (!pDetour || !pDetour->IsCallbackRegistered(hookType, (HookHandlerFn *)&HandleDetour))
+	{
+		return pContext->ThrowNativeError("Function not detoured.");
+	}
+
+	// Remove the callback from the hook.
+	return RemoveDetourPluginHook(hookType, pDetour, callback);
+}
+
 // native DHookEntity(Handle:setup, bool:post, entity, DHookRemovalCB:removalcb);
 cell_t Native_HookEntity(IPluginContext *pContext, const cell_t *params)
 {
@@ -88,6 +249,11 @@ cell_t Native_HookEntity(IPluginContext *pContext, const cell_t *params)
 	if(!GetHandleIfValidOrError(g_HookSetupHandle, (void **)&setup, pContext, params[1]))
 	{
 		return 0;
+	}
+
+	if (setup->offset == -1)
+	{
+		return pContext->ThrowNativeError("Hook not setup for a virtual hook.");
 	}
 
 	if(setup->hookType != HookType_Entity)
@@ -133,6 +299,11 @@ cell_t Native_HookGamerules(IPluginContext *pContext, const cell_t *params)
 		return 0;
 	}
 
+	if (setup->offset == -1)
+	{
+		return pContext->ThrowNativeError("Hook not setup for a virtual hook.");
+	}
+
 	if(setup->hookType != HookType_GameRules)
 	{
 		return pContext->ThrowNativeError("Hook is not a gamerules hook");
@@ -176,6 +347,11 @@ cell_t Native_HookRaw(IPluginContext *pContext, const cell_t *params)
 	if(!GetHandleIfValidOrError(g_HookSetupHandle, (void **)&setup, pContext, params[1]))
 	{
 		return 0;
+	}
+
+	if (setup->offset == -1)
+	{
+		return pContext->ThrowNativeError("Hook not setup for a virtual hook.");
 	}
 
 	if(setup->hookType != HookType_Raw)
@@ -1036,7 +1212,11 @@ cell_t Native_IsNullParam(IPluginContext *pContext, const cell_t *params)
 sp_nativeinfo_t g_Natives[] = 
 {
 	{"DHookCreate",							Native_CreateHook},
+	{"DHookCreateDetour",					Native_CreateDetour},
+	{"DHookSetFromConf",					Native_SetFromConf },
 	{"DHookAddParam",						Native_AddParam},
+	{"DHookEnableDetour",					Native_EnableDetour},
+	//{"DHookDisableDetour",					Native_DisableDetour},
 	{"DHookEntity",							Native_HookEntity},
 	{"DHookGamerules",						Native_HookGamerules},
 	{"DHookRaw",							Native_HookRaw},

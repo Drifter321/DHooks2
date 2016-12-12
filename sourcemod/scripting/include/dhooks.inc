@@ -72,6 +72,13 @@ enum HookType
 	HookType_Raw
 };
 
+enum CallingConvention
+{
+	CallConv_CDECL,
+	CallConv_THISCALL,
+	CallConv_STDCALL,
+};
+
 enum MRESReturn
 {
 	MRES_ChangedHandled = -2,	// Use changed values and return MRES_Handled
@@ -175,6 +182,10 @@ native bool DHookRemoveEntityListener(ListenType type, ListenCB callback);
  * @return Returns setup handle for the hook or INVALID_HANDLE.
 */
 native Handle DHookCreate(int offset, HookType hooktype, ReturnType returntype, ThisPointerType thistype, DHookCallback callback);
+
+native Handle DHookCreateDetour(Address funcaddr, CallingConvention callConv, ReturnType returntype, ThisPointerType thistype);
+native bool DHookSetFromConf(Handle setup, Handle gameconf, SDKFuncConfSource source, const char[] name);
+native bool:DHookEnableDetour(Handle:setup, bool:post, DHookCallback callback);
 
 /* Adds param to a hook setup
  *

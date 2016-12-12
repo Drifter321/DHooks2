@@ -46,3 +46,56 @@ size_t GetParamsSize(DHooksCallback *dg)//Get the full size, this is for creatin
 
 	return res;
 }
+
+DataType_t DynamicHooks_ConvertParamTypeFrom(HookParamType type)
+{
+	switch (type)
+	{
+	case HookParamType_Int:
+		return DATA_TYPE_INT;
+	case HookParamType_Bool:
+		return DATA_TYPE_BOOL;
+	case HookParamType_Float:
+		return DATA_TYPE_FLOAT;
+	case HookParamType_StringPtr:
+	case HookParamType_CharPtr:
+	case HookParamType_VectorPtr:
+	case HookParamType_CBaseEntity:
+	case HookParamType_ObjectPtr:
+	case HookParamType_Edict:
+		return DATA_TYPE_POINTER;
+	case HookParamType_Object:
+		return DATA_TYPE_OBJECT;
+	default:
+		smutils->LogError(myself, "Unhandled parameter type %d!", type);
+	}
+
+	return DATA_TYPE_POINTER;
+}
+
+DataType_t DynamicHooks_ConvertReturnTypeFrom(ReturnType type)
+{
+	switch (type)
+	{
+	case ReturnType_Void:
+		return DATA_TYPE_VOID;
+	case ReturnType_Int:
+		return DATA_TYPE_INT;
+	case ReturnType_Bool:
+		return DATA_TYPE_BOOL;
+	case ReturnType_Float:
+		return DATA_TYPE_FLOAT;
+	case ReturnType_StringPtr:
+	case ReturnType_CharPtr:
+	case ReturnType_VectorPtr:
+	case ReturnType_CBaseEntity:
+	case ReturnType_Edict:
+		return DATA_TYPE_POINTER;
+	case ReturnType_Vector:
+		return DATA_TYPE_OBJECT;
+	default:
+		smutils->LogError(myself, "Unhandled return type %d!", type);
+	}
+
+	return DATA_TYPE_VOID;
+}

@@ -3,6 +3,7 @@
 
 #include "extension.h"
 #include "vhook.h"
+#include <am-vector.h>
 
 enum ListenType
 {

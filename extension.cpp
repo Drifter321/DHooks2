@@ -1,5 +1,6 @@
 #include "extension.h"
 #include "listeners.h"
+#include "dynhooks_sourcepawn.h"
 
 DHooks g_DHooksIface;		/**< Global singleton for extension's main interface */
 SMEXT_LINK(&g_DHooksIface);
@@ -32,6 +33,18 @@ bool DHooks::SDK_OnLoad(char *error, size_t maxlength, bool late)
 	if(g_HookReturnHandle == 0)
 	{
 		snprintf(error, maxlength, "Could not create hook return handle type (err: %d)", err);	
+		return false;
+	}
+
+	if (!g_pPreDetours.init())
+	{
+		snprintf(error, maxlength, "Could not initialize pre hook detours hashmap.");
+		return false;
+	}
+
+	if (!g_pPostDetours.init())
+	{
+		snprintf(error, maxlength, "Could not initialize post hook detours hashmap.");
 		return false;
 	}
 
@@ -76,6 +89,8 @@ void DHooks::SDK_OnAllLoaded()
 void DHooks::SDK_OnUnload()
 {
 	CleanupHooks();
+	// FIXME: Unhook only functions that are hooked by a plugin. + cleanup
+	GetHookManager()->UnhookAllFunctions();
 	if(g_pEntityListener)
 	{
 		g_pEntityListener->CleanupListeners();
@@ -102,6 +117,7 @@ bool DHooks::SDK_OnMetamodLoad(ISmmAPI *ismm, char *error, size_t maxlength, boo
 void DHooks::OnPluginUnloaded(IPlugin *plugin)
 {
 	CleanupHooks(plugin->GetBaseContext());
+	RemoveAllCallbacksForContext(plugin->GetBaseContext());
 	if(g_pEntityListener)
 	{
 		g_pEntityListener->CleanupListeners(plugin->GetBaseContext());

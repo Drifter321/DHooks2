@@ -238,8 +238,11 @@ class DHooksConfig(object):
       os.path.join(self.sm_root, 'sourcepawn', 'include'),
       os.path.join(self.sm_root, 'sourcepawn', 'vm'),
       os.path.join(self.sm_root, 'sourcepawn', 'vm', 'x86'),
-	  os.path.join(self.sm_root, 'public', 'amtl', 'include'),
+      os.path.join(self.sm_root, 'public', 'amtl', 'include'),
       os.path.join(self.sm_root, 'public', 'amtl', 'amtl'),
+      os.path.join(builder.currentSourcePath, 'DynamicHooks', 'thirdparty'),
+      os.path.join(builder.currentSourcePath, 'DynamicHooks', 'thirdparty', 'AsmJit'),
+      os.path.join(builder.currentSourcePath, 'DynamicHooks'),
     ]
 	
 
@@ -256,6 +259,45 @@ program.sources += [
   'natives.cpp',
   'vhook.cpp',
   'util.cpp',
+  'dynhooks_sourcepawn.cpp',
+]
+
+# DynamicHooks
+program.sources += [
+	os.path.join('DynamicHooks', 'asm.cpp'),
+	os.path.join('DynamicHooks', 'hook.cpp'),
+	os.path.join('DynamicHooks', 'manager.cpp'),
+	os.path.join('DynamicHooks', 'registers.cpp'),
+	os.path.join('DynamicHooks', 'utilities.cpp'),
+	os.path.join('DynamicHooks', 'conventions', 'x86MsCdecl.cpp'),
+	os.path.join('DynamicHooks', 'conventions', 'x86MsStdcall.cpp'),
+	os.path.join('DynamicHooks', 'conventions', 'x86MsThiscall.cpp'),
+]
+
+# ASMJit
+program.sources += [
+	os.path.join('DynamicHooks', 'thirdparty', 'AsmJit', 'base', 'assembler.cpp'),
+	os.path.join('DynamicHooks', 'thirdparty', 'AsmJit', 'base', 'compiler.cpp'),
+	os.path.join('DynamicHooks', 'thirdparty', 'AsmJit', 'base', 'compilercontext.cpp'),
+	os.path.join('DynamicHooks', 'thirdparty', 'AsmJit', 'base', 'constpool.cpp'),
+	os.path.join('DynamicHooks', 'thirdparty', 'AsmJit', 'base', 'containers.cpp'),
+	os.path.join('DynamicHooks', 'thirdparty', 'AsmJit', 'base', 'cpuinfo.cpp'),
+	os.path.join('DynamicHooks', 'thirdparty', 'AsmJit', 'base', 'globals.cpp'),
+	os.path.join('DynamicHooks', 'thirdparty', 'AsmJit', 'base', 'hlstream.cpp'),
+	os.path.join('DynamicHooks', 'thirdparty', 'AsmJit', 'base', 'logger.cpp'),
+	os.path.join('DynamicHooks', 'thirdparty', 'AsmJit', 'base', 'operand.cpp'),
+	os.path.join('DynamicHooks', 'thirdparty', 'AsmJit', 'base', 'podvector.cpp'),
+	os.path.join('DynamicHooks', 'thirdparty', 'AsmJit', 'base', 'runtime.cpp'),
+	os.path.join('DynamicHooks', 'thirdparty', 'AsmJit', 'base', 'utils.cpp'),
+	os.path.join('DynamicHooks', 'thirdparty', 'AsmJit', 'base', 'vmem.cpp'),
+	os.path.join('DynamicHooks', 'thirdparty', 'AsmJit', 'base', 'zone.cpp'),
+	os.path.join('DynamicHooks', 'thirdparty', 'AsmJit', 'x86', 'x86assembler.cpp'),
+	os.path.join('DynamicHooks', 'thirdparty', 'AsmJit', 'x86', 'x86compiler.cpp'),
+	os.path.join('DynamicHooks', 'thirdparty', 'AsmJit', 'x86', 'x86compilercontext.cpp'),
+	os.path.join('DynamicHooks', 'thirdparty', 'AsmJit', 'x86', 'x86compilerfunc.cpp'),
+	os.path.join('DynamicHooks', 'thirdparty', 'AsmJit', 'x86', 'x86inst.cpp'),
+	os.path.join('DynamicHooks', 'thirdparty', 'AsmJit', 'x86', 'x86operand.cpp'),
+	os.path.join('DynamicHooks', 'thirdparty', 'AsmJit', 'x86', 'x86operand_regs.cpp'),
 ]
 
 program.sources += [os.path.join(DHooks.sm_root, 'public', 'smsdk_ext.cpp')]
