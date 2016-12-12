@@ -89,8 +89,7 @@ void DHooks::SDK_OnAllLoaded()
 void DHooks::SDK_OnUnload()
 {
 	CleanupHooks();
-	// FIXME: Unhook only functions that are hooked by a plugin. + cleanup
-	GetHookManager()->UnhookAllFunctions();
+	CleanupDetours();
 	if(g_pEntityListener)
 	{
 		g_pEntityListener->CleanupListeners();

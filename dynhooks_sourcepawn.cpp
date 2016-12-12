@@ -150,6 +150,36 @@ void RemoveAllCallbacksForContext(IPluginContext *pContext)
 	RemoveAllCallbacksForContext(HOOKTYPE_POST, &g_pPostDetours, pContext);
 }
 
+void CleanupDetours(HookType_t hookType, DetourMap *map)
+{
+	PluginCallbackList *wrappers;
+	CDynamicHooksSourcePawn *pWrapper;
+	DetourMap::iterator it = map->iter();
+	// Run through all active detours we added.
+	for (; !it.empty(); it.next())
+	{
+		wrappers = it->value;
+		// See if there are callbacks of this plugin context registered
+		// and remove them.
+		for (int i = wrappers->length() - 1; i >= 0; i--)
+		{
+			pWrapper = wrappers->at(i);
+			delete pWrapper;
+		}
+
+		// Unhook the function
+		delete wrappers;
+		UnhookFunction(hookType, it->key);
+	}
+	map->clear();
+}
+
+void CleanupDetours()
+{
+	CleanupDetours(HOOKTYPE_PRE, &g_pPreDetours);
+	CleanupDetours(HOOKTYPE_POST, &g_pPostDetours);
+}
+
 ICallingConvention *ConstructCallingConvention(HookSetup *setup)
 {
 	std::vector<DataTypeSized_t> vecArgTypes;
