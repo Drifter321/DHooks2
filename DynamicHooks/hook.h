@@ -39,7 +39,6 @@
 
 #include "registers.h"
 #include "convention.h"
-#include "AsmJit/asmjit.h"
 
 // ============================================================================
 // >> HookType_t
@@ -63,6 +62,11 @@ typedef bool (*HookHandlerFn)(HookType_t, CHook*);
 #ifdef __linux__
 #define __cdecl
 #endif
+
+namespace sp
+{
+	class MacroAssembler;
+}
 
 
 // ============================================================================
@@ -147,10 +151,10 @@ public:
 private:
 	void* CreateBridge();
 
-	void Write_ModifyReturnAddress(asmjit::X86Assembler& a);
-	void Write_CallHandler(asmjit::X86Assembler& a, HookType_t type);
-	void Write_SaveRegisters(asmjit::X86Assembler& a);
-	void Write_RestoreRegisters(asmjit::X86Assembler& a);
+	void Write_ModifyReturnAddress(sp::MacroAssembler& masm);
+	void Write_CallHandler(sp::MacroAssembler& masm, HookType_t type);
+	void Write_SaveRegisters(sp::MacroAssembler& masm);
+	void Write_RestoreRegisters(sp::MacroAssembler& masm);
 
 	void* CreatePostCallback();
 
@@ -165,7 +169,6 @@ public:
 	// Address of the original function
 	void* m_pFunc;
 
-	asmjit::JitRuntime m_Runtime;
 
 	ICallingConvention* m_pCallingConvention;
 

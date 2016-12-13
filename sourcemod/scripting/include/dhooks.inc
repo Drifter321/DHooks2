@@ -185,7 +185,8 @@ native Handle DHookCreate(int offset, HookType hooktype, ReturnType returntype, 
 
 native Handle DHookCreateDetour(Address funcaddr, CallingConvention callConv, ReturnType returntype, ThisPointerType thistype);
 native bool DHookSetFromConf(Handle setup, Handle gameconf, SDKFuncConfSource source, const char[] name);
-native bool:DHookEnableDetour(Handle:setup, bool:post, DHookCallback callback);
+native bool DHookEnableDetour(Handle setup, bool post, DHookCallback callback);
+native bool DHookDisableDetour(Handle setup, bool post, DHookCallback callback);
 
 /* Adds param to a hook setup
  *
