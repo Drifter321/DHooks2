@@ -88,7 +88,7 @@ CHook::~CHook()
 	copy_bytes((unsigned char *) m_pTrampoline, (unsigned char *) m_pFunc, JMP_SIZE);
 
 	// Free the trampoline array
-	free(m_pTrampoline);
+	delete [] m_pTrampoline;
 
 	// Free the asm bridge and new return address
 	smutils->GetScriptingEngine()->FreePageMemory(m_pBridge);
@@ -165,7 +165,7 @@ void* CHook::CreateBridge()
 
 	// Call the pre-hook handler and jump to label_supercede if true was returned
 	Write_CallHandler(masm, HOOKTYPE_PRE);
-	masm.cmpl(r8_al, int8_t(1));
+	masm.cmpb(r8_al, true);
 	
 	// Restore the previously saved registers, so any changes will be applied
 	Write_RestoreRegisters(masm);
