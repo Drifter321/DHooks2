@@ -34,11 +34,10 @@
 // ============================================================================
 // >> INCLUDES
 // ============================================================================
-#include <list>
-#include <map>
-
 #include "registers.h"
 #include "convention.h"
+#include <am-hashmap.h>
+#include <am-hashset.h>
 
 // ============================================================================
 // >> HookType_t
@@ -62,6 +61,20 @@ typedef bool (*HookHandlerFn)(HookType_t, CHook*);
 #ifdef __linux__
 #define __cdecl
 #endif
+
+struct IntegerPolicy
+{
+	static inline uint32_t hash(size_t i) {
+		return ke::HashInteger<sizeof(size_t)>(i);
+	}
+	static inline bool matches(size_t i1, size_t i2) {
+		return i1 == i2;
+	}
+};
+
+typedef ke::HashSet<HookHandlerFn*, ke::PointerPolicy<HookHandlerFn>> HookHandlerSet;
+typedef ke::HashMap<HookType_t, HookHandlerSet, IntegerPolicy> HookTypeMap;
+typedef ke::HashMap<void*, void*, ke::PointerPolicy<void>> ReturnAddressMap;
 
 namespace sp
 {
@@ -164,11 +177,11 @@ private:
 	void __cdecl SetReturnAddress(void* pRetAddr, void* pESP);
 
 public:
-	std::map<HookType_t, std::list<HookHandlerFn*> > m_hookHandler;
+
+	HookTypeMap m_hookHandler;
 
 	// Address of the original function
 	void* m_pFunc;
-
 
 	ICallingConvention* m_pCallingConvention;
 
@@ -184,7 +197,7 @@ public:
 	// New return address
 	void* m_pNewRetAddr;
 
-	std::map<void*, void*> m_RetAddr;
+	ReturnAddressMap m_RetAddr;
 };
 
 #endif // _HOOK_H
