@@ -225,6 +225,9 @@ public:
 		ReturnPtrChanged(pRegisters, m_pSavedReturnBuffer);
 	}
 
+	virtual void SavePostCallRegisters(CRegisters* pRegisters) {}
+	virtual void RestorePostCallRegisters(CRegisters* pRegisters)	{}
+
 public:
 	ke::Vector<DataTypeSized_t> m_vecArgTypes;
 	DataTypeSized_t m_returnType;

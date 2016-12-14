@@ -157,6 +157,8 @@ ReturnAction_t CHook::HookHandler(HookType_t eHookType)
 	{
 		if (m_LastPreReturnAction == ReturnAction_Override)
 			m_pCallingConvention->RestoreReturnValue(m_pRegisters);
+		if (m_LastPreReturnAction < ReturnAction_Supercede)
+			m_pCallingConvention->RestorePostCallRegisters(m_pRegisters);
 	}
 
 	ReturnAction_t returnAction = ReturnAction_Ignored;
@@ -177,6 +179,8 @@ ReturnAction_t CHook::HookHandler(HookType_t eHookType)
 		m_LastPreReturnAction = returnAction;
 		if (returnAction == ReturnAction_Override)
 			m_pCallingConvention->SaveReturnValue(m_pRegisters);
+		if (returnAction < ReturnAction_Supercede)
+			m_pCallingConvention->SavePostCallRegisters(m_pRegisters);
 	}
 
 	return returnAction;

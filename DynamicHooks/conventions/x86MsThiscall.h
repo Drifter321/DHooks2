@@ -78,8 +78,12 @@ public:
 	virtual void* GetReturnPtr(CRegisters* pRegisters);
 	virtual void ReturnPtrChanged(CRegisters* pRegisters, void* pReturnPtr);
 
+	virtual void SavePostCallRegisters(CRegisters* pRegisters);
+	virtual void RestorePostCallRegisters(CRegisters* pRegisters);
+
 private:
 	void* m_pReturnBuffer;
+	void* m_pSavedThisPointer;
 };
 
 #endif // _X86_MS_THISCALL_H
