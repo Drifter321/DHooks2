@@ -34,11 +34,8 @@
 // ============================================================================
 // >> INCLUDES
 // ============================================================================
-#include <list>
-#include <vector>
-#include <stdio.h>
-
 #include "registers.h"
+#include <am-vector.h>
 
 // ============================================================================
 // >> DataType_t
@@ -150,13 +147,13 @@ public:
 	@param <returnType>:
 	The return type of the function.
 	*/
-	ICallingConvention(std::vector<DataTypeSized_t> vecArgTypes, DataTypeSized_t returnType, int iAlignment=4)
+	ICallingConvention(ke::Vector<DataTypeSized_t> &vecArgTypes, DataTypeSized_t returnType, int iAlignment=4)
 	{
-		m_vecArgTypes = vecArgTypes;
-		std::vector<DataTypeSized_t>::iterator it = m_vecArgTypes.begin();
-		for (; it != m_vecArgTypes.end(); it++)
+		m_vecArgTypes = ke::Move(vecArgTypes);
+		
+		for (size_t i=0; i < m_vecArgTypes.length(); i++)
 		{
-			DataTypeSized_t &type = *it;
+			DataTypeSized_t &type = m_vecArgTypes[i];
 			if (!type.size)
 				type.size = GetDataTypeSize(type);
 		}
@@ -170,7 +167,7 @@ public:
 	This should return a list of Register_t values. These registers will be
 	saved for later access.
 	*/
-	virtual std::list<Register_t> GetRegisters() = 0;
+	virtual ke::Vector<Register_t> GetRegisters() = 0;
 
 	/*
 	Returns the number of bytes that should be added to the stack to clean up.
@@ -208,7 +205,7 @@ public:
 	virtual void ReturnPtrChanged(CRegisters* pRegisters, void* pReturnPtr) = 0;
 
 public:
-	std::vector<DataTypeSized_t> m_vecArgTypes;
+	ke::Vector<DataTypeSized_t> m_vecArgTypes;
 	DataTypeSized_t m_returnType;
 	int m_iAlignment;
 };

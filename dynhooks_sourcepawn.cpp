@@ -182,14 +182,14 @@ void CleanupDetours()
 
 ICallingConvention *ConstructCallingConvention(HookSetup *setup)
 {
-	std::vector<DataTypeSized_t> vecArgTypes;
+	ke::Vector<DataTypeSized_t> vecArgTypes;
 	for (size_t i = 0; i < setup->params.size(); i++)
 	{
 		ParamInfo &info = setup->params[i];
 		DataTypeSized_t type;
 		type.type = DynamicHooks_ConvertParamTypeFrom(info.type);
 		type.size = info.size;
-		vecArgTypes.push_back(type);
+		vecArgTypes.append(type);
 	}
 
 	DataTypeSized_t returnType;
@@ -235,7 +235,7 @@ bool HandleDetour(HookType_t hookType, CHook* pDetour)
 	HookParamsStruct *paramStruct = NULL;
 	Handle_t pHndl = BAD_HANDLE;
 
-	int argNum = pDetour->m_pCallingConvention->m_vecArgTypes.size();
+	int argNum = pDetour->m_pCallingConvention->m_vecArgTypes.length();
 	MRESReturn finalRet = MRES_Ignored;
 	ke::AutoPtr<void> finalRetBuf(new uint8_t[pDetour->m_pCallingConvention->m_returnType.size]);
 
@@ -338,8 +338,6 @@ bool HandleDetour(HookType_t hookType, CHook* pDetour)
 					break;
 				}
 			}
-			// TODO: Introduce that override concept in dyndetours.
-			// This doesn't call the original function at the moment, but just returns the given return value.
 			tempRet = MRES_Override;
 			pWrapper->UpdateParamsFromStruct(paramStruct);
 			break;
@@ -348,8 +346,6 @@ bool HandleDetour(HookType_t hookType, CHook* pDetour)
 			{
 				if (returnStruct->isChanged)
 				{
-					// TODO: Introduce that override concept in dyndetours.
-					// This doesn't call the original function at the moment, but just returns the given return value.
 					tempRet = MRES_Override;
 					if (pWrapper->returnType == ReturnType_String || pWrapper->returnType == ReturnType_Int || pWrapper->returnType == ReturnType_Bool)
 					{
@@ -429,6 +425,7 @@ bool HandleDetour(HookType_t hookType, CHook* pDetour)
 		}
 	}
 
+	// If we want to use our own return value, write it back.
 	if (finalRet >= MRES_Override)
 	{
 		void* pPtr = pDetour->m_pCallingConvention->GetReturnPtr(pDetour->m_pRegisters);
@@ -540,8 +537,8 @@ HookParamsStruct *CDynamicHooksSourcePawn::GetParamStruct()
 	params->dg = this;
 	
 	size_t paramsSize = this->m_pDetour->m_pCallingConvention->GetArgStackSize();
-	std::vector<DataTypeSized_t> &argTypes = m_pDetour->m_pCallingConvention->m_vecArgTypes;
-	int numArgs = argTypes.size();
+	ke::Vector<DataTypeSized_t> &argTypes = m_pDetour->m_pCallingConvention->m_vecArgTypes;
+	int numArgs = argTypes.length();
 
 	params->orgParams = (void **)malloc(paramsSize);
 	params->newParams = (void **)malloc(paramsSize);
@@ -568,8 +565,8 @@ void CDynamicHooksSourcePawn::UpdateParamsFromStruct(HookParamsStruct *params)
 	if (!params)
 		return;
 
-	std::vector<DataTypeSized_t> &argTypes = m_pDetour->m_pCallingConvention->m_vecArgTypes;
-	int numArgs = argTypes.size();
+	ke::Vector<DataTypeSized_t> &argTypes = m_pDetour->m_pCallingConvention->m_vecArgTypes;
+	int numArgs = argTypes.length();
 
 	int firstArg = 0;
 	if (callConv == CallConv_THISCALL)

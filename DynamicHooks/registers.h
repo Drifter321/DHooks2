@@ -35,8 +35,7 @@
 // ============================================================================
 // >> INCLUDES
 // ============================================================================
-#include <stdlib.h>
-#include <list>
+#include <am-vector.h>
 
 
 // ============================================================================
@@ -261,11 +260,11 @@ public:
 class CRegisters
 {
 public:
-	CRegisters(std::list<Register_t> registers);
+	CRegisters(ke::Vector<Register_t> registers);
 	~CRegisters();
 
 private:
-	CRegister* CreateRegister(std::list<Register_t>& registers, Register_t reg, int iSize);
+	CRegister* CreateRegister(ke::Vector<Register_t>& registers, Register_t reg, int iSize);
 	void DeleteRegister(CRegister* pRegister);
 
 public:

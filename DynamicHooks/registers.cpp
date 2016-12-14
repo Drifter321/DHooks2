@@ -30,7 +30,7 @@
 
 #include "registers.h"
 
-CRegisters::CRegisters(std::list<Register_t> registers)
+CRegisters::CRegisters(ke::Vector<Register_t> registers)
 {	
 	// ========================================================================
 	// >> 8-bit General purpose registers
@@ -360,11 +360,11 @@ CRegisters::~CRegisters()
 	DeleteRegister(m_st7);
 }
 
-CRegister* CRegisters::CreateRegister(std::list<Register_t>& registers, Register_t reg, int iSize)
+CRegister* CRegisters::CreateRegister(ke::Vector<Register_t>& registers, Register_t reg, int iSize)
 {
-	for(std::list<Register_t>::iterator it=registers.begin(); it != registers.end(); it++)
+	for(size_t i = 0; i < registers.length(); i++)
 	{
-		if ((*it) == reg)
+		if (registers[i] == reg)
 		{
 			return new CRegister(iSize);
 		}

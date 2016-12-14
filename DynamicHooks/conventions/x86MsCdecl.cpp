@@ -38,7 +38,7 @@
 // ============================================================================
 // >> x86MsCdecl
 // ============================================================================
-x86MsCdecl::x86MsCdecl(std::vector<DataTypeSized_t> vecArgTypes, DataTypeSized_t returnType, int iAlignment) :
+x86MsCdecl::x86MsCdecl(ke::Vector<DataTypeSized_t> &vecArgTypes, DataTypeSized_t returnType, int iAlignment) :
 	ICallingConvention(vecArgTypes, returnType, iAlignment)
 {
 	if (m_returnType.size > 4)
@@ -59,22 +59,22 @@ x86MsCdecl::~x86MsCdecl()
 	}
 }
 
-std::list<Register_t> x86MsCdecl::GetRegisters()
+ke::Vector<Register_t> x86MsCdecl::GetRegisters()
 {
-	std::list<Register_t> registers;
+	ke::Vector<Register_t> registers;
 
-	registers.push_back(ESP);
+	registers.append(ESP);
 
 	if (m_returnType.type == DATA_TYPE_FLOAT || m_returnType.type == DATA_TYPE_DOUBLE)
 	{
-		registers.push_back(ST0);
+		registers.append(ST0);
 	}
 	else
 	{
-		registers.push_back(EAX);
+		registers.append(EAX);
 		if (m_pReturnBuffer)
 		{
-			registers.push_back(EDX);
+			registers.append(EDX);
 		}
 	}
 
@@ -90,7 +90,7 @@ int x86MsCdecl::GetArgStackSize()
 {
 	int iArgStackSize = 0;
 
-	for (unsigned int i = 0; i < m_vecArgTypes.size(); i++)
+	for (unsigned int i = 0; i < m_vecArgTypes.length(); i++)
 	{
 		iArgStackSize += m_vecArgTypes[i].size;
 	}

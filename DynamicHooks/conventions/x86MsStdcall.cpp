@@ -38,7 +38,7 @@
 // ============================================================================
 // >> x86MsStdcall
 // ============================================================================
-x86MsStdcall::x86MsStdcall(std::vector<DataTypeSized_t> vecArgTypes, DataTypeSized_t returnType, int iAlignment) :
+x86MsStdcall::x86MsStdcall(ke::Vector<DataTypeSized_t> &vecArgTypes, DataTypeSized_t returnType, int iAlignment) :
 	ICallingConvention(vecArgTypes, returnType, iAlignment)
 {
 	if (m_returnType.size > 4)
@@ -59,22 +59,22 @@ x86MsStdcall::~x86MsStdcall()
 	}
 }
 
-std::list<Register_t> x86MsStdcall::GetRegisters()
+ke::Vector<Register_t> x86MsStdcall::GetRegisters()
 {
-	std::list<Register_t> registers;
+	ke::Vector<Register_t> registers;
 
-	registers.push_back(ESP);
+	registers.append(ESP);
 
 	if (m_returnType.type == DATA_TYPE_FLOAT || m_returnType.type == DATA_TYPE_DOUBLE)
 	{
-		registers.push_back(ST0);
+		registers.append(ST0);
 	}
 	else
 	{
-		registers.push_back(EAX);
+		registers.append(EAX);
 		if (m_pReturnBuffer)
 		{
-			registers.push_back(EDX);
+			registers.append(EDX);
 		}
 	}
 
@@ -85,7 +85,7 @@ int x86MsStdcall::GetPopSize()
 {
 	int iPopSize = 0;
 
-	for(unsigned int i=0; i < m_vecArgTypes.size(); i++)
+	for(unsigned int i=0; i < m_vecArgTypes.length(); i++)
 	{
 		iPopSize += m_vecArgTypes[i].size;
 	}
@@ -97,7 +97,7 @@ int x86MsStdcall::GetArgStackSize()
 {
 	int iArgStackSize = 0;
 
-	for (unsigned int i = 0; i < m_vecArgTypes.size(); i++)
+	for (unsigned int i = 0; i < m_vecArgTypes.length(); i++)
 	{
 		iArgStackSize += m_vecArgTypes[i].size;
 	}

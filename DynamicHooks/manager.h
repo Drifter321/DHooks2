@@ -34,9 +34,9 @@
 // ============================================================================
 // >> INCLUDES
 // ============================================================================
-#include <list>
 #include "hook.h"
 #include "convention.h"
+#include <am-vector.h>
 
 
 // ============================================================================
@@ -68,7 +68,7 @@ public:
 	void UnhookAllFunctions();
 
 public:
-	std::list<CHook *> m_Hooks;
+	ke::Vector<CHook *> m_Hooks;
 };
 
 

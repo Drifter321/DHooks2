@@ -316,10 +316,10 @@ void CHook::Write_CallHandler(sp::MacroAssembler& masm, HookType_t type)
 
 void CHook::Write_SaveRegisters(sp::MacroAssembler& masm)
 {
-	std::list<Register_t> vecRegistersToSave = m_pCallingConvention->GetRegisters();
-	for(std::list<Register_t>::iterator it=vecRegistersToSave.begin(); it != vecRegistersToSave.end(); it++)
+	ke::Vector<Register_t> vecRegistersToSave = m_pCallingConvention->GetRegisters();
+	for(size_t i = 0; i < vecRegistersToSave.length(); i++)
 	{
-		switch(*it)
+		switch(vecRegistersToSave[i])
 		{
 		// ========================================================================
 		// >> 8-bit General purpose registers
@@ -378,10 +378,10 @@ void CHook::Write_SaveRegisters(sp::MacroAssembler& masm)
 
 void CHook::Write_RestoreRegisters(sp::MacroAssembler& masm)
 {
-	std::list<Register_t> vecRegistersToSave = m_pCallingConvention->GetRegisters();
-	for(std::list<Register_t>::iterator it=vecRegistersToSave.begin(); it != vecRegistersToSave.end(); it++)
+	ke::Vector<Register_t> vecRegistersToSave = m_pCallingConvention->GetRegisters();
+	for (size_t i = 0; i < vecRegistersToSave.length(); i++)
 	{
-		switch(*it)
+		switch (vecRegistersToSave[i])
 		{
 		// ========================================================================
 		// >> 8-bit General purpose registers
