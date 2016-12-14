@@ -64,7 +64,7 @@ class x86MsStdcall: public ICallingConvention
 {	
 public:
 	x86MsStdcall(ke::Vector<DataTypeSized_t> &vecArgTypes, DataTypeSized_t returnType, int iAlignment=4);
-	~x86MsStdcall();
+	virtual ~x86MsStdcall();
 
 	virtual ke::Vector<Register_t> GetRegisters();
 	virtual int GetPopSize();

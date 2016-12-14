@@ -213,7 +213,7 @@ ICallingConvention *ConstructCallingConvention(HookSetup *setup)
 	return pCallConv;
 }
 
-bool HandleDetour(HookType_t hookType, CHook* pDetour)
+ReturnAction_t HandleDetour(HookType_t hookType, CHook* pDetour)
 {
 	DetourMap *map;
 	if (hookType == HOOKTYPE_PRE)
@@ -224,7 +224,7 @@ bool HandleDetour(HookType_t hookType, CHook* pDetour)
 	// Find the callback list for this detour.
 	DetourMap::Result r = map->find(pDetour);
 	if (!r.found())
-		return false;
+		return ReturnAction_Ignored;
 
 	// List of all callbacks.
 	PluginCallbackList *wrappers = r->value;
@@ -236,7 +236,7 @@ bool HandleDetour(HookType_t hookType, CHook* pDetour)
 	Handle_t pHndl = BAD_HANDLE;
 
 	int argNum = pDetour->m_pCallingConvention->m_vecArgTypes.length();
-	MRESReturn finalRet = MRES_Ignored;
+	ReturnAction_t finalRet = ReturnAction_Ignored;
 	ke::AutoPtr<void> finalRetBuf(new uint8_t[pDetour->m_pCallingConvention->m_returnType.size]);
 
 	// Call all the plugin functions..
@@ -244,7 +244,7 @@ bool HandleDetour(HookType_t hookType, CHook* pDetour)
 	{
 		CDynamicHooksSourcePawn *pWrapper = wrappers->at(i);
 		IPluginFunction *pCallback = pWrapper->plugin_callback;
-		MRESReturn tempRet = MRES_Ignored;
+		ReturnAction_t tempRet = ReturnAction_Ignored;
 		ke::AutoPtr<void> tempRetBuf(new uint8_t[pDetour->m_pCallingConvention->m_returnType.size]);
 
 		// Find the this pointer.
@@ -307,10 +307,10 @@ bool HandleDetour(HookType_t hookType, CHook* pDetour)
 		switch ((MRESReturn)result)
 		{
 		case MRES_Handled:
-			tempRet = MRES_Handled;
+			tempRet = ReturnAction_Handled;
 			break;
 		case MRES_ChangedHandled:
-			tempRet = MRES_Handled;
+			tempRet = ReturnAction_Handled;
 			pWrapper->UpdateParamsFromStruct(paramStruct);
 			break;
 		case MRES_ChangedOverride:
@@ -333,12 +333,12 @@ bool HandleDetour(HookType_t hookType, CHook* pDetour)
 				}
 				else //Throw an error if no override was set
 				{
-					tempRet = MRES_Ignored;
+					tempRet = ReturnAction_Ignored;
 					pCallback->GetParentRuntime()->GetDefaultContext()->BlamePluginError(pCallback, "Tried to override return value without return value being set");
 					break;
 				}
 			}
-			tempRet = MRES_Override;
+			tempRet = ReturnAction_Override;
 			pWrapper->UpdateParamsFromStruct(paramStruct);
 			break;
 		case MRES_Override:
@@ -346,7 +346,7 @@ bool HandleDetour(HookType_t hookType, CHook* pDetour)
 			{
 				if (returnStruct->isChanged)
 				{
-					tempRet = MRES_Override;
+					tempRet = ReturnAction_Override;
 					if (pWrapper->returnType == ReturnType_String || pWrapper->returnType == ReturnType_Int || pWrapper->returnType == ReturnType_Bool)
 					{
 						tempRetBuf = *(void **)returnStruct->newResult;
@@ -362,7 +362,7 @@ bool HandleDetour(HookType_t hookType, CHook* pDetour)
 				}
 				else //Throw an error if no override was set
 				{
-					tempRet = MRES_Ignored;
+					tempRet = ReturnAction_Ignored;
 					pCallback->GetParentRuntime()->GetDefaultContext()->BlamePluginError(pCallback, "Tried to override return value without return value being set");
 				}
 			}
@@ -372,7 +372,7 @@ bool HandleDetour(HookType_t hookType, CHook* pDetour)
 			{
 				if (returnStruct->isChanged)
 				{
-					tempRet = MRES_Supercede;
+					tempRet = ReturnAction_Supercede;
 					if (pWrapper->returnType == ReturnType_String || pWrapper->returnType == ReturnType_Int || pWrapper->returnType == ReturnType_Bool)
 					{
 						tempRetBuf = *(void **)returnStruct->newResult;
@@ -388,17 +388,17 @@ bool HandleDetour(HookType_t hookType, CHook* pDetour)
 				}
 				else //Throw an error if no override was set
 				{
-					tempRet = MRES_Ignored;
+					tempRet = ReturnAction_Ignored;
 					pCallback->GetParentRuntime()->GetDefaultContext()->BlamePluginError(pCallback, "Tried to override return value without return value being set");
 				}
 			}
 			else
 			{
-				tempRet = MRES_Supercede;
+				tempRet = ReturnAction_Supercede;
 			}
 			break;
 		default:
-			tempRet = MRES_Ignored;
+			tempRet = ReturnAction_Ignored;
 			break;
 		}
 
@@ -426,14 +426,14 @@ bool HandleDetour(HookType_t hookType, CHook* pDetour)
 	}
 
 	// If we want to use our own return value, write it back.
-	if (finalRet >= MRES_Override)
+	if (finalRet >= ReturnAction_Override)
 	{
 		void* pPtr = pDetour->m_pCallingConvention->GetReturnPtr(pDetour->m_pRegisters);
 		memcpy(pPtr, *finalRetBuf, pDetour->m_pCallingConvention->m_returnType.size);
 		pDetour->m_pCallingConvention->ReturnPtrChanged(pDetour->m_pRegisters, pPtr);
 	}
 
-	return finalRet == MRES_Supercede;
+	return finalRet;
 }
 
 CDynamicHooksSourcePawn::CDynamicHooksSourcePawn(HookSetup *setup, CHook *pDetour, IPluginFunction *pCallback, bool post)

@@ -64,7 +64,7 @@ class x86MsCdecl: public ICallingConvention
 {	
 public:
 	x86MsCdecl(ke::Vector<DataTypeSized_t> &vecArgTypes, DataTypeSized_t returnType, int iAlignment=4);
-	~x86MsCdecl();
+	virtual ~x86MsCdecl();
 
 	virtual ke::Vector<Register_t> GetRegisters();
 	virtual int GetPopSize();

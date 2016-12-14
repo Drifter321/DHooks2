@@ -52,6 +52,7 @@ CHook::CHook(void* pFunc, ICallingConvention* pConvention)
 	m_pFunc = pFunc;
 	m_pRegisters = new CRegisters(pConvention->GetRegisters());
 	m_pCallingConvention = pConvention;
+	m_LastPreReturnAction = ReturnAction_Ignored;
 
 	if (!m_hookHandler.init())
 		return;
@@ -150,21 +151,35 @@ bool CHook::AreCallbacksRegistered()
 	return false;
 }
 
-bool CHook::HookHandler(HookType_t eHookType)
+ReturnAction_t CHook::HookHandler(HookType_t eHookType)
 {
-	bool bOverride = false;
+	if (eHookType == HOOKTYPE_POST)
+	{
+		if (m_LastPreReturnAction == ReturnAction_Override)
+			m_pCallingConvention->RestoreReturnValue(m_pRegisters);
+	}
+
+	ReturnAction_t returnAction = ReturnAction_Ignored;
 	HookTypeMap::Result r = m_hookHandler.find(eHookType);
 	if (!r.found())
-		return bOverride;
+		return returnAction;
 
 	HookHandlerSet &callbacks = r->value;
 	for(HookHandlerSet::iterator it=callbacks.iter(); !it.empty(); it.next())
 	{
-		bool result = ((HookHandlerFn) *it)(eHookType, this);
-		if (result)
-			bOverride = true;
+		ReturnAction_t result = ((HookHandlerFn) *it)(eHookType, this);
+		if (result > returnAction)
+			returnAction = result;
 	}
-	return bOverride;
+
+	if (eHookType == HOOKTYPE_PRE)
+	{
+		m_LastPreReturnAction = returnAction;
+		if (returnAction == ReturnAction_Override)
+			m_pCallingConvention->SaveReturnValue(m_pRegisters);
+	}
+
+	return returnAction;
 }
 
 void* __cdecl CHook::GetReturnAddress(void* pESP)
@@ -190,9 +205,9 @@ void* CHook::CreateBridge()
 	// Write a redirect to the post-hook code
 	Write_ModifyReturnAddress(masm);
 
-	// Call the pre-hook handler and jump to label_supercede if true was returned
+	// Call the pre-hook handler and jump to label_supercede if ReturnAction_Supercede was returned
 	Write_CallHandler(masm, HOOKTYPE_PRE);
-	masm.cmpb(r8_al, true);
+	masm.cmpb(r8_al, ReturnAction_Supercede);
 	
 	// Restore the previously saved registers, so any changes will be applied
 	Write_RestoreRegisters(masm);
@@ -202,7 +217,7 @@ void* CHook::CreateBridge()
 	// Jump to the trampoline
 	masm.jmp(ExternalAddress(m_pTrampoline));
 
-	// This code will be executed if a pre-hook returns true
+	// This code will be executed if a pre-hook returns ReturnAction_Supercede
 	masm.bind(&label_supercede);
 
 	// Finally, return to the caller
@@ -302,7 +317,7 @@ void* CHook::CreatePostCallback()
 
 void CHook::Write_CallHandler(sp::MacroAssembler& masm, HookType_t type)
 {
-	bool (__cdecl CHook::*HookHandler)(HookType_t) = &CHook::HookHandler;
+	ReturnAction_t (__cdecl CHook::*HookHandler)(HookType_t) = &CHook::HookHandler;
 
 	// Save the registers so that we can access them in our handlers
 	Write_SaveRegisters(masm);

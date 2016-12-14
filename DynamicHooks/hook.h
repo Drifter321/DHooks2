@@ -51,12 +51,20 @@ enum HookType_t
 	HOOKTYPE_POST
 };
 
+enum ReturnAction_t
+{
+	ReturnAction_Ignored,				// handler didn't take any action
+	ReturnAction_Handled,				// plugin did something, but real function should still be called
+	ReturnAction_Override,				// call real function, but use my return value
+	ReturnAction_Supercede				// skip real function; use my return value
+};
+
 
 // ============================================================================
 // >> TYPEDEFS
 // ============================================================================
 class CHook;
-typedef bool (*HookHandlerFn)(HookType_t, CHook*);
+typedef ReturnAction_t (*HookHandlerFn)(HookType_t, CHook*);
 
 #ifdef __linux__
 #define __cdecl
@@ -171,7 +179,7 @@ private:
 
 	void* CreatePostCallback();
 
-	bool __cdecl HookHandler(HookType_t type);
+	ReturnAction_t __cdecl HookHandler(HookType_t type);
 
 	void* __cdecl GetReturnAddress(void* pESP);
 	void __cdecl SetReturnAddress(void* pRetAddr, void* pESP);
@@ -198,6 +206,9 @@ public:
 	void* m_pNewRetAddr;
 
 	ReturnAddressMap m_RetAddr;
+
+	// Save the last return action of the pre HookHandler for use in the post handler.
+	ReturnAction_t m_LastPreReturnAction;
 };
 
 #endif // _HOOK_H
