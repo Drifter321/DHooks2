@@ -189,10 +189,19 @@ ReturnAction_t CHook::HookHandler(HookType_t eHookType)
 void* __cdecl CHook::GetReturnAddress(void* pESP)
 {
 	ReturnAddressMap::Result r = m_RetAddr.find(pESP);
+	assert(r.found());
 	if (!r.found())
+	{
 		puts("ESP not present.");
+		return NULL;
+	}
 
-	return r->value;
+	void *pRetAddr = r->value;
+
+	// Clear the stack address from the cache now that we ran the post hook code.
+	m_RetAddr.remove(r);
+
+	return pRetAddr;
 }
 
 void __cdecl CHook::SetReturnAddress(void* pRetAddr, void* pESP)
