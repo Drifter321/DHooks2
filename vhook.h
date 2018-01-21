@@ -3,6 +3,8 @@
 
 #include "extension.h"
 #include <sourcehook.h>
+#include <sh_vector.h>
+#include <sourcehook_pibuilder.h>
 
 enum CallingConvention
 {
