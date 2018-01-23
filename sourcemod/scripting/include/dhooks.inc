@@ -558,6 +558,10 @@ public __ext_dhooks_SetNTVOptional()
 	MarkNativeAsOptional("DHookAddEntityListener");
 	MarkNativeAsOptional("DHookRemoveEntityListener");
 	MarkNativeAsOptional("DHookCreate");
+	MarkNativeAsOptional("DHookCreateDetour");
+	MarkNativeAsOptional("DHookSetFromConf");
+	MarkNativeAsOptional("DHookEnableDetour");
+	MarkNativeAsOptional("DHookDisableDetour");
 	MarkNativeAsOptional("DHookAddParam");
 	MarkNativeAsOptional("DHookEntity");
 	MarkNativeAsOptional("DHookGamerules");
