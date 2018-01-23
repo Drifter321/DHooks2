@@ -599,8 +599,9 @@ HookParamsStruct *CDynamicHooksSourcePawn::GetParamStruct()
 			continue;
 
 		int size = argTypes[i].size;
+		void *paramAddr = (void *)((intptr_t)params->orgParams + offset);
 		void *regAddr = callingConvention->GetArgumentPtr(i + firstArg, m_pDetour->m_pRegisters);
-		memcpy(params->orgParams + offset, regAddr, size);
+		memcpy(paramAddr, regAddr, size);
 		offset += size;
 	}
 
