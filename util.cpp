@@ -13,21 +13,60 @@ void * GetObjectAddr(HookParamType type, unsigned int flags, void **params, size
 
 }
 
-size_t GetParamOffset(HookParamsStruct *paramStruct, unsigned int index)
+size_t GetStackParamOffset(HookParamsStruct *paramStruct, unsigned int index)
 {
+	assert(paramStruct->dg->params[index].custom_register == None);
+
 	size_t offset = 0;
 	for (unsigned int i = 0; i < index; i++)
 	{
+		// Only care for arguments on the stack before us.
+		if (paramStruct->dg->params[i].custom_register != None)
+			continue;
+
 #ifndef WIN32
-		if (paramStruct->dg->params.at(i).type == HookParamType_Object && (paramStruct->dg->params.at(i).flags & PASSFLAG_ODTOR)) //Passed by refrence
+		if (paramStruct->dg->params[i].type == HookParamType_Object && (paramStruct->dg->params[i].flags & PASSFLAG_ODTOR)) //Passed by refrence
 		{
 			offset += sizeof(void *);
 			continue;
 		}
 #endif
-		offset += paramStruct->dg->params.at(i).size;
+		offset += paramStruct->dg->params[i].size;
 	}
 	return offset;
+}
+
+size_t GetRegisterParamOffset(HookParamsStruct *paramStruct, unsigned int index)
+{
+	// TODO: Fix this up and get a pointer to the CDetour
+	assert(paramStruct->dg->params[index].custom_register != None);
+
+	// Need to get the size of the stack arguments first. Register arguments are stored after them in the buffer.
+	size_t stackSize = 0;
+	for (int i = paramStruct->dg->params.size() - 1; i >= 0; i--)
+	{
+		if (paramStruct->dg->params[i].custom_register == None)
+			stackSize += paramStruct->dg->params[i].size;
+	}
+
+	size_t offset = stackSize;
+	for (unsigned int i = 0; i < index; i++)
+	{
+		// Only care for arguments passed through a register as well before us.
+		if (paramStruct->dg->params[i].custom_register == None)
+			continue;
+
+		offset += paramStruct->dg->params[i].size;
+	}
+	return offset;
+}
+
+size_t GetParamOffset(HookParamsStruct *paramStruct, unsigned int index)
+{
+	if (paramStruct->dg->params[index].custom_register == None)
+		return GetStackParamOffset(paramStruct, index);
+	else
+		return GetRegisterParamOffset(paramStruct, index);
 }
 
 size_t GetParamTypeSize(HookParamType type)
@@ -98,4 +137,69 @@ DataType_t DynamicHooks_ConvertReturnTypeFrom(ReturnType type)
 	}
 
 	return DATA_TYPE_VOID;
+}
+
+Register_t DynamicHooks_ConvertRegisterFrom(PluginRegister reg)
+{
+	switch (reg)
+	{
+	case DHookRegister_Default:
+		return None;
+
+	case DHookRegister_AL:
+		return AL;
+	case DHookRegister_CL:
+		return CL;
+	case DHookRegister_DL:
+		return DL;
+	case DHookRegister_BL:
+		return BL;
+	case DHookRegister_AH:
+		return AH;
+	case DHookRegister_CH:
+		return CH;
+	case DHookRegister_DH:
+		return DH;
+	case DHookRegister_BH:
+		return BH;
+
+	case DHookRegister_EAX:
+		return EAX;
+	case DHookRegister_ECX:
+		return ECX;
+	case DHookRegister_EDX:
+		return EDX;
+	case DHookRegister_EBX:
+		return EBX;
+	case DHookRegister_ESP:
+		return ESP;
+	case DHookRegister_EBP:
+		return EBP;
+	case DHookRegister_ESI:
+		return ESI;
+	case DHookRegister_EDI:
+		return EDI;
+
+	case DHookRegister_XMM0:
+		return XMM0;
+	case DHookRegister_XMM1:
+		return XMM1;
+	case DHookRegister_XMM2:
+		return XMM2;
+	case DHookRegister_XMM3:
+		return XMM3;
+	case DHookRegister_XMM4:
+		return XMM4;
+	case DHookRegister_XMM5:
+		return XMM5;
+	case DHookRegister_XMM6:
+		return XMM6;
+	case DHookRegister_XMM7:
+		return XMM7;
+
+	case DHookRegister_ST0:
+		return ST0;
+	}
+
+	return None;
 }

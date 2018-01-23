@@ -69,8 +69,9 @@ public:
 
 	virtual ke::Vector<Register_t> GetRegisters();
 	virtual int GetPopSize();
-	virtual int x86MsThiscall::GetArgStackSize();
+	virtual int GetArgStackSize();
 	virtual void** GetStackArgumentPtr(CRegisters* pRegisters);
+	virtual int GetArgRegisterSize();
 	
 	virtual void* GetArgumentPtr(int iIndex, CRegisters* pRegisters);
 	virtual void ArgumentPtrChanged(int iIndex, CRegisters* pRegisters, void* pArgumentPtr);

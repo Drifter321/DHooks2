@@ -70,6 +70,7 @@ public:
 	virtual int GetPopSize();
 	virtual int GetArgStackSize();
 	virtual void** GetStackArgumentPtr(CRegisters* pRegisters);
+	virtual int GetArgRegisterSize();
 	
 	virtual void* GetArgumentPtr(int iIndex, CRegisters* pRegisters);
 	virtual void ArgumentPtrChanged(int iIndex, CRegisters* pRegisters, void* pArgumentPtr);

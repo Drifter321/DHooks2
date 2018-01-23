@@ -43,6 +43,9 @@
 // ============================================================================
 enum Register_t
 {
+	// No register at all.
+	None,
+
 	// ========================================================================
 	// >> 8-bit General purpose registers
 	// ========================================================================
@@ -262,6 +265,8 @@ class CRegisters
 public:
 	CRegisters(ke::Vector<Register_t> registers);
 	~CRegisters();
+
+	CRegister* GetRegister(Register_t reg);
 
 private:
 	CRegister* CreateRegister(ke::Vector<Register_t>& registers, Register_t reg, int iSize);

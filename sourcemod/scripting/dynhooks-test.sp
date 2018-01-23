@@ -6,7 +6,7 @@
 
 Handle hFlashbangDetonateDetour;
 Handle hFlashbangDeafen;
-Handle hPercentageOfFlashForPlayer;
+//Handle hPercentageOfFlashForPlayer;
 
 public void OnPluginStart()
 {
@@ -40,7 +40,7 @@ public void OnPluginStart()
 	if (!DHookSetFromConf(hFlashbangDeafen, temp, SDKConf_Signature, "Deafen"))
 		SetFailState("Failed to load Deafen signature from gamedata");
 	
-	DHookAddParam(hFlashbangDeafen, HookParamType_Float);
+	DHookAddParam(hFlashbangDeafen, HookParamType_Float, .custom_register=DHookRegister_XMM1);
 	
 	if (!DHookEnableDetour(hFlashbangDeafen, false, Detour_OnDeafen))
 		SetFailState("Failed to detour Deafen.");
@@ -51,7 +51,7 @@ public void OnPluginStart()
 	PrintToServer("CCSPlayer::Deafen detoured!");
 	
 	
-	hPercentageOfFlashForPlayer = DHookCreateDetour(Address_Null, CallConv_CDECL, ReturnType_Float, ThisPointer_Ignore);
+	/*hPercentageOfFlashForPlayer = DHookCreateDetour(Address_Null, CallConv_CDECL, ReturnType_Float, ThisPointer_Ignore);
 	if (!hPercentageOfFlashForPlayer)
 		SetFailState("Failed to setup detour for PercentageOfFlashForPlayer");
 	
@@ -68,7 +68,7 @@ public void OnPluginStart()
 	if (!DHookEnableDetour(hPercentageOfFlashForPlayer, true, Detour_OnPercentageOfFlashForPlayer_Post))
 		SetFailState("Failed to detour PercentageOfFlashForPlayer post.");
 	
-	PrintToServer("PercentageOfFlashForPlayer detoured!");
+	PrintToServer("PercentageOfFlashForPlayer detoured!");*/
 }
 
 public MRESReturn Detour_OnFlashbangDetonate(int pThis)

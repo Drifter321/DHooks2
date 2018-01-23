@@ -78,6 +78,16 @@ ke::Vector<Register_t> x86MsCdecl::GetRegisters()
 		}
 	}
 
+	// Save all the custom calling convention registers as well.
+	for (unsigned int i = 0; i < m_vecArgTypes.length(); i++)
+	{
+		if (m_vecArgTypes[i].custom_register == None)
+			continue;
+
+		// TODO: Make sure the list is unique? Set?
+		registers.append(m_vecArgTypes[i].custom_register);
+	}
+
 	return registers;
 }
 
@@ -92,7 +102,8 @@ int x86MsCdecl::GetArgStackSize()
 
 	for (unsigned int i = 0; i < m_vecArgTypes.length(); i++)
 	{
-		iArgStackSize += m_vecArgTypes[i].size;
+		if (m_vecArgTypes[i].custom_register == None)
+			iArgStackSize += m_vecArgTypes[i].size;
 	}
 
 	return iArgStackSize;
@@ -103,12 +114,36 @@ void** x86MsCdecl::GetStackArgumentPtr(CRegisters* pRegisters)
 	return (void **)(pRegisters->m_esp->GetValue<unsigned long>() + 4);
 }
 
+int x86MsCdecl::GetArgRegisterSize()
+{
+	int iArgRegisterSize = 0;
+
+	for (unsigned int i = 0; i < m_vecArgTypes.length(); i++)
+	{
+		if (m_vecArgTypes[i].custom_register != None)
+			iArgRegisterSize += m_vecArgTypes[i].size;
+	}
+
+	return iArgRegisterSize;
+}
+
 void* x86MsCdecl::GetArgumentPtr(int iIndex, CRegisters* pRegisters)
 {
+	// Check if this argument was passed in a register.
+	if (m_vecArgTypes[iIndex].custom_register != None)
+	{
+		CRegister *pRegister = pRegisters->GetRegister(m_vecArgTypes[iIndex].custom_register);
+		if (!pRegister)
+			return NULL;
+
+		return pRegister->m_pAddress;
+	}
+
 	int iOffset = 4;
 	for(int i=0; i < iIndex; i++)
 	{
-		iOffset += m_vecArgTypes[i].size;
+		if (m_vecArgTypes[i].custom_register == None)
+			iOffset += m_vecArgTypes[i].size;
 	}
 
 	return (void *) (pRegisters->m_esp->GetValue<unsigned long>() + iOffset);

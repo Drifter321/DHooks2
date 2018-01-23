@@ -5,6 +5,7 @@
 #include <sourcehook.h>
 #include <sh_vector.h>
 #include <sourcehook_pibuilder.h>
+#include <registers.h>
 
 enum CallingConvention
 {
@@ -92,6 +93,7 @@ struct ParamInfo
 	size_t size;
 	unsigned int flags;
 	SourceHook::PassInfo::PassType pass_type;
+	Register_t custom_register;
 };
 
 #ifdef  WIN32
@@ -216,6 +218,11 @@ public:
 		this->callback = nullptr;
 	};
 	~HookSetup(){};
+
+	bool IsVirtual()
+	{
+		return this->offset != -1;
+	}
 public:
 	unsigned int returnFlag;
 	ReturnType returnType;

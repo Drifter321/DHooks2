@@ -66,6 +66,7 @@ ke::Vector<Register_t> x86MsThiscall::GetRegisters()
 	ke::Vector<Register_t> registers;
 	
 	registers.append(ESP);
+	// TODO: Allow custom this register.
 	registers.append(ECX);
 
 	if (m_returnType.type == DATA_TYPE_FLOAT || m_returnType.type == DATA_TYPE_DOUBLE)
@@ -81,6 +82,16 @@ ke::Vector<Register_t> x86MsThiscall::GetRegisters()
 		}
 	}
 
+	// Save all the custom calling convention registers as well.
+	for (unsigned int i = 0; i < m_vecArgTypes.length(); i++)
+	{
+		if (m_vecArgTypes[i].custom_register == None)
+			continue;
+
+		// TODO: Make sure the list is unique? Set?
+		registers.append(m_vecArgTypes[i].custom_register);
+	}
+
 	return registers;
 }
 
@@ -93,7 +104,9 @@ int x86MsThiscall::GetPopSize()
 
 	for(unsigned int i=0; i < m_vecArgTypes.length(); i++)
 	{
-		iPopSize += m_vecArgTypes[i].size;
+		// Only pop arguments that are actually on the stack.
+		if (m_vecArgTypes[i].custom_register == None)
+			iPopSize += m_vecArgTypes[i].size;
 	}
 
 	return iPopSize;
@@ -105,7 +118,8 @@ int x86MsThiscall::GetArgStackSize()
 
 	for (unsigned int i = 0; i < m_vecArgTypes.length(); i++)
 	{
-		iArgStackSize += m_vecArgTypes[i].size;
+		if (m_vecArgTypes[i].custom_register == None)
+			iArgStackSize += m_vecArgTypes[i].size;
 	}
 
 	return iArgStackSize;
@@ -116,17 +130,42 @@ void** x86MsThiscall::GetStackArgumentPtr(CRegisters* pRegisters)
 	return (void **)(pRegisters->m_esp->GetValue<unsigned long>() + 4);
 }
 
+int x86MsThiscall::GetArgRegisterSize()
+{
+	int iArgRegisterSize = 0;
+
+	for (unsigned int i = 0; i < m_vecArgTypes.length(); i++)
+	{
+		if (m_vecArgTypes[i].custom_register != None)
+			iArgRegisterSize += m_vecArgTypes[i].size;
+	}
+
+	return iArgRegisterSize;
+}
+
 void* x86MsThiscall::GetArgumentPtr(int iIndex, CRegisters* pRegisters)
 {
 	if (iIndex == 0)
 	{
+		// TODO: Allow custom this register.
 		return pRegisters->m_ecx->m_pAddress;
+	}
+
+	// Check if this argument was passed in a register.
+	if (m_vecArgTypes[iIndex-1].custom_register != None)
+	{
+		CRegister *pRegister = pRegisters->GetRegister(m_vecArgTypes[iIndex-1].custom_register);
+		if (!pRegister)
+			return NULL;
+
+		return pRegister->m_pAddress;
 	}
 
 	int iOffset = 4;
 	for(int i=0; i < iIndex-1; i++)
 	{
-		iOffset += m_vecArgTypes[i].size;
+		if (m_vecArgTypes[i].custom_register == None)
+			iOffset += m_vecArgTypes[i].size;
 	}
 
 	return (void *) (pRegisters->m_esp->GetValue<unsigned long>() + iOffset);

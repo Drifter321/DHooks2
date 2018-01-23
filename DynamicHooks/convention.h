@@ -67,9 +67,11 @@ typedef struct DataTypeSized_s {
 	{
 		type = DATA_TYPE_POINTER;
 		size = 0;
+		custom_register = None;
 	}
 	DataType_t type;
 	size_t size;
+	Register_t custom_register;
 } DataTypeSized_t;
 
 
@@ -183,6 +185,11 @@ public:
 
 	virtual int GetArgStackSize() = 0;
 	virtual void** GetStackArgumentPtr(CRegisters* pRegisters) = 0;
+
+	/*
+	Returns the number of bytes that the buffer to store all the arguments in that are passed in a register.
+	*/
+	virtual int GetArgRegisterSize() = 0;
 
 	/*
 	Returns a pointer to the argument at the given index.

@@ -33,6 +33,7 @@ public:
 };
 
 ICallingConvention *ConstructCallingConvention(HookSetup *setup);
+bool UpdateRegisterArgumentSizes(CHook* pDetour, HookSetup *setup);
 ReturnAction_t HandleDetour(HookType_t hookType, CHook* pDetour);
 bool AddDetourPluginHook(HookType_t hookType, CHook *pDetour, HookSetup *setup, IPluginFunction *pCallback);
 bool RemoveDetourPluginHook(HookType_t hookType, CHook *pDetour, IPluginFunction *pCallback);

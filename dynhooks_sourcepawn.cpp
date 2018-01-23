@@ -189,12 +189,15 @@ ICallingConvention *ConstructCallingConvention(HookSetup *setup)
 		DataTypeSized_t type;
 		type.type = DynamicHooks_ConvertParamTypeFrom(info.type);
 		type.size = info.size;
+		type.custom_register = info.custom_register;
 		vecArgTypes.append(type);
 	}
 
 	DataTypeSized_t returnType;
 	returnType.type = DynamicHooks_ConvertReturnTypeFrom(setup->returnType);
 	returnType.size = 0;
+	// TODO: Add support for a custom return register.
+	returnType.custom_register = None;
 
 	ICallingConvention *pCallConv = nullptr;
 	switch (setup->callConv)
@@ -211,6 +214,32 @@ ICallingConvention *ConstructCallingConvention(HookSetup *setup)
 	}
 
 	return pCallConv;
+}
+
+bool UpdateRegisterArgumentSizes(CHook* pDetour, HookSetup *setup)
+{
+	// The registers the arguments are passed in might not be the same size as the actual parameter type.
+	// Update the type info to the size of the register that's now holding that argument,
+	// so we can copy the whole value.
+	ICallingConvention* callingConvention = pDetour->m_pCallingConvention;
+	ke::Vector<DataTypeSized_t> &argTypes = callingConvention->m_vecArgTypes;
+	int numArgs = argTypes.length();
+
+	for (int i = 0; i < numArgs; i++)
+	{
+		if (argTypes[i].custom_register == None)
+			continue;
+
+		CRegister *reg = pDetour->m_pRegisters->GetRegister(argTypes[i].custom_register);
+		// That register can't be handled yet.
+		if (!reg)
+			return false;
+
+		argTypes[i].size = reg->m_iSize;
+		setup->params[i].size = reg->m_iSize;
+	}
+
+	return true;
 }
 
 ReturnAction_t HandleDetour(HookType_t hookType, CHook* pDetour)
@@ -536,24 +565,43 @@ HookParamsStruct *CDynamicHooksSourcePawn::GetParamStruct()
 	HookParamsStruct *params = new HookParamsStruct();
 	params->dg = this;
 	
-	size_t paramsSize = this->m_pDetour->m_pCallingConvention->GetArgStackSize();
-	ke::Vector<DataTypeSized_t> &argTypes = m_pDetour->m_pCallingConvention->m_vecArgTypes;
+	ICallingConvention* callingConvention = m_pDetour->m_pCallingConvention;
+	size_t stackSize = callingConvention->GetArgStackSize();
+	size_t paramsSize = stackSize + callingConvention->GetArgRegisterSize();
+	ke::Vector<DataTypeSized_t> &argTypes = callingConvention->m_vecArgTypes;
 	int numArgs = argTypes.length();
 
 	params->orgParams = (void **)malloc(paramsSize);
 	params->newParams = (void **)malloc(paramsSize);
 	params->isChanged = (bool *)malloc(numArgs * sizeof(bool));
 
-	size_t offset = 0;
-	for (int i = 0; i < numArgs; i++)
+	// Save old stack parameters
+	if (stackSize > 0)
 	{
 		void *pArgPtr = m_pDetour->m_pCallingConvention->GetStackArgumentPtr(m_pDetour->m_pRegisters);
-		memcpy(params->orgParams, pArgPtr, paramsSize);
-		
-		*(void **)((intptr_t)params->newParams + offset) = NULL;
-		params->isChanged[i] = false;
+		memcpy(params->orgParams, pArgPtr, stackSize);
+	}
 
-		offset += argTypes[i].size;
+	memset(params->newParams, NULL, paramsSize);
+	memset(params->isChanged, false, numArgs * sizeof(bool));
+
+	int firstArg = 0;
+	// TODO: Support custom register for this ptr.
+	if (callConv == CallConv_THISCALL)
+		firstArg = 1;
+
+	// Save the old parameters passed in a register.
+	size_t offset = stackSize;
+	for (int i = 0; i < numArgs; i++)
+	{
+		// We already saved the stack arguments.
+		if (argTypes[i].custom_register == None)
+			continue;
+
+		int size = argTypes[i].size;
+		void *regAddr = callingConvention->GetArgumentPtr(i + firstArg, m_pDetour->m_pRegisters);
+		memcpy(params->orgParams + offset, regAddr, size);
+		offset += size;
 	}
 
 	return params;
@@ -565,23 +613,34 @@ void CDynamicHooksSourcePawn::UpdateParamsFromStruct(HookParamsStruct *params)
 	if (!params)
 		return;
 
-	ke::Vector<DataTypeSized_t> &argTypes = m_pDetour->m_pCallingConvention->m_vecArgTypes;
+	ICallingConvention* callingConvention = m_pDetour->m_pCallingConvention;
+	size_t stackSize = callingConvention->GetArgStackSize();
+	ke::Vector<DataTypeSized_t> &argTypes = callingConvention->m_vecArgTypes;
 	int numArgs = argTypes.length();
 
 	int firstArg = 0;
+	// TODO: Support custom register for this ptr.
 	if (callConv == CallConv_THISCALL)
 		firstArg = 1;
 
-	size_t offset = 0;
+	size_t stackOffset = 0;
+	size_t registerOffset = stackSize;
+	size_t offset;
 	for (int i = 0; i < numArgs; i++)
 	{
-		int size = argTypes[i].size;;
+		int size = argTypes[i].size;
 		if (params->isChanged[i])
 		{
+			offset = argTypes[i].custom_register == None ? stackOffset : registerOffset;
+
 			void *paramAddr = (void *)((intptr_t)params->newParams + offset);
-			void *stackAddr = m_pDetour->m_pCallingConvention->GetArgumentPtr(i + firstArg, m_pDetour->m_pRegisters);
+			void *stackAddr = callingConvention->GetArgumentPtr(i + firstArg, m_pDetour->m_pRegisters);
 			memcpy(stackAddr, paramAddr, size);
 		}
-		offset += size;
+
+		if (argTypes[i].custom_register == None)
+			stackOffset += size;
+		else
+			registerOffset += size;
 	}
 }

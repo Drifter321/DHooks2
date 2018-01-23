@@ -119,7 +119,7 @@ cell_t Native_SetFromConf(IPluginContext *pContext, const cell_t *params)
 }
 
 //native bool:DHookAddParam(Handle:setup, HookParamType:type); OLD
-//native bool:DHookAddParam(Handle:setup, HookParamType:type, size=-1, DHookPassFlag:flag=DHookPass_ByVal);
+//native bool:DHookAddParam(Handle:setup, HookParamType:type, size=-1, DHookPassFlag:flag=DHookPass_ByVal, DHookRegister custom_register=DHookRegister_Default);
 cell_t Native_AddParam(IPluginContext *pContext, const cell_t *params)
 {
 	HookSetup *setup;
@@ -140,6 +140,23 @@ cell_t Native_AddParam(IPluginContext *pContext, const cell_t *params)
 	else
 	{
 		info.flags = PASSFLAG_BYVAL;
+	}
+
+	if (params[0] >= 5)
+	{
+		PluginRegister custom_register = (PluginRegister)params[5];
+		info.custom_register = DynamicHooks_ConvertRegisterFrom(custom_register);
+
+		// Stay future proof.
+		if (info.custom_register == None && custom_register != DHookRegister_Default)
+			return pContext->ThrowNativeError("Unhandled DHookRegister %d", params[5]);
+
+		if (info.custom_register != None && info.type == HookParamType_Object)
+			return pContext->ThrowNativeError("Can't pass an object in a register.");
+	}
+	else
+	{
+		info.custom_register = None;
 	}
 
 	if(params[0] >= 3 && params[3] != -1)
@@ -195,6 +212,8 @@ cell_t Native_EnableDetour(IPluginContext *pContext, const cell_t *params)
 	{
 		ICallingConvention *pCallConv = ConstructCallingConvention(setup);
 		pDetour = pDetourManager->HookFunction(setup->funcAddr, pCallConv);
+		if (!UpdateRegisterArgumentSizes(pDetour, setup))
+			return pContext->ThrowNativeError("A custom register for a parameter isn't supported.");
 	}
 
 	// Register our pre/post handler.

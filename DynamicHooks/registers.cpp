@@ -379,3 +379,127 @@ void CRegisters::DeleteRegister(CRegister* pRegister)
 		delete pRegister;
 	}
 }
+
+CRegister* CRegisters::GetRegister(Register_t reg)
+{
+	switch (reg)
+	{
+	case AL:
+		return m_al;
+	case CL:
+		return m_cl;
+	case DL:
+		return m_dl;
+	case BL:
+		return m_bl;
+	case AH:
+		return m_ah;
+	case CH:
+		return m_ch;
+	case DH:
+		return m_dh;
+	case BH:
+		return m_bh;
+
+	case AX:
+		return m_ax;
+	case CX:
+		return m_cx;
+	case DX:
+		return m_dx;
+	case BX:
+		return m_bx;
+	case SP:
+		return m_sp;
+	case BP:
+		return m_bp;
+	case SI:
+		return m_si;
+	case DI:
+		return m_di;
+
+	case EAX:
+		return m_eax;
+	case ECX:
+		return m_ecx;
+	case EDX:
+		return m_edx;
+	case EBX:
+		return m_ebx;
+	case ESP:
+		return m_esp;
+	case EBP:
+		return m_ebp;
+	case ESI:
+		return m_esi;
+	case EDI:
+		return m_edi;
+
+	case MM0:
+		return m_mm0;
+	case MM1:
+		return m_mm1;
+	case MM2:
+		return m_mm2;
+	case MM3:
+		return m_mm3;
+	case MM4:
+		return m_mm4;
+	case MM5:
+		return m_mm5;
+	case MM6:
+		return m_mm6;
+	case MM7:
+		return m_mm7;
+
+	case XMM0:
+		return m_xmm0;
+	case XMM1:
+		return m_xmm1;
+	case XMM2:
+		return m_xmm2;
+	case XMM3:
+		return m_xmm3;
+	case XMM4:
+		return m_xmm4;
+	case XMM5:
+		return m_xmm5;
+	case XMM6:
+		return m_xmm6;
+	case XMM7:
+		return m_xmm7;
+
+	case CS:
+		return m_cs;
+	case SS:
+		return m_ss;
+	case DS:
+		return m_ds;
+	case ES:
+		return m_es;
+	case FS:
+		return m_fs;
+	case GS:
+		return m_gs;
+
+	case ST0:
+		return m_st0;
+	case ST1:
+		return m_st1;
+	case ST2:
+		return m_st2;
+	case ST3:
+		return m_st3;
+	case ST4:
+		return m_st4;
+	case ST5:
+		return m_st5;
+	case ST6:
+		return m_st6;
+	case ST7:
+		return m_st7;
+
+	default:
+		return NULL;
+	}
+}
