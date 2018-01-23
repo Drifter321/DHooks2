@@ -207,7 +207,10 @@ void* __cdecl CHook::GetReturnAddress(void* pESP)
 void __cdecl CHook::SetReturnAddress(void* pRetAddr, void* pESP)
 {
 	ReturnAddressMap::Insert i = m_RetAddr.findForAdd(pESP);
-	m_RetAddr.add(i, pESP, pRetAddr);
+	if (i.found())
+		i->value = pRetAddr;
+	else
+		m_RetAddr.add(i, pESP, pRetAddr);
 }
 
 void* CHook::CreateBridge()
