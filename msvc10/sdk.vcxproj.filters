@@ -5,10 +5,37 @@
     <ClCompile Include="..\extension.cpp" />
     <ClCompile Include="..\natives.cpp" />
     <ClCompile Include="..\listeners.cpp" />
-    <ClCompile Include="$(SOURCEMOD18)\sourcepawn\vm\x86\assembler-x86.cpp" />
     <ClCompile Include="..\util.cpp" />
-    <ClCompile Include="$(SOURCEMOD18)\public\smsdk_ext.cpp">
+    <ClCompile Include="$(SOURCEMOD)\public\smsdk_ext.cpp">
       <Filter>sdk</Filter>
+    </ClCompile>
+    <ClCompile Include="$(SOURCEMOD)\sourcepawn\vm\x86\assembler-x86.cpp">
+      <Filter>JIT</Filter>
+    </ClCompile>
+    <ClCompile Include="..\dynhooks_sourcepawn.cpp" />
+    <ClCompile Include="..\DynamicHooks\asm.cpp">
+      <Filter>DynamicHooks</Filter>
+    </ClCompile>
+    <ClCompile Include="..\DynamicHooks\hook.cpp">
+      <Filter>DynamicHooks</Filter>
+    </ClCompile>
+    <ClCompile Include="..\DynamicHooks\manager.cpp">
+      <Filter>DynamicHooks</Filter>
+    </ClCompile>
+    <ClCompile Include="..\DynamicHooks\registers.cpp">
+      <Filter>DynamicHooks</Filter>
+    </ClCompile>
+    <ClCompile Include="..\DynamicHooks\utilities.cpp">
+      <Filter>DynamicHooks</Filter>
+    </ClCompile>
+    <ClCompile Include="..\DynamicHooks\conventions\x86MsCdecl.cpp">
+      <Filter>DynamicHooks\conventions</Filter>
+    </ClCompile>
+    <ClCompile Include="..\DynamicHooks\conventions\x86MsStdcall.cpp">
+      <Filter>DynamicHooks\conventions</Filter>
+    </ClCompile>
+    <ClCompile Include="..\DynamicHooks\conventions\x86MsThiscall.cpp">
+      <Filter>DynamicHooks\conventions</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -36,7 +63,7 @@
     <ClInclude Include="..\util.h">
       <Filter>Headers</Filter>
     </ClInclude>
-    <ClInclude Include="$(SOURCEMOD18)\public\smsdk_ext.h">
+    <ClInclude Include="$(SOURCEMOD)\public\smsdk_ext.h">
       <Filter>sdk</Filter>
     </ClInclude>
   </ItemGroup>
@@ -49,6 +76,12 @@
     </Filter>
     <Filter Include="JIT">
       <UniqueIdentifier>{9ac7d92a-8a9d-4e7c-b108-09d915244278}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="DynamicHooks">
+      <UniqueIdentifier>{3890da14-9ad1-40fa-9d3e-086470be057f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="DynamicHooks\conventions">
+      <UniqueIdentifier>{fd087576-16c9-419d-a3a2-98faaf5dada6}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
 </Project>

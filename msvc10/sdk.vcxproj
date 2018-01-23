@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+<Project DefaultTargets="Build" ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug|Win32">
       <Configuration>Debug</Configuration>
@@ -14,17 +14,18 @@
     <ProjectGuid>{B3E797CF-4E77-4C9D-B8A8-7589B6902206}</ProjectGuid>
     <RootNamespace>sdk</RootNamespace>
     <Keyword>Win32Proj</Keyword>
+    <WindowsTargetPlatformVersion>10.0.16299.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
     <ConfigurationType>DynamicLibrary</ConfigurationType>
-    <PlatformToolset>v120</PlatformToolset>
+    <PlatformToolset>v141</PlatformToolset>
     <CharacterSet>MultiByte</CharacterSet>
     <WholeProgramOptimization>true</WholeProgramOptimization>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
     <ConfigurationType>DynamicLibrary</ConfigurationType>
-    <PlatformToolset>v110</PlatformToolset>
+    <PlatformToolset>v141</PlatformToolset>
     <CharacterSet>MultiByte</CharacterSet>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
@@ -55,7 +56,7 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
       <Optimization>Disabled</Optimization>
-      <AdditionalIncludeDirectories>..;..\sdk;$(MMSOURCE10)\core;$(MMSOURCE10)\core\sourcehook;$(SOURCEMOD)\public;$(SOURCEMOD)\public\sourcepawn;$(SOURCEMOD)\public\extensions;$(SOURCEMOD)\public\jit;$(SOURCEMOD)sourcemod-central\sourcepawn\vm\x86;$(SOURCEMOD)\public\amtl</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..;..\sdk;$(MMSOURCE10)\core;$(MMSOURCE10)\core\sourcehook;$(SOURCEMOD)\public;$(SOURCEMOD)\sourcepawn\include;$(SOURCEMOD)\public\extensions;$(SOURCEMOD)\sourcepawn\vm;$(SOURCEMOD)\sourcepawn\vm\x86;$(SOURCEMOD)\public\amtl\amtl;$(SOURCEMOD)\public\amtl;..\DynamicHooks</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>WIN32;NDEBUG;_WINDOWS;_USRDLL;SDK_EXPORTS;_CRT_SECURE_NO_DEPRECATE;SOURCEMOD_BUILD;COMPILER_MSVC;COMPILER_MSVC32;META_NO_HL2SDK;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <MinimalRebuild>true</MinimalRebuild>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
@@ -80,7 +81,7 @@
     <ClCompile>
       <AdditionalOptions>/MP /D SE_EPISODEONE=1 /D SE_DARKMESSIAH=2 /D SE_ORANGEBOX=3 /D SE_BLOODYGOODTIME=4 /D SE_EYE=5 /D SE_ORANGEBOXVALVE=6 /D SE_LEFT4DEAD=7 /D SE_LEFT4DEAD2=8 /D SE_ALIENSWARM=9 /D SE_PORTAL2=10 /D SE_CSGO=11 %(AdditionalOptions)</AdditionalOptions>
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
-      <AdditionalIncludeDirectories>..;..\sdk;$(MMSOURCE110)\core;$(MMSOURCE110)\core\sourcehook;$(SOURCEMOD18)\public;$(SOURCEMOD18)\sourcepawn;$(SOURCEMOD18)\sourcepawn\include;$(SOURCEMOD18)\public\extensions;$(SOURCEMOD18)\sourcepawn\vm;$(SOURCEMOD18)\sourcepawn\vm\x86;$(SOURCEMOD18)\public\amtl\amtl;$(SOURCEMOD18)\public\amtl</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..;..\sdk;$(MMSOURCE10)\core;$(MMSOURCE10)\core\sourcehook;$(SOURCEMOD)\public;$(SOURCEMOD)\sourcepawn\include;$(SOURCEMOD)\public\extensions;$(SOURCEMOD)\sourcepawn\vm;$(SOURCEMOD)\sourcepawn\vm\x86;$(SOURCEMOD)\public\amtl\amtl;$(SOURCEMOD)\public\amtl;..\DynamicHooks</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>WIN32;NDEBUG;_WINDOWS;_USRDLL;SDK_EXPORTS;_CRT_SECURE_NO_DEPRECATE;SOURCEMOD_BUILD;COMPILER_MSVC;COMPILER_MSVC32;META_NO_HL2SDK;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <EnableEnhancedInstructionSet>NotSet</EnableEnhancedInstructionSet>
@@ -106,15 +107,25 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="$(SOURCEMOD18)\sourcepawn\vm\x86\assembler-x86.cpp" />
+    <ClCompile Include="$(SOURCEMOD)\public\smsdk_ext.cpp" />
+    <ClCompile Include="$(SOURCEMOD)\sourcepawn\vm\x86\assembler-x86.cpp" />
+    <ClCompile Include="..\DynamicHooks\asm.cpp" />
+    <ClCompile Include="..\DynamicHooks\conventions\x86MsCdecl.cpp" />
+    <ClCompile Include="..\DynamicHooks\conventions\x86MsStdcall.cpp" />
+    <ClCompile Include="..\DynamicHooks\conventions\x86MsThiscall.cpp" />
+    <ClCompile Include="..\DynamicHooks\hook.cpp" />
+    <ClCompile Include="..\DynamicHooks\manager.cpp" />
+    <ClCompile Include="..\DynamicHooks\registers.cpp" />
+    <ClCompile Include="..\DynamicHooks\utilities.cpp" />
+    <ClCompile Include="..\dynhooks_sourcepawn.cpp" />
     <ClCompile Include="..\extension.cpp" />
     <ClCompile Include="..\listeners.cpp" />
     <ClCompile Include="..\natives.cpp" />
     <ClCompile Include="..\util.cpp" />
     <ClCompile Include="..\vhook.cpp" />
-    <ClCompile Include="$(SOURCEMOD18)\public\smsdk_ext.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="$(SOURCEMOD)\public\smsdk_ext.h" />
     <ClInclude Include="..\extension.h" />
     <ClInclude Include="..\listeners.h" />
     <ClInclude Include="..\natives.h" />
@@ -123,7 +134,6 @@
     <ClInclude Include="..\vfunc_call.h" />
     <ClInclude Include="..\vhook.h" />
     <ClInclude Include="..\sdk\smsdk_config.h" />
-    <ClInclude Include="$(SOURCEMOD18)\public\smsdk_ext.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
