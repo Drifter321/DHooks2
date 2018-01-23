@@ -277,7 +277,7 @@ ReturnAction_t HandleDetour(HookType_t hookType, CHook* pDetour)
 		ke::AutoPtr<void> tempRetBuf(new uint8_t[pDetour->m_pCallingConvention->m_returnType.size]);
 
 		// Find the this pointer.
-		if (pWrapper->callConv == CallConv_THISCALL)
+		if (pWrapper->callConv == CallConv_THISCALL && pWrapper->thisType != ThisPointer_Ignore)
 		{
 			void *thisPtr = pDetour->GetArgument<void *>(0);
 			cell_t thisAddr = GetThisPtr(thisPtr, pWrapper->thisType);
