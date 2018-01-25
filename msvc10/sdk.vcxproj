@@ -121,6 +121,7 @@
     <ClCompile Include="..\extension.cpp" />
     <ClCompile Include="..\listeners.cpp" />
     <ClCompile Include="..\natives.cpp" />
+    <ClCompile Include="..\signatures.cpp" />
     <ClCompile Include="..\util.cpp" />
     <ClCompile Include="..\vhook.cpp" />
   </ItemGroup>

@@ -33,14 +33,17 @@ public void OnPluginStart()
 	PrintToServer("CFlashbangProjectile::Detonate detoured!");
 	
 
-	hFlashbangDeafen = DHookCreateDetour(Address_Null, CallConv_THISCALL, ReturnType_Void, ThisPointer_CBaseEntity);
+	hFlashbangDeafen = DHookCreateFromConf(temp, "Deafen");
+	if (!hFlashbangDeafen)
+		SetFailState("Failed to setup detour for Deafen");
+	/*hFlashbangDeafen = DHookCreateDetour(Address_Null, CallConv_THISCALL, ReturnType_Void, ThisPointer_CBaseEntity);
 	if (!hFlashbangDeafen)
 		SetFailState("Failed to setup detour for Deafen");
 	
 	if (!DHookSetFromConf(hFlashbangDeafen, temp, SDKConf_Signature, "Deafen"))
 		SetFailState("Failed to load Deafen signature from gamedata");
 	
-	DHookAddParam(hFlashbangDeafen, HookParamType_Float, .custom_register=DHookRegister_XMM1);
+	DHookAddParam(hFlashbangDeafen, HookParamType_Float, .custom_register=DHookRegister_XMM1);*/
 	
 	if (!DHookEnableDetour(hFlashbangDeafen, false, Detour_OnDeafen))
 		SetFailState("Failed to detour Deafen.");

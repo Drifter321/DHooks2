@@ -1,6 +1,7 @@
 #include "natives.h"
 #include "util.h"
 #include "dynhooks_sourcepawn.h"
+#include "signatures.h"
 
 // Must match same enum in sdktools.inc
 enum SDKFuncConfSource
@@ -48,7 +49,7 @@ cell_t Native_CreateHook(IPluginContext *pContext, const cell_t *params)
 	return hndl;
 }
 
-//native Handle:DHookCreateDetour(Address:funcaddr, CallingConvention callConv, ReturnType:returntype, ThisPointerType:thistype);
+//native Handle:DHookCreateDetour(Address:funcaddr, CallingConvention:callConv, ReturnType:returntype, ThisPointerType:thistype);
 cell_t Native_CreateDetour(IPluginContext *pContext, const cell_t *params)
 {
 	HookSetup *setup = new HookSetup((ReturnType)params[3], PASSFLAG_BYVAL, (CallingConvention)params[2], (ThisPointerType)params[4], (void *)params[1]);
@@ -64,6 +65,86 @@ cell_t Native_CreateDetour(IPluginContext *pContext, const cell_t *params)
 	return hndl;
 }
 
+// native Handle:DHookCreateFromConf(Handle:gameconf, const String:function[], DHookCallback:callback=INVALID_FUNCTION);
+cell_t Native_DHookCreateFromConf(IPluginContext *pContext, const cell_t *params)
+{
+	IGameConfig *conf;
+	HandleError err;
+	if ((conf = gameconfs->ReadHandle(params[1], pContext->GetIdentity(), &err)) == nullptr)
+	{
+		return pContext->ThrowNativeError("Invalid Handle %x (error %d)", params[1], err);
+	}
+
+	char *function;
+	pContext->LocalToString(params[2], &function);
+
+	SignatureWrapper *sig = g_pSignatures->GetFunctionSignature(function);
+	if (!sig)
+	{
+		return pContext->ThrowNativeError("Function signature \"%s\" was not found.", function);
+	}
+
+	IPluginFunction *callback = nullptr;
+	if (params[3] != -1)
+	{
+		callback = pContext->GetFunctionById(params[3]);
+		if (!callback)
+			return pContext->ThrowNativeError("Failed to find callback function.");
+	}
+
+	HookSetup *setup = nullptr;
+	// This is a virtual hook.
+	if (sig->offset.length() > 0)
+	{
+		int offset;
+		if (!conf->GetOffset(sig->offset.chars(), &offset))
+		{
+			return BAD_HANDLE;
+		}
+
+		setup = new HookSetup(sig->retType, PASSFLAG_BYVAL, sig->hookType, sig->thisType, offset, callback);
+	}
+	// This is a detour.
+	else
+	{
+		void *addr = nullptr;;
+		if (sig->signature.length() > 0)
+		{
+			if (!conf->GetMemSig(sig->signature.chars(), &addr) || !addr)
+			{
+				return BAD_HANDLE;
+			}
+		}
+		else
+		{
+			if (!conf->GetAddress(sig->address.chars(), &addr) || !addr)
+			{
+				return BAD_HANDLE;
+			}
+		}
+
+		setup = new HookSetup(sig->retType, PASSFLAG_BYVAL, sig->callConv, sig->thisType, addr);
+	}
+
+	// Push all the arguments.
+	auto args = sig->args.iter();
+	while (!args.empty())
+	{
+		ParamInfo info = args->value;
+		setup->params.push_back(info);
+		args.next();
+	}
+
+	// Create the handle to hold this setup.
+	Handle_t hndl = handlesys->CreateHandle(g_HookSetupHandle, setup, pContext->GetIdentity(), myself->GetIdentity(), NULL);
+	if (!hndl)
+	{
+		delete setup;
+		return pContext->ThrowNativeError("Failed to create hook");
+	}
+
+	return hndl;
+}
 
 //native bool:DHookSetFromConf(Handle:setup, Handle:gameconf, SDKFuncConfSource:source, const String:name[]);
 cell_t Native_SetFromConf(IPluginContext *pContext, const cell_t *params)
@@ -1232,10 +1313,11 @@ sp_nativeinfo_t g_Natives[] =
 {
 	{"DHookCreate",							Native_CreateHook},
 	{"DHookCreateDetour",					Native_CreateDetour},
-	{"DHookSetFromConf",					Native_SetFromConf },
+	{"DHookCreateFromConf",					Native_DHookCreateFromConf},
+	{"DHookSetFromConf",					Native_SetFromConf},
 	{"DHookAddParam",						Native_AddParam},
 	{"DHookEnableDetour",					Native_EnableDetour},
-	//{"DHookDisableDetour",					Native_DisableDetour},
+	{"DHookDisableDetour",					Native_DisableDetour},
 	{"DHookEntity",							Native_HookEntity},
 	{"DHookGamerules",						Native_HookGamerules},
 	{"DHookRaw",							Native_HookRaw},

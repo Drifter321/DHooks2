@@ -219,7 +219,7 @@ native bool DHookRemoveEntityListener(ListenType type, ListenCB callback);
  * @param callback		Callback function
  * 
  * @return Returns setup handle for the hook.
- * @error Failed to create hook setup handle.
+ * @error Failed to create hook setup handle or invalid callback function.
 */
 native Handle DHookCreate(int offset, HookType hooktype, ReturnType returntype, ThisPointerType thistype, DHookCallback callback);
 
@@ -238,6 +238,18 @@ native Handle DHookCreate(int offset, HookType hooktype, ReturnType returntype, 
 native Handle DHookCreateDetour(Address funcaddr, CallingConvention callConv, ReturnType returntype, ThisPointerType thisType);
 
 /**
+ * Setup a detour or hook for a function as described in a "Functions" section in gamedata.
+ *
+ * @param gameconf		GameConfig handle
+ * @param name			Name of the function in the gamedata to load.
+ * @param callback		Callback function (only required for virtual hooks - ignored for detours).
+ *
+ * @return				Setup handle for the detour or INVALID_HANDLE if offset/signature/address wasn't found.
+ * @error				Failed to create detour setup handle, invalid gamedata handle, invalid callback function or failed to find function in gamedata.
+ */
+native Handle DHookCreateFromConf(Handle gameconf, const char[] name, DHookCallback callback=INVALID_FUNCTION);
+
+/**
  * Load details for a vhook or detour from a gamedata file.
  *
  * @param setup			Hook setup handle to set the offset or address on.
@@ -246,7 +258,7 @@ native Handle DHookCreateDetour(Address funcaddr, CallingConvention callConv, Re
  * @param name			Name of the property to find.
  *
  * @return				True on success, false if nothing was found.
- * @error				Invalid setup handle.
+ * @error				Invalid setup or gamedata handle.
  */
 native bool DHookSetFromConf(Handle setup, Handle gameconf, SDKFuncConfSource source, const char[] name);
 

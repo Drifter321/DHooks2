@@ -255,6 +255,7 @@ program.sources += [
   'extension.cpp',
   'listeners.cpp',
   'natives.cpp',
+  'signatures.cpp',
   'vhook.cpp',
   'util.cpp',
   'dynhooks_sourcepawn.cpp',

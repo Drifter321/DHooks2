@@ -1,6 +1,7 @@
 #include "extension.h"
 #include "listeners.h"
 #include "dynhooks_sourcepawn.h"
+#include "signatures.h"
 
 DHooks g_DHooksIface;		/**< Global singleton for extension's main interface */
 SMEXT_LINK(&g_DHooksIface);
@@ -57,6 +58,7 @@ bool DHooks::SDK_OnLoad(char *error, size_t maxlength, bool late)
 	sharesys->AddNatives(myself, g_Natives);
 
 	g_pEntityListener = new DHooksEntityListener();
+	g_pSignatures = new SignatureGameConfig();
 
 	return true;
 }
@@ -84,6 +86,7 @@ void DHooks::SDK_OnAllLoaded()
 	SM_GET_LATE_IFACE(SDKHOOKS, g_pSDKHooks);
 
 	g_pSDKHooks->AddEntityListener(g_pEntityListener);
+	gameconfs->AddUserConfigHook("Functions", g_pSignatures);
 }
 
 void DHooks::SDK_OnUnload()
@@ -101,6 +104,8 @@ void DHooks::SDK_OnUnload()
 	handlesys->RemoveType(g_HookSetupHandle, myself->GetIdentity());
 	handlesys->RemoveType(g_HookParamsHandle, myself->GetIdentity());
 	handlesys->RemoveType(g_HookReturnHandle, myself->GetIdentity());
+
+	gameconfs->RemoveUserConfigHook("Functions", g_pSignatures);
 }
 
 bool DHooks::SDK_OnMetamodLoad(ISmmAPI *ismm, char *error, size_t maxlength, bool late)

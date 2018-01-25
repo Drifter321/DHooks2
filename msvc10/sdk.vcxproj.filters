@@ -37,6 +37,7 @@
     <ClCompile Include="..\DynamicHooks\conventions\x86MsThiscall.cpp">
       <Filter>DynamicHooks\conventions</Filter>
     </ClCompile>
+    <ClCompile Include="..\signatures.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\extension.h">
