@@ -54,7 +54,7 @@ public OnPluginStart()
 	hGetModelName = DHookCreate(offset, HookType_Entity, ReturnType_String, ThisPointer_CBaseEntity, GetModelName);
 	
 	offset = GameConfGetOffset(temp, "GetMaxs");
-	hGetMaxs = DHookCreate(offset, HookType_Entity, ReturnType_Vector, ThisPointer_Ignore, GetMaxsPost);
+	hGetMaxs = DHookCreate(offset, HookType_Entity, ReturnType_Vector, ThisPointer_Ignore);
 	
 	offset = GameConfGetOffset(temp, "CanUse");
 	hHookCanUse = DHookCreate(offset, HookType_Entity, ReturnType_Bool, ThisPointer_CBaseEntity, CanUsePost);
@@ -78,7 +78,7 @@ public OnPluginStart()
 	DHookAddParam(hAcceptInput, HookParamType_Int);
 		
 	offset = GameConfGetOffset(temp, "GetMaxPlayerSpeed");
-	hGetSpeed = DHookCreate(offset, HookType_Entity, ReturnType_Float, ThisPointer_CBaseEntity, GetMaxPlayerSpeedPost);
+	hGetSpeed = DHookCreate(offset, HookType_Entity, ReturnType_Float, ThisPointer_CBaseEntity);
 		
 	offset = GameConfGetOffset(temp, "GiveAmmo");
 	hGiveAmmo = DHookCreate(offset, HookType_Entity, ReturnType_Int, ThisPointer_CBaseEntity, GiveAmmo);
@@ -161,11 +161,11 @@ public OnClientPutInServer(client)
 {
 	DHookEntity(hSetModel, false, client, RemovalCB);
 	DHookEntity(hHookCanUse, true, client, RemovalCB);
-	DHookEntity(hGetSpeed, true, client, RemovalCB);
+	DHookEntity(hGetSpeed, true, client, RemovalCB, GetMaxPlayerSpeedPost);
 	DHookEntity(hGiveAmmo, false, client);
 	DHookEntity(hGetModelName, true, client);
 	DHookEntity(hTakeDamage, false, client);
-	DHookEntity(hGetMaxs, true, client, RemovalCB);
+	DHookEntity(hGetMaxs, true, client, _ , GetMaxsPost);
 	DHookEntity(hBloodColor, true, client);
 }
 

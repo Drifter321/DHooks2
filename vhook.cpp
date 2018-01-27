@@ -14,13 +14,13 @@ using namespace SourceHook;
 #define OBJECT_OFFSET (sizeof(void *)*2)
 #endif
 
-DHooksManager::DHooksManager(HookSetup *setup, void *iface, IPluginFunction *remove_callback, bool post)
+DHooksManager::DHooksManager(HookSetup *setup, void *iface, IPluginFunction *remove_callback, IPluginFunction *plugincb, bool post)
 {
 	this->callback = MakeHandler(setup->returnType);
 	this->hookid = 0;
 	this->remove_callback = remove_callback;
 	this->callback->offset = setup->offset;
-	this->callback->plugin_callback = setup->callback;
+	this->callback->plugin_callback = plugincb;
 	this->callback->returnFlag = setup->returnFlag;
 	this->callback->thisType = setup->thisType;
 	this->callback->post = post;

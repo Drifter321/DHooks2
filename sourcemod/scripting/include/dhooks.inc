@@ -174,7 +174,7 @@ native bool DHookRemoveEntityListener(ListenType type, ListenCB callback);
  * 
  * @return Returns setup handle for the hook or INVALID_HANDLE.
 */
-native Handle DHookCreate(int offset, HookType hooktype, ReturnType returntype, ThisPointerType thistype, DHookCallback callback);
+native Handle DHookCreate(int offset, HookType hooktype, ReturnType returntype, ThisPointerType thistype, DHookCallback callback=INVALID_FUNCTION);
 
 /* Adds param to a hook setup
  *
@@ -199,7 +199,7 @@ native void DHookAddParam(Handle setup, HookParamType type, int size=-1, DHookPa
  * @error Invalid setup handle, invalid entity or invalid hook type.
  * @return -1 on fail a hookid on success
 */
-native int DHookEntity(Handle setup, bool post, int entity, DHookRemovalCB removalcb=INVALID_FUNCTION);
+native int DHookEntity(Handle setup, bool post, int entity, DHookRemovalCB removalcb=INVALID_FUNCTION, DHookCallback callback=INVALID_FUNCTION);
 
 /* Hook gamerules
  * 
@@ -210,7 +210,7 @@ native int DHookEntity(Handle setup, bool post, int entity, DHookRemovalCB remov
  * @error Invalid setup handle, failing to get gamerules pointer or invalid hook type.
  * @return -1 on fail a hookid on success
 */
-native int DHookGamerules(Handle setup, bool post, DHookRemovalCB removalcb=INVALID_FUNCTION);
+native int DHookGamerules(Handle setup, bool post, DHookRemovalCB removalcb=INVALID_FUNCTION, DHookCallback callback=INVALID_FUNCTION);
 
 /* Hook a raw pointer
  * 
@@ -222,7 +222,7 @@ native int DHookGamerules(Handle setup, bool post, DHookRemovalCB removalcb=INVA
  * @error Invalid setup handle, invalid address or invalid hook type.
  * @return -1 on fail a hookid on success
 */
-native int DHookRaw(Handle setup, bool post, Address addr, DHookRemovalCB removalcb=INVALID_FUNCTION);
+native int DHookRaw(Handle setup, bool post, Address addr, DHookRemovalCB removalcb=INVALID_FUNCTION, DHookCallback callback=INVALID_FUNCTION);
 
 /* Remove hook by hook id
  * 
