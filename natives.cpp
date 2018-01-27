@@ -18,14 +18,26 @@ bool GetHandleIfValidOrError(HandleType_t type, void **object, IPluginContext *p
 	return true;
 }
 
+IPluginFunction *GetCallback(IPluginContext *pContext, HookSetup * setup, const cell_t *params, unsigned int callback_index)
+{
+	IPluginFunction *ret = NULL;
+
+	if (params[0] >= callback_index)
+	{
+		ret = pContext->GetFunctionById(params[callback_index]);
+	}
+
+	if (!ret && setup->callback)
+	{
+		ret = setup->callback;
+	}
+
+	return ret;
+}
+
 //native Handle:DHookCreate(offset, HookType:hooktype, ReturnType:returntype, ThisPointerType:thistype, DHookCallback:callback);
 cell_t Native_CreateHook(IPluginContext *pContext, const cell_t *params)
 {
-	if(!pContext->GetFunctionById(params[5]))
-	{
-		return pContext->ThrowNativeError("Failed to retrieve function by id");
-	}
-
 	HookSetup *setup = new HookSetup((ReturnType)params[3], PASSFLAG_BYVAL, (HookType)params[2], (ThisPointerType)params[4], params[1], pContext->GetFunctionById(params[5]));
 
 	Handle_t hndl = handlesys->CreateHandle(g_HookSetupHandle, setup, pContext->GetIdentity(), myself->GetIdentity(), NULL);
@@ -80,7 +92,7 @@ cell_t Native_AddParam(IPluginContext *pContext, const cell_t *params)
 
 	return 1;
 }
-// native DHookEntity(Handle:setup, bool:post, entity, DHookRemovalCB:removalcb);
+// native DHookEntity(Handle:setup, bool:post, entity, DHookRemovalCB:removalcb, DHookCallback:callback);
 cell_t Native_HookEntity(IPluginContext *pContext, const cell_t *params)
 {
 	HookSetup *setup;
@@ -111,7 +123,14 @@ cell_t Native_HookEntity(IPluginContext *pContext, const cell_t *params)
 		return pContext->ThrowNativeError("Invalid entity passed %i", params[2]);
 	}
 
-	DHooksManager *manager = new DHooksManager(setup, pEnt, pContext->GetFunctionById(params[4]), post);
+	IPluginFunction *cb = GetCallback(pContext, setup, params, 5);
+
+	if (!cb)
+	{
+		pContext->ThrowNativeError("Failed to hook entity %i, no callback provided", params[2]);
+	}
+
+	DHooksManager *manager = new DHooksManager(setup, pEnt, pContext->GetFunctionById(params[4]), cb, post);
 
 	if(!manager->hookid)
 	{
@@ -123,7 +142,7 @@ cell_t Native_HookEntity(IPluginContext *pContext, const cell_t *params)
 
 	return manager->hookid;
 }
-// native DHookGamerules(Handle:setup, bool:post, DHookRemovalCB:removalcb);
+// native DHookGamerules(Handle:setup, bool:post, DHookRemovalCB:removalcb, DHookCallback:callback);
 cell_t Native_HookGamerules(IPluginContext *pContext, const cell_t *params)
 {
 	HookSetup *setup;
@@ -156,7 +175,14 @@ cell_t Native_HookGamerules(IPluginContext *pContext, const cell_t *params)
 		return pContext->ThrowNativeError("Could not get gamerules pointer");
 	}
 
-	DHooksManager *manager = new DHooksManager(setup, rules, pContext->GetFunctionById(params[3]), post);
+	IPluginFunction *cb = GetCallback(pContext, setup, params, 4);
+
+	if (!cb)
+	{
+		pContext->ThrowNativeError("Failed to hook gamerules, no callback provided");
+	}
+
+	DHooksManager *manager = new DHooksManager(setup, rules, pContext->GetFunctionById(params[3]), cb, post);
 
 	if(!manager->hookid)
 	{
@@ -168,7 +194,7 @@ cell_t Native_HookGamerules(IPluginContext *pContext, const cell_t *params)
 
 	return manager->hookid;
 }
-// DHookRaw(Handle:setup, bool:post, Address:addr, DHookRemovalCB:removalcb);
+// DHookRaw(Handle:setup, bool:post, Address:addr, DHookRemovalCB:removalcb, DHookCallback:callback);
 cell_t Native_HookRaw(IPluginContext *pContext, const cell_t *params)
 {
 	HookSetup *setup;
@@ -200,7 +226,14 @@ cell_t Native_HookRaw(IPluginContext *pContext, const cell_t *params)
 		return pContext->ThrowNativeError("Invalid address passed");
 	}
 
-	DHooksManager *manager = new DHooksManager(setup, iface, pContext->GetFunctionById(params[4]), post);
+	IPluginFunction *cb = GetCallback(pContext, setup, params, 5);
+
+	if (!cb)
+	{
+		pContext->ThrowNativeError("Failed to hook address, no callback provided");
+	}
+
+	DHooksManager *manager = new DHooksManager(setup, iface, pContext->GetFunctionById(params[4]), cb, post);
 
 	if(!manager->hookid)
 	{
