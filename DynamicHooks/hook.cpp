@@ -95,7 +95,8 @@ CHook::~CHook()
 	copy_bytes((unsigned char *) m_pTrampoline, (unsigned char *) m_pFunc, JMP_SIZE);
 
 	// Free the trampoline array
-	delete [] m_pTrampoline;
+	unsigned char* pTrampoline = (unsigned char *)m_pTrampoline;
+	delete [] pTrampoline;
 
 	// Free the asm bridge and new return address
 	smutils->GetScriptingEngine()->FreePageMemory(m_pBridge);

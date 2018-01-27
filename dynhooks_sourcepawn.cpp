@@ -266,7 +266,7 @@ ReturnAction_t HandleDetour(HookType_t hookType, CHook* pDetour)
 
 	int argNum = pDetour->m_pCallingConvention->m_vecArgTypes.length();
 	ReturnAction_t finalRet = ReturnAction_Ignored;
-	ke::AutoPtr<void> finalRetBuf(new uint8_t[pDetour->m_pCallingConvention->m_returnType.size]);
+	ke::AutoPtr<uint8_t> finalRetBuf(new uint8_t[pDetour->m_pCallingConvention->m_returnType.size]);
 
 	// Call all the plugin functions..
 	for (size_t i = 0; i < wrappers->length(); i++)
@@ -274,7 +274,7 @@ ReturnAction_t HandleDetour(HookType_t hookType, CHook* pDetour)
 		CDynamicHooksSourcePawn *pWrapper = wrappers->at(i);
 		IPluginFunction *pCallback = pWrapper->plugin_callback;
 		ReturnAction_t tempRet = ReturnAction_Ignored;
-		ke::AutoPtr<void> tempRetBuf(new uint8_t[pDetour->m_pCallingConvention->m_returnType.size]);
+		ke::AutoPtr<uint8_t> tempRetBuf(new uint8_t[pDetour->m_pCallingConvention->m_returnType.size]);
 
 		// Find the this pointer.
 		if (pWrapper->callConv == CallConv_THISCALL && pWrapper->thisType != ThisPointer_Ignore)
@@ -349,7 +349,7 @@ ReturnAction_t HandleDetour(HookType_t hookType, CHook* pDetour)
 				{
 					if (pWrapper->returnType == ReturnType_String || pWrapper->returnType == ReturnType_Int || pWrapper->returnType == ReturnType_Bool)
 					{
-						tempRetBuf = *(void **)returnStruct->newResult;
+						tempRetBuf = *(uint8_t **)returnStruct->newResult;
 					}
 					else if (pWrapper->returnType == ReturnType_Float)
 					{
@@ -357,7 +357,7 @@ ReturnAction_t HandleDetour(HookType_t hookType, CHook* pDetour)
 					}
 					else
 					{
-						tempRetBuf = returnStruct->newResult;
+						tempRetBuf = (uint8_t *)returnStruct->newResult;
 					}
 				}
 				else //Throw an error if no override was set
@@ -378,7 +378,7 @@ ReturnAction_t HandleDetour(HookType_t hookType, CHook* pDetour)
 					tempRet = ReturnAction_Override;
 					if (pWrapper->returnType == ReturnType_String || pWrapper->returnType == ReturnType_Int || pWrapper->returnType == ReturnType_Bool)
 					{
-						tempRetBuf = *(void **)returnStruct->newResult;
+						tempRetBuf = *(uint8_t **)returnStruct->newResult;
 					}
 					else if (pWrapper->returnType == ReturnType_Float)
 					{
@@ -386,7 +386,7 @@ ReturnAction_t HandleDetour(HookType_t hookType, CHook* pDetour)
 					}
 					else
 					{
-						tempRetBuf = returnStruct->newResult;
+						tempRetBuf = (uint8_t *)returnStruct->newResult;
 					}
 				}
 				else //Throw an error if no override was set
@@ -404,7 +404,7 @@ ReturnAction_t HandleDetour(HookType_t hookType, CHook* pDetour)
 					tempRet = ReturnAction_Supercede;
 					if (pWrapper->returnType == ReturnType_String || pWrapper->returnType == ReturnType_Int || pWrapper->returnType == ReturnType_Bool)
 					{
-						tempRetBuf = *(void **)returnStruct->newResult;
+						tempRetBuf = *(uint8_t **)returnStruct->newResult;
 					}
 					else if (pWrapper->returnType == ReturnType_Float)
 					{
@@ -412,7 +412,7 @@ ReturnAction_t HandleDetour(HookType_t hookType, CHook* pDetour)
 					}
 					else
 					{
-						tempRetBuf = returnStruct->newResult;
+						tempRetBuf = (uint8_t *)returnStruct->newResult;
 					}
 				}
 				else //Throw an error if no override was set

@@ -270,7 +270,7 @@ SMCResult SignatureGameConfig::ReadSMC_KeyValue(const SMCStates *states, const c
 		}
 		else if (!strcmp(key, "flags"))
 		{
-			size_t flags;
+			size_t flags = 0;
 			if (strstr(value, "byval"))
 				flags |= PASSFLAG_BYVAL;
 			else if (strstr(value, "byref"))
