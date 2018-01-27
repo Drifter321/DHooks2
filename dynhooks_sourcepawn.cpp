@@ -582,7 +582,7 @@ HookParamsStruct *CDynamicHooksSourcePawn::GetParamStruct()
 		memcpy(params->orgParams, pArgPtr, stackSize);
 	}
 
-	memset(params->newParams, NULL, paramsSize);
+	memset(params->newParams, 0, paramsSize);
 	memset(params->isChanged, false, numArgs * sizeof(bool));
 
 	int firstArg = 0;

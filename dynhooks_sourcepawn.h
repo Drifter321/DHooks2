@@ -24,7 +24,7 @@ public:
 	CDynamicHooksSourcePawn(HookSetup *setup, CHook *pDetour, IPluginFunction *pCallback, bool post);
 
 	HookReturnStruct *GetReturnStruct();
-	HookParamsStruct *CDynamicHooksSourcePawn::GetParamStruct();
+	HookParamsStruct *GetParamStruct();
 	void UpdateParamsFromStruct(HookParamsStruct *params);
 
 public:
