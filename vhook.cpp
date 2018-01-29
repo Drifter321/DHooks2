@@ -354,7 +354,6 @@ void *Callback(DHooksCallback *dg, void **argStack)
 			g_SHPtr->SetRes(MRES_SUPERCEDE);
 			mres = MRES_SUPERCEDE;
 			ret = CallVFunction<void *>(dg, paramStruct, g_SHPtr->GetIfacePtr());
-			g_SHPtr->EndContext(NULL);
 			break;
 		case MRES_ChangedOverride:
 			if(dg->returnType != ReturnType_Void)
@@ -382,7 +381,6 @@ void *Callback(DHooksCallback *dg, void **argStack)
 			g_SHPtr->SetRes(MRES_SUPERCEDE);
 			mres = MRES_SUPERCEDE;
 			CallVFunction<void *>(dg, paramStruct, g_SHPtr->GetIfacePtr());
-			g_SHPtr->EndContext(NULL);
 			break;
 		case MRES_Override:
 			if(dg->returnType != ReturnType_Void)
@@ -436,7 +434,6 @@ void *Callback(DHooksCallback *dg, void **argStack)
 				g_SHPtr->DoRecall();
 				g_SHPtr->SetRes(MRES_SUPERCEDE);
 				mres = MRES_SUPERCEDE;
-				g_SHPtr->EndContext(NULL);
 			}
 			break;
 		default:
@@ -538,7 +535,6 @@ float Callback_float(DHooksCallback *dg, void **argStack)
 			g_SHPtr->SetRes(MRES_SUPERCEDE);
 			mres = MRES_SUPERCEDE;
 			*(float *)ret = CallVFunction<float>(dg, paramStruct, g_SHPtr->GetIfacePtr());
-			g_SHPtr->EndContext(NULL);
 			break;
 		case MRES_ChangedOverride:
 			if(dg->returnType != ReturnType_Void)
@@ -559,7 +555,6 @@ float Callback_float(DHooksCallback *dg, void **argStack)
 			g_SHPtr->SetRes(MRES_SUPERCEDE);
 			mres = MRES_SUPERCEDE;
 			CallVFunction<float>(dg, paramStruct, g_SHPtr->GetIfacePtr());
-			g_SHPtr->EndContext(NULL);
 			break;
 		case MRES_Override:
 			if(dg->returnType != ReturnType_Void)
@@ -697,7 +692,6 @@ SDKVector *Callback_vector(DHooksCallback *dg, void **argStack)
 			g_SHPtr->SetRes(MRES_SUPERCEDE);
 			mres = MRES_SUPERCEDE;
 			*vec_result = CallVFunction<SDKVector>(dg, paramStruct, g_SHPtr->GetIfacePtr());
-			g_SHPtr->EndContext(NULL);
 			break;
 		case MRES_ChangedOverride:
 			if(dg->returnType != ReturnType_Void)
@@ -718,7 +712,6 @@ SDKVector *Callback_vector(DHooksCallback *dg, void **argStack)
 			g_SHPtr->SetRes(MRES_SUPERCEDE);
 			mres = MRES_SUPERCEDE;
 			CallVFunction<SDKVector>(dg, paramStruct, g_SHPtr->GetIfacePtr());
-			g_SHPtr->EndContext(NULL);
 			break;
 		case MRES_Override:
 			if(dg->returnType != ReturnType_Void)
@@ -847,7 +840,6 @@ string_t *Callback_stringt(DHooksCallback *dg, void **argStack)
 			g_SHPtr->SetRes(MRES_SUPERCEDE);
 			mres = MRES_SUPERCEDE;
 			*string_result = CallVFunction<string_t>(dg, paramStruct, g_SHPtr->GetIfacePtr());
-			g_SHPtr->EndContext(NULL);
 			break;
 		case MRES_ChangedOverride:
 			if(dg->returnType != ReturnType_Void)
@@ -868,7 +860,6 @@ string_t *Callback_stringt(DHooksCallback *dg, void **argStack)
 			g_SHPtr->SetRes(MRES_SUPERCEDE);
 			mres = MRES_SUPERCEDE;
 			CallVFunction<SDKVector>(dg, paramStruct, g_SHPtr->GetIfacePtr());
-			g_SHPtr->EndContext(NULL);
 			break;
 		case MRES_Override:
 			if(dg->returnType != ReturnType_Void)
