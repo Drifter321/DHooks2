@@ -35,7 +35,7 @@ IPluginFunction *GetCallback(IPluginContext *pContext, HookSetup * setup, const 
 	return ret;
 }
 
-//native Handle:DHookCreate(offset, HookType:hooktype, ReturnType:returntype, ThisPointerType:thistype, DHookCallback:callback);
+//native Handle:DHookCreate(offset, HookType:hooktype, ReturnType:returntype, ThisPointerType:thistype, DHookCallback:callback = INVALID_FUNCTION); // Callback is now optional here.
 cell_t Native_CreateHook(IPluginContext *pContext, const cell_t *params)
 {
 	HookSetup *setup = new HookSetup((ReturnType)params[3], PASSFLAG_BYVAL, (HookType)params[2], (ThisPointerType)params[4], params[1], pContext->GetFunctionById(params[5]));
@@ -92,7 +92,7 @@ cell_t Native_AddParam(IPluginContext *pContext, const cell_t *params)
 
 	return 1;
 }
-// native DHookEntity(Handle:setup, bool:post, entity, DHookRemovalCB:removalcb, DHookCallback:callback);
+// native DHookEntity(Handle:setup, bool:post, entity, DHookRemovalCB:removalcb, DHookCallback:callback = INVALID_FUNCTION); // Both callbacks are optional
 cell_t Native_HookEntity(IPluginContext *pContext, const cell_t *params)
 {
 	HookSetup *setup;
@@ -142,7 +142,7 @@ cell_t Native_HookEntity(IPluginContext *pContext, const cell_t *params)
 
 	return manager->hookid;
 }
-// native DHookGamerules(Handle:setup, bool:post, DHookRemovalCB:removalcb, DHookCallback:callback);
+// native DHookGamerules(Handle:setup, bool:post, DHookRemovalCB:removalcb, DHookCallback:callback = INVALID_FUNCTION); // Both callbacks are optional
 cell_t Native_HookGamerules(IPluginContext *pContext, const cell_t *params)
 {
 	HookSetup *setup;
@@ -194,7 +194,7 @@ cell_t Native_HookGamerules(IPluginContext *pContext, const cell_t *params)
 
 	return manager->hookid;
 }
-// DHookRaw(Handle:setup, bool:post, Address:addr, DHookRemovalCB:removalcb, DHookCallback:callback);
+// DHookRaw(Handle:setup, bool:post, Address:addr, DHookRemovalCB:removalcb, DHookCallback:callback = INVALID_FUNCTION); // Both callbacks are optional
 cell_t Native_HookRaw(IPluginContext *pContext, const cell_t *params)
 {
 	HookSetup *setup;
