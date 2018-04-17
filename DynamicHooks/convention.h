@@ -158,11 +158,11 @@ public:
 		{
 			DataTypeSized_t &type = m_vecArgTypes[i];
 			if (!type.size)
-				type.size = GetDataTypeSize(type);
+				type.size = GetDataTypeSize(type, iAlignment);
 		}
 		m_returnType = returnType;
 		if (!m_returnType.size)
-			m_returnType.size = GetDataTypeSize(m_returnType);
+			m_returnType.size = GetDataTypeSize(m_returnType, iAlignment);
 		m_iAlignment = iAlignment;
 		m_pSavedReturnBuffer = malloc(m_returnType.size);
 	}
