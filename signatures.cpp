@@ -54,7 +54,7 @@ SMCResult SignatureGameConfig::ReadSMC_NewSection(const SMCStates *states, const
 		// We're already in a section for a different OS that we're ignoring. Can't have a section for our OS in here.
 		if (g_IgnoreLevel > 0)
 		{
-			smutils->LogError(myself, "Unreachable platform specific section in \"%s\" Function: line: %i col: %i", g_CurrentFunctionName, states->line, states->col);
+			smutils->LogError(myself, "Unreachable platform specific section in \"%s\" Function: line: %i col: %i", g_CurrentFunctionName.chars(), states->line, states->col);
 			return SMCResult_HaltFail;
 		}
 
@@ -79,7 +79,7 @@ SMCResult SignatureGameConfig::ReadSMC_NewSection(const SMCStates *states, const
 	{
 		if (g_PlatformOnlyState != PState_None)
 		{
-			smutils->LogError(myself, "Unreachable platform specific section in \"%s\" Function: line: %i col: %i", g_CurrentFunctionName, states->line, states->col);
+			smutils->LogError(myself, "Unreachable platform specific section in \"%s\" Function: line: %i col: %i", g_CurrentFunctionName.chars(), states->line, states->col);
 			return SMCResult_HaltFail;
 		}
 
@@ -338,7 +338,7 @@ SMCResult SignatureGameConfig::ReadSMC_LeavingSection(const SMCStates *states)
 
 		if (!g_CurrentSignature->address.length() && !g_CurrentSignature->signature.length())
 		{
-			smutils->LogError(myself, "Function \"%s\" doesn't have a \"signature\" nor \"address\" set: line: %i col: %i", g_CurrentFunctionName, states->line, states->col);
+			smutils->LogError(myself, "Function \"%s\" doesn't have a \"signature\" nor \"address\" set: line: %i col: %i", g_CurrentFunctionName.chars(), states->line, states->col);
 			return SMCResult_HaltFail;
 		}
 
