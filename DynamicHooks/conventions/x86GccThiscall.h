@@ -40,7 +40,19 @@
 // ============================================================================
 // >> CLASSES
 // ============================================================================
-typedef x86GccCdecl x86GccThiscall;
-
+class x86GccThiscall: public x86GccCdecl
+{
+public:
+	x86GccThiscall(ke::Vector<DataTypeSized_t> &vecArgTypes, DataTypeSized_t returnType, int iAlignment = 4) :
+		x86GccCdecl(vecArgTypes, returnType, iAlignment)
+	{
+		// Always add the |this| pointer.
+		DataTypeSized_t type;
+		type.type = DATA_TYPE_POINTER;
+		type.size = GetDataTypeSize(type, iAlignment);
+		type.custom_register = None;
+		m_vecArgTypes.insert(0, type);
+	}
+};
 
 #endif // _X86_GCC_THISCALL_H
