@@ -150,11 +150,17 @@ void* x86MsThiscall::GetArgumentPtr(int iIndex, CRegisters* pRegisters)
 		// TODO: Allow custom this register.
 		return pRegisters->m_ecx->m_pAddress;
 	}
+	
+	// The this pointer isn't explicitly defined as an argument.
+	iIndex--;
+	
+	if (iIndex < 0 || iIndex >= m_vecArgTypes.length())
+		return NULL;
 
 	// Check if this argument was passed in a register.
-	if (m_vecArgTypes[iIndex-1].custom_register != None)
+	if (m_vecArgTypes[iIndex].custom_register != None)
 	{
-		CRegister *pRegister = pRegisters->GetRegister(m_vecArgTypes[iIndex-1].custom_register);
+		CRegister *pRegister = pRegisters->GetRegister(m_vecArgTypes[iIndex].custom_register);
 		if (!pRegister)
 			return NULL;
 
@@ -162,7 +168,7 @@ void* x86MsThiscall::GetArgumentPtr(int iIndex, CRegisters* pRegisters)
 	}
 
 	int iOffset = 4;
-	for(int i=0; i < iIndex-1; i++)
+	for(int i=0; i < iIndex; i++)
 	{
 		if (m_vecArgTypes[i].custom_register == None)
 			iOffset += m_vecArgTypes[i].size;

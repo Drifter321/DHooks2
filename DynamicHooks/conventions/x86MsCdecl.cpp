@@ -129,6 +129,9 @@ int x86MsCdecl::GetArgRegisterSize()
 
 void* x86MsCdecl::GetArgumentPtr(int iIndex, CRegisters* pRegisters)
 {
+	if (iIndex < 0 || iIndex >= m_vecArgTypes.length())
+		return NULL;
+
 	// Check if this argument was passed in a register.
 	if (m_vecArgTypes[iIndex].custom_register != None)
 	{
