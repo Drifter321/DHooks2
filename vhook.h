@@ -238,7 +238,7 @@ public:
 class DHooksManager
 {
 public:
-	DHooksManager(HookSetup *setup, void *iface, IPluginFunction *remove_callback, bool post);
+	DHooksManager(HookSetup *setup, void *iface, IPluginFunction *remove_callback, IPluginFunction *plugincb, bool post);
 	~DHooksManager()
 	{
 		if(this->hookid)

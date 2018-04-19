@@ -75,7 +75,7 @@ void DHooksEntityListener::OnEntityDestroyed(CBaseEntity *pEntity)
 	for(int i = g_pHooks.length() -1; i >= 0; i--)
 	{
 		DHooksManager *manager = g_pHooks.at(i);
-		if(manager->callback->entity == entity)
+		if(manager->callback->hookType == HookType_Entity && manager->callback->entity == entity)
 		{
 			if(g_pRemoveList.length() == 0)
 			{

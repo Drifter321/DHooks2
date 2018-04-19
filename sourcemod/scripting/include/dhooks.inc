@@ -216,12 +216,12 @@ native bool DHookRemoveEntityListener(ListenType type, ListenCB callback);
  * @param hooktype		Type of hook
  * @param returntype	Type type of return
  * @param thistype		Type of this pointer or ignore (ignore can be used if not needed)
- * @param callback		Callback function
+ * @param callback		Optional callback function, if not set here must be set when hooking.
  * 
  * @return Returns setup handle for the hook.
  * @error Failed to create hook setup handle or invalid callback function.
 */
-native Handle DHookCreate(int offset, HookType hooktype, ReturnType returntype, ThisPointerType thistype, DHookCallback callback);
+native Handle DHookCreate(int offset, HookType hooktype, ReturnType returntype, ThisPointerType thistype, DHookCallback callback=INVALID_FUNCTION);
 
 /**
  * Creates a detour
@@ -298,8 +298,6 @@ native bool DHookDisableDetour(Handle setup, bool post, DHookCallback callback);
  * @noreturn
 */
 native void DHookAddParam(Handle setup, HookParamType type, int size=-1, DHookPassFlag flag=DHookPass_ByVal, DHookRegister custom_register=DHookRegister_Default);
-//native void DHookAddParam(Handle setup, HookParamType type, int size=-1, DHookPassFlag flag=DHookPass_ByVal);
-//native DHookAddParam(Handle:setup, HookParamType:type);
 
 /* Hook entity
  * 
@@ -307,22 +305,24 @@ native void DHookAddParam(Handle setup, HookParamType type, int size=-1, DHookPa
  * @param post			True to make the hook a post hook. (If you need to change the return value or need the return value use a post hook! If you need to change params and return use a pre and post hook!)
  * @param entity		Entity index to hook on.
  * @param removalcb		Callback for when the hook is removed (Entity hooks are auto-removed on entity destroyed and will call this callback)
+ * @param callback		Optional callback function, if not set here must be set when creating the hook.
  * 
- * @error Invalid setup handle, invalid entity or invalid hook type.
+ * @error Invalid setup handle, invalid address, invalid hook type or invalid callback.
  * @return -1 on fail a hookid on success
 */
-native int DHookEntity(Handle setup, bool post, int entity, DHookRemovalCB removalcb=INVALID_FUNCTION);
+native int DHookEntity(Handle setup, bool post, int entity, DHookRemovalCB removalcb=INVALID_FUNCTION, DHookCallback callback=INVALID_FUNCTION);
 
 /* Hook gamerules
  * 
  * @param setup			Setup handle to use to add the hook.
  * @param post			True to make the hook a post hook. (If you need to change the return value or need the return value use a post hook! If you need to change params and return use a pre and post hook!)
  * @param removalcb		Callback for when the hook is removed (Game rules hooks are auto-removed on map end and will call this callback)
+ * @param callback		Optional callback function, if not set here must be set when creating the hook.
  * 
- * @error Invalid setup handle, failing to get gamerules pointer or invalid hook type.
+ * @error Invalid setup handle, invalid address, invalid hook type or invalid callback.
  * @return -1 on fail a hookid on success
 */
-native int DHookGamerules(Handle setup, bool post, DHookRemovalCB removalcb=INVALID_FUNCTION);
+native int DHookGamerules(Handle setup, bool post, DHookRemovalCB removalcb=INVALID_FUNCTION, DHookCallback callback=INVALID_FUNCTION);
 
 /* Hook a raw pointer
  * 
@@ -330,11 +330,12 @@ native int DHookGamerules(Handle setup, bool post, DHookRemovalCB removalcb=INVA
  * @param post			True to make the hook a post hook. (If you need to change the return value or need the return value use a post hook! If you need to change params and return use a pre and post hook!)
  * @param addr			This pointer address.
  * @param removalcb		Callback for when the hook is removed (Entity hooks are auto-removed on entity destroyed and will call this callback)
+ * @param callback		Optional callback function, if not set here must be set when creating the hook.
  * 
- * @error Invalid setup handle, invalid address or invalid hook type.
+ * @error Invalid setup handle, invalid address, invalid hook type or invalid callback.
  * @return -1 on fail a hookid on success
 */
-native int DHookRaw(Handle setup, bool post, Address addr, DHookRemovalCB removalcb=INVALID_FUNCTION);
+native int DHookRaw(Handle setup, bool post, Address addr, DHookRemovalCB removalcb=INVALID_FUNCTION, DHookCallback callback=INVALID_FUNCTION);
 
 /* Remove hook by hook id
  * 
