@@ -73,8 +73,8 @@ public:
 	virtual void** GetStackArgumentPtr(CRegisters* pRegisters);
 	virtual int GetArgRegisterSize();
 	
-	virtual void* GetArgumentPtr(int iIndex, CRegisters* pRegisters);
-	virtual void ArgumentPtrChanged(int iIndex, CRegisters* pRegisters, void* pArgumentPtr);
+	virtual void* GetArgumentPtr(unsigned int iIndex, CRegisters* pRegisters);
+	virtual void ArgumentPtrChanged(unsigned int iIndex, CRegisters* pRegisters, void* pArgumentPtr);
 
 	virtual void* GetReturnPtr(CRegisters* pRegisters);
 	virtual void ReturnPtrChanged(CRegisters* pRegisters, void* pReturnPtr);

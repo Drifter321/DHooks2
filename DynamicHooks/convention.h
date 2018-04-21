@@ -200,11 +200,11 @@ public:
 	@param <pRegisters>:
 	A snapshot of all saved registers.
 	*/
-	virtual void* GetArgumentPtr(int iIndex, CRegisters* pRegisters) = 0;
+	virtual void* GetArgumentPtr(unsigned int iIndex, CRegisters* pRegisters) = 0;
 
 	/*
 	*/
-	virtual void ArgumentPtrChanged(int iIndex, CRegisters* pRegisters, void* pArgumentPtr) = 0;
+	virtual void ArgumentPtrChanged(unsigned int iIndex, CRegisters* pRegisters, void* pArgumentPtr) = 0;
 
 	/*
 	Returns a pointer to the return value.

@@ -135,7 +135,7 @@ int x86MsStdcall::GetArgRegisterSize()
 	return iArgRegisterSize;
 }
 
-void* x86MsStdcall::GetArgumentPtr(int iIndex, CRegisters* pRegisters)
+void* x86MsStdcall::GetArgumentPtr(unsigned int iIndex, CRegisters* pRegisters)
 {
 	if (iIndex < 0 || iIndex >= m_vecArgTypes.length())
 		return NULL;
@@ -150,8 +150,8 @@ void* x86MsStdcall::GetArgumentPtr(int iIndex, CRegisters* pRegisters)
 		return pRegister->m_pAddress;
 	}
 
-	int iOffset = 4;
-	for (int i = 0; i < iIndex; i++)
+	size_t iOffset = 4;
+	for (unsigned int i = 0; i < iIndex; i++)
 	{
 		if (m_vecArgTypes[i].custom_register == None)
 			iOffset += m_vecArgTypes[i].size;
@@ -160,7 +160,7 @@ void* x86MsStdcall::GetArgumentPtr(int iIndex, CRegisters* pRegisters)
 	return (void *)(pRegisters->m_esp->GetValue<unsigned long>() + iOffset);
 }
 
-void x86MsStdcall::ArgumentPtrChanged(int iIndex, CRegisters* pRegisters, void* pArgumentPtr)
+void x86MsStdcall::ArgumentPtrChanged(unsigned int iIndex, CRegisters* pRegisters, void* pArgumentPtr)
 {
 }
 
