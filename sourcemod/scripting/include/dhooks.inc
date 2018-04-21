@@ -242,12 +242,11 @@ native Handle DHookCreateDetour(Address funcaddr, CallingConvention callConv, Re
  *
  * @param gameconf		GameConfig handle
  * @param name			Name of the function in the gamedata to load.
- * @param callback		Callback function (only required for virtual hooks - ignored for detours).
  *
  * @return				Setup handle for the detour or INVALID_HANDLE if offset/signature/address wasn't found.
  * @error				Failed to create detour setup handle, invalid gamedata handle, invalid callback function or failed to find function in gamedata.
  */
-native Handle DHookCreateFromConf(Handle gameconf, const char[] name, DHookCallback callback=INVALID_FUNCTION);
+native Handle DHookCreateFromConf(Handle gameconf, const char[] name);
 
 /**
  * Load details for a vhook or detour from a gamedata file.
@@ -572,6 +571,7 @@ public __ext_dhooks_SetNTVOptional()
 	MarkNativeAsOptional("DHookRemoveEntityListener");
 	MarkNativeAsOptional("DHookCreate");
 	MarkNativeAsOptional("DHookCreateDetour");
+	MarkNativeAsOptional("DHookCreateFromConf");
 	MarkNativeAsOptional("DHookSetFromConf");
 	MarkNativeAsOptional("DHookEnableDetour");
 	MarkNativeAsOptional("DHookDisableDetour");

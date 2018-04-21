@@ -28,7 +28,7 @@ bool GetHandleIfValidOrError(HandleType_t type, void **object, IPluginContext *p
 	return true;
 }
 
-IPluginFunction *GetCallback(IPluginContext *pContext, HookSetup * setup, const cell_t *params, unsigned int callback_index)
+IPluginFunction *GetCallback(IPluginContext *pContext, HookSetup * setup, const cell_t *params, cell_t callback_index)
 {
 	IPluginFunction *ret = NULL;
 
@@ -77,7 +77,7 @@ cell_t Native_CreateDetour(IPluginContext *pContext, const cell_t *params)
 	return hndl;
 }
 
-// native Handle:DHookCreateFromConf(Handle:gameconf, const String:function[], DHookCallback:callback=INVALID_FUNCTION);
+// native Handle:DHookCreateFromConf(Handle:gameconf, const String:function[]);
 cell_t Native_DHookCreateFromConf(IPluginContext *pContext, const cell_t *params)
 {
 	IGameConfig *conf;
@@ -96,14 +96,6 @@ cell_t Native_DHookCreateFromConf(IPluginContext *pContext, const cell_t *params
 		return pContext->ThrowNativeError("Function signature \"%s\" was not found.", function);
 	}
 
-	IPluginFunction *callback = nullptr;
-	if (params[3] != -1)
-	{
-		callback = pContext->GetFunctionById(params[3]);
-		if (!callback)
-			return pContext->ThrowNativeError("Failed to find callback function.");
-	}
-
 	HookSetup *setup = nullptr;
 	// This is a virtual hook.
 	if (sig->offset.length() > 0)
@@ -114,7 +106,7 @@ cell_t Native_DHookCreateFromConf(IPluginContext *pContext, const cell_t *params
 			return BAD_HANDLE;
 		}
 
-		setup = new HookSetup(sig->retType, PASSFLAG_BYVAL, sig->hookType, sig->thisType, offset, callback);
+		setup = new HookSetup(sig->retType, PASSFLAG_BYVAL, sig->hookType, sig->thisType, offset, nullptr);
 	}
 	// This is a detour.
 	else
@@ -211,7 +203,6 @@ cell_t Native_SetFromConf(IPluginContext *pContext, const cell_t *params)
 	return 1;
 }
 
-//native bool:DHookAddParam(Handle:setup, HookParamType:type); OLD
 //native bool:DHookAddParam(Handle:setup, HookParamType:type, size=-1, DHookPassFlag:flag=DHookPass_ByVal, DHookRegister custom_register=DHookRegister_Default);
 cell_t Native_AddParam(IPluginContext *pContext, const cell_t *params)
 {
