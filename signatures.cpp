@@ -281,10 +281,14 @@ SMCResult SignatureGameConfig::ReadSMC_KeyValue(const SMCStates *states, const c
 				flags |= PASSFLAG_OCTOR;
 			else if (strstr(value, "oassignop"))
 				flags |= PASSFLAG_OASSIGNOP;
+#ifdef PASSFLAG_OCOPYCTOR
 			else if (strstr(value, "ocopyctor"))
 				flags |= PASSFLAG_OCOPYCTOR;
+#endif
+#ifdef PASSFLAG_OUNALIGN
 			else if (strstr(value, "ounalign"))
 				flags |= PASSFLAG_OUNALIGN;
+#endif
 
 			g_CurrentArgumentInfo.flags = flags;
 		}
