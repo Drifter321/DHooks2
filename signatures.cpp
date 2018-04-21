@@ -338,7 +338,7 @@ SMCResult SignatureGameConfig::ReadSMC_LeavingSection(const SMCStates *states)
 
 		if (!g_CurrentSignature->address.length() && !g_CurrentSignature->signature.length())
 		{
-			smutils->LogError(myself, "Function \"%s\" doesn't have a \"signature\" nor \"address\" set: line: %i col: %i", g_CurrentFunctionName.chars(), states->line, states->col);
+			smutils->LogError(myself, "Function \"%s\" doesn't have a \"signature\", \"offset\" nor \"address\" set: line: %i col: %i", g_CurrentFunctionName.chars(), states->line, states->col);
 			return SMCResult_HaltFail;
 		}
 
@@ -414,7 +414,7 @@ ReturnType SignatureGameConfig::GetReturnTypeFromString(const char *str)
 		return ReturnType_Vector;
 	else if (!strcmp(str, "vectorptr"))
 		return ReturnType_VectorPtr;
-	else if (!strcmp(str, "entity"))
+	else if (!strcmp(str, "cbaseentity"))
 		return ReturnType_CBaseEntity;
 	else if (!strcmp(str, "edict"))
 		return ReturnType_Edict;
@@ -438,7 +438,7 @@ HookParamType SignatureGameConfig::GetHookParamTypeFromString(const char *str)
 		return HookParamType_CharPtr;
 	else if (!strcmp(str, "vectorptr"))
 		return HookParamType_VectorPtr;
-	else if (!strcmp(str, "entity"))
+	else if (!strcmp(str, "cbaseentity"))
 		return HookParamType_CBaseEntity;
 	else if (!strcmp(str, "objectptr"))
 		return HookParamType_ObjectPtr;
@@ -458,7 +458,7 @@ Register_t SignatureGameConfig::GetCustomRegisterFromString(const char *str)
 		return CL;
 	else if (!strcmp(str, "dl"))
 		return DL;
-	else if (!strcmp(str, "Bl"))
+	else if (!strcmp(str, "bl"))
 		return BL;
 	else if (!strcmp(str, "ah"))
 		return AH;
@@ -488,11 +488,11 @@ Register_t SignatureGameConfig::GetCustomRegisterFromString(const char *str)
 
 	else if (!strcmp(str, "eax"))
 		return EAX;
-	else if (!strcmp(str, "ECX"))
+	else if (!strcmp(str, "ecx"))
 		return ECX;
-	else if (!strcmp(str, "EDX"))
+	else if (!strcmp(str, "edx"))
 		return EDX;
-	else if (!strcmp(str, "EBX"))
+	else if (!strcmp(str, "ebx"))
 		return EBX;
 	else if (!strcmp(str, "esp"))
 		return ESP;
@@ -549,11 +549,6 @@ Register_t SignatureGameConfig::GetCustomRegisterFromString(const char *str)
 		return FS;
 	else if (!strcmp(str, "gs"))
 		return GS;
-	else if (!strcmp(str, "si"))
-		return SI;
-	else if (!strcmp(str, "di"))
-		return DI;
-
 
 	else if (!strcmp(str, "st0"))
 		return ST0;
