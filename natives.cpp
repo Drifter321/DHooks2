@@ -131,12 +131,10 @@ cell_t Native_DHookCreateFromConf(IPluginContext *pContext, const cell_t *params
 	}
 
 	// Push all the arguments.
-	auto args = sig->args.iter();
-	while (!args.empty())
+	for (ArgumentInfo &arg : sig->args)
 	{
-		ParamInfo info = args->value;
+		ParamInfo info = arg.info;
 		setup->params.push_back(info);
-		args.next();
 	}
 
 	// Create the handle to hold this setup.

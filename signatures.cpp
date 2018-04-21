@@ -18,8 +18,7 @@ ParseState g_PlatformOnlyState;
 
 SignatureWrapper *g_CurrentSignature;
 ke::AString g_CurrentFunctionName;
-ParamInfo g_CurrentArgumentInfo;
-ke::AString g_CurrentArgumentName;
+ArgumentInfo g_CurrentArgumentInfo;
 
 SignatureWrapper *SignatureGameConfig::GetFunctionSignature(const char *function)
 {
@@ -118,20 +117,21 @@ SMCResult SignatureGameConfig::ReadSMC_NewSection(const SMCStates *states, const
 	case PState_Arguments:
 	{
 		g_ParseState = PState_Argument;
-		g_CurrentArgumentName = name;
+		g_CurrentArgumentInfo.name = name;
 
-		auto arg = g_CurrentSignature->args.find(name);
-		// Continue changing that argument now.
-		if (arg.found())
-		{
-			g_CurrentArgumentInfo = arg->value;
-		}
-		else
-		{
-			ParamInfo info;
-			memset(&info, 0, sizeof(info));
-			info.flags = PASSFLAG_BYVAL;
-			g_CurrentArgumentInfo = info;
+		// Reset the parameter info.
+		ParamInfo info;
+		memset(&info, 0, sizeof(info));
+		info.flags = PASSFLAG_BYVAL;
+		g_CurrentArgumentInfo.info = info;
+
+		// See if we already have info about this argument.
+		for (auto &arg : g_CurrentSignature->args) {
+			if (!arg.name.compare(name)) {
+				// Continue changing that argument now.
+				g_CurrentArgumentInfo.info = arg.info;
+				break;
+			}
 		}
 		break;
 	}
@@ -251,20 +251,20 @@ SMCResult SignatureGameConfig::ReadSMC_KeyValue(const SMCStates *states, const c
 
 		if (!strcmp(key, "type"))
 		{
-			g_CurrentArgumentInfo.type = GetHookParamTypeFromString(value);
-			if (g_CurrentArgumentInfo.type == HookParamType_Unknown)
+			g_CurrentArgumentInfo.info.type = GetHookParamTypeFromString(value);
+			if (g_CurrentArgumentInfo.info.type == HookParamType_Unknown)
 			{
-				smutils->LogError(myself, "Invalid argument type \"%s\" for argument \"%s\": line: %i col: %i", value, g_CurrentArgumentName.chars(), states->line, states->col);
+				smutils->LogError(myself, "Invalid argument type \"%s\" for argument \"%s\": line: %i col: %i", value, g_CurrentArgumentInfo.name.chars(), states->line, states->col);
 				return SMCResult_HaltFail;
 			}
 		}
 		else if (!strcmp(key, "size"))
 		{
-			g_CurrentArgumentInfo.size = atoi(value);
+			g_CurrentArgumentInfo.info.size = atoi(value);
 
-			if (g_CurrentArgumentInfo.size < 1)
+			if (g_CurrentArgumentInfo.info.size < 1)
 			{
-				smutils->LogError(myself, "Invalid argument size \"%s\" for argument \"%s\": line: %i col: %i", value, g_CurrentArgumentName.chars(), states->line, states->col);
+				smutils->LogError(myself, "Invalid argument size \"%s\" for argument \"%s\": line: %i col: %i", value, g_CurrentArgumentInfo.name.chars(), states->line, states->col);
 				return SMCResult_HaltFail;
 			}
 		}
@@ -290,13 +290,13 @@ SMCResult SignatureGameConfig::ReadSMC_KeyValue(const SMCStates *states, const c
 				flags |= PASSFLAG_OUNALIGN;
 #endif
 
-			g_CurrentArgumentInfo.flags = flags;
+			g_CurrentArgumentInfo.info.flags = flags;
 		}
 		else if (!strcmp(key, "register"))
 		{
-			g_CurrentArgumentInfo.custom_register = GetCustomRegisterFromString(value);
+			g_CurrentArgumentInfo.info.custom_register = GetCustomRegisterFromString(value);
 
-			if (g_CurrentArgumentInfo.custom_register == Register_t::None)
+			if (g_CurrentArgumentInfo.info.custom_register == Register_t::None)
 			{
 				smutils->LogError(myself, "Invalid register \"%s\": line: %i col: %i", value, states->line, states->col);
 				return SMCResult_HaltFail;
@@ -357,31 +357,32 @@ SMCResult SignatureGameConfig::ReadSMC_LeavingSection(const SMCStates *states)
 	case PState_Argument:
 		g_ParseState = PState_Arguments;
 
-		if (g_CurrentArgumentInfo.type == HookParamType_Unknown)
+		if (g_CurrentArgumentInfo.info.type == HookParamType_Unknown)
 		{
-			smutils->LogError(myself, "Missing argument type for argument \"%s\": line: %i col: %i", g_CurrentArgumentName.chars(), states->line, states->col);
+			smutils->LogError(myself, "Missing argument type for argument \"%s\": line: %i col: %i", g_CurrentArgumentInfo.name.chars(), states->line, states->col);
 			return SMCResult_HaltFail;
 		}
 
 		// The size wasn't set in the config. See if that's fine and we can guess it from the type.
-		if (!g_CurrentArgumentInfo.size)
+		if (!g_CurrentArgumentInfo.info.size)
 		{
-			if (g_CurrentArgumentInfo.type == HookParamType_Object)
+			if (g_CurrentArgumentInfo.info.type == HookParamType_Object)
 			{
-				smutils->LogError(myself, "Object param \"%s\" being set with no size: line: %i col: %i", g_CurrentArgumentName.chars(), states->line, states->col);
+				smutils->LogError(myself, "Object param \"%s\" being set with no size: line: %i col: %i", g_CurrentArgumentInfo.name.chars(), states->line, states->col);
 				return SMCResult_HaltFail;
 			}
 			else
 			{
-				g_CurrentArgumentInfo.size = GetParamTypeSize(g_CurrentArgumentInfo.type);
+				g_CurrentArgumentInfo.info.size = GetParamTypeSize(g_CurrentArgumentInfo.info.type);
 			}
 		}
 
-		if (g_CurrentArgumentInfo.pass_type == SourceHook::PassInfo::PassType::PassType_Unknown)
-			g_CurrentArgumentInfo.pass_type = GetParamTypePassType(g_CurrentArgumentInfo.type);
-		g_CurrentSignature->args.insert(g_CurrentArgumentName.chars(), g_CurrentArgumentInfo);
+		if (g_CurrentArgumentInfo.info.pass_type == SourceHook::PassInfo::PassType::PassType_Unknown)
+			g_CurrentArgumentInfo.info.pass_type = GetParamTypePassType(g_CurrentArgumentInfo.info.type);
 
-		g_CurrentArgumentName = nullptr;
+		g_CurrentSignature->args.append(g_CurrentArgumentInfo);
+
+		g_CurrentArgumentInfo.name = nullptr;
 		break;
 	}
 
@@ -395,7 +396,7 @@ void SignatureGameConfig::ReadSMC_ParseStart()
 	g_PlatformOnlyState = PState_None;
 	g_CurrentSignature = nullptr;
 	g_CurrentFunctionName = nullptr;
-	g_CurrentArgumentName = nullptr;
+	g_CurrentArgumentInfo.name = nullptr;
 }
 
 ReturnType SignatureGameConfig::GetReturnTypeFromString(const char *str)

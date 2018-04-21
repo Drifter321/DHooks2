@@ -4,14 +4,26 @@
 #include "extension.h"
 #include "util.h"
 #include <am-string.h>
+#include <am-vector.h>
 #include <sm_stringhashmap.h>
+
+struct ArgumentInfo {
+	ArgumentInfo() : name(nullptr)
+	{ }
+
+	ArgumentInfo(ke::AString name, ParamInfo info) : name(name), info(info)
+	{ }
+
+	ke::AString name;
+	ParamInfo info;
+};
 
 class SignatureWrapper {
 public:
 	ke::AString signature;
 	ke::AString address;
 	ke::AString offset;
-	StringHashMap<ParamInfo> args;
+	ke::Vector<ArgumentInfo> args;
 	CallingConvention callConv;
 	HookType hookType;
 	ReturnType retType;
