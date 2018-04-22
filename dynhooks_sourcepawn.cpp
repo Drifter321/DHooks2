@@ -286,7 +286,7 @@ ReturnAction_t HandleDetour(HookType_t hookType, CHook* pDetour)
 		// Create a seperate buffer for changed return values for this plugin.
 		// We update the finalRet above if the tempRet is higher than the previous ones in the callback list.
 		ReturnAction_t tempRet = ReturnAction_Ignored;
-		ke::AutoPtr<uint8_t> tempRetBuf(new uint8_t[pDetour->m_pCallingConvention->m_returnType.size]);
+		uint8_t *tempRetBuf = nullptr;
 
 		// Find the this pointer for thiscalls.
 		// Don't even try to load it if the plugin doesn't care and set it to be ignored.
@@ -369,26 +369,25 @@ ReturnAction_t HandleDetour(HookType_t hookType, CHook* pDetour)
 			{
 				// Make sure the plugin provided a new return value. Could be an oversight if MRES_ChangedOverride 
 				// is called without the return value actually being changed.
-				if (returnStruct->isChanged)
+				if (!returnStruct->isChanged)
 				{
-					if (pWrapper->returnType == ReturnType_String || pWrapper->returnType == ReturnType_Int || pWrapper->returnType == ReturnType_Bool)
-					{
-						tempRetBuf = *(uint8_t **)returnStruct->newResult;
-					}
-					else if (pWrapper->returnType == ReturnType_Float)
-					{
-						*(float *)tempRetBuf.get() = *(float *)returnStruct->newResult;
-					}
-					else
-					{
-						tempRetBuf = (uint8_t *)returnStruct->newResult;
-					}
-				}
-				else //Throw an error if no override was set
-				{
+					//Throw an error if no override was set
 					tempRet = ReturnAction_Ignored;
 					pCallback->GetParentRuntime()->GetDefaultContext()->BlamePluginError(pCallback, "Tried to override return value without return value being set");
 					break;
+				}
+
+				if (pWrapper->returnType == ReturnType_String || pWrapper->returnType == ReturnType_Int || pWrapper->returnType == ReturnType_Bool)
+				{
+					tempRetBuf = *(uint8_t **)returnStruct->newResult;
+				}
+				else if (pWrapper->returnType == ReturnType_Float)
+				{
+					*(float *)tempRetBuf = *(float *)returnStruct->newResult;
+				}
+				else
+				{
+					tempRetBuf = (uint8_t *)returnStruct->newResult;
 				}
 			}
 
@@ -412,7 +411,7 @@ ReturnAction_t HandleDetour(HookType_t hookType, CHook* pDetour)
 		{
 			// Copy the action and return value.
 			finalRet = tempRet;
-			memcpy(*finalRetBuf, *tempRetBuf, pDetour->m_pCallingConvention->m_returnType.size);
+			memcpy(finalRetBuf, &tempRetBuf, pDetour->m_pCallingConvention->m_returnType.size);
 		}
 
 		// Free the handles again.
@@ -431,7 +430,7 @@ ReturnAction_t HandleDetour(HookType_t hookType, CHook* pDetour)
 	if (finalRet >= ReturnAction_Override)
 	{
 		void* pPtr = pDetour->m_pCallingConvention->GetReturnPtr(pDetour->m_pRegisters);
-		memcpy(pPtr, *finalRetBuf, pDetour->m_pCallingConvention->m_returnType.size);
+		memcpy(pPtr, finalRetBuf, pDetour->m_pCallingConvention->m_returnType.size);
 		pDetour->m_pCallingConvention->ReturnPtrChanged(pDetour->m_pRegisters, pPtr);
 	}
 
