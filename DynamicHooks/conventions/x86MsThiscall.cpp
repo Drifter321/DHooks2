@@ -154,7 +154,7 @@ void* x86MsThiscall::GetArgumentPtr(unsigned int iIndex, CRegisters* pRegisters)
 	// The this pointer isn't explicitly defined as an argument.
 	iIndex--;
 	
-	if (iIndex < 0 || iIndex >= m_vecArgTypes.length())
+	if (iIndex >= m_vecArgTypes.length())
 		return NULL;
 
 	// Check if this argument was passed in a register.

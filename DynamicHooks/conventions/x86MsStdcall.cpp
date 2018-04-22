@@ -137,7 +137,7 @@ int x86MsStdcall::GetArgRegisterSize()
 
 void* x86MsStdcall::GetArgumentPtr(unsigned int iIndex, CRegisters* pRegisters)
 {
-	if (iIndex < 0 || iIndex >= m_vecArgTypes.length())
+	if (iIndex >= m_vecArgTypes.length())
 		return NULL;
 
 	// Check if this argument was passed in a register.
