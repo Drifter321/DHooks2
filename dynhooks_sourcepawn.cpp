@@ -252,6 +252,10 @@ bool UpdateRegisterArgumentSizes(CHook* pDetour, HookSetup *setup)
 // Central handler for all detours. Heart of the detour support.
 ReturnAction_t HandleDetour(HookType_t hookType, CHook* pDetour)
 {
+	// Can't call into SourcePawn offthread.
+	if (g_MainThreadId != ke::GetCurrentThreadId())
+		return ReturnAction_Ignored;
+
 	DetourMap *map;
 	if (hookType == HOOKTYPE_PRE)
 		map = &g_pPreDetours;
