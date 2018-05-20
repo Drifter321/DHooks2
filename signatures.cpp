@@ -340,7 +340,7 @@ SMCResult SignatureGameConfig::ReadSMC_LeavingSection(const SMCStates *states)
 	case PState_Function:
 		g_ParseState = PState_Root;
 
-		if (!g_CurrentSignature->address.length() && !g_CurrentSignature->signature.length())
+		if (!g_CurrentSignature->address.length() && !g_CurrentSignature->signature.length() && !g_CurrentSignature->offset.length())
 		{
 			smutils->LogError(myself, "Function \"%s\" doesn't have a \"signature\", \"offset\" nor \"address\" set: line: %i col: %i", g_CurrentFunctionName.chars(), states->line, states->col);
 			return SMCResult_HaltFail;
