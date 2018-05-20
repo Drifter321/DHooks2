@@ -40,7 +40,7 @@
 /* Basic information exposed publicly */
 #define SMEXT_CONF_NAME			"DHooks"
 #define SMEXT_CONF_DESCRIPTION	"Dynamic Hooks"
-#define SMEXT_CONF_VERSION		"2.2.0-detours2"
+#define SMEXT_CONF_VERSION		"2.2.0-detours3"
 #define SMEXT_CONF_AUTHOR		"Dr!fter"
 #define SMEXT_CONF_URL			"http://www.sourcemod.net/"
 #define SMEXT_CONF_LOGTAG		"DHOOKS"
