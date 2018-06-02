@@ -142,6 +142,7 @@ void* x86MsCdecl::GetArgumentPtr(unsigned int iIndex, CRegisters* pRegisters)
 		return pRegister->m_pAddress;
 	}
 
+	// Skip return address.
 	size_t iOffset = 4;
 	for(unsigned int i=0; i < iIndex; i++)
 	{

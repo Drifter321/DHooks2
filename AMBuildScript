@@ -270,8 +270,12 @@ program.sources += [
 	os.path.join('DynamicHooks', 'utilities.cpp'),
 	os.path.join('DynamicHooks', 'conventions', 'x86MsCdecl.cpp'),
 	os.path.join('DynamicHooks', 'conventions', 'x86MsStdcall.cpp'),
-	os.path.join('DynamicHooks', 'conventions', 'x86MsThiscall.cpp'),
 ]
+
+if builder.target_platform == 'windows':
+	program.sources += [os.path.join('DynamicHooks', 'conventions', 'x86MsThiscall.cpp')]
+else:
+	program.sources += [os.path.join('DynamicHooks', 'conventions', 'x86GccThiscall.cpp')]
 
 program.sources += [os.path.join(DHooks.sm_root, 'public', 'smsdk_ext.cpp')]
 

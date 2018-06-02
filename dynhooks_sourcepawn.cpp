@@ -2,17 +2,17 @@
 #include "util.h"
 #include <am-autoptr.h>
 
+#ifdef KE_WINDOWS
 #include "conventions/x86MsCdecl.h"
 #include "conventions/x86MsThiscall.h"
 #include "conventions/x86MsStdcall.h"
-#include "conventions/x86GccCdecl.h"
-#include "conventions/x86GccThiscall.h"
-
-#ifdef KE_WINDOWS
 typedef x86MsCdecl x86DetourCdecl;
 typedef x86MsThiscall x86DetourThisCall;
 typedef x86MsStdcall x86DetourStdCall;
 #elif defined KE_LINUX
+#include "conventions/x86GccCdecl.h"
+#include "conventions/x86GccThiscall.h"
+#include "conventions/x86MsStdcall.h"
 typedef x86GccCdecl x86DetourCdecl;
 typedef x86GccThiscall x86DetourThisCall;
 // Uhm, stdcall on linux?

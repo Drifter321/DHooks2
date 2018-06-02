@@ -28,26 +28,39 @@
 * Idea and trampoline code taken from DynDetours (thanks your-name-here).
 */
 
-#ifndef _X86_GCC_THISCALL_H
-#define _X86_GCC_THISCALL_H
-
 // ============================================================================
 // >> INCLUDES
 // ============================================================================
-#include "x86GccCdecl.h"
+#include "x86GccThiscall.h"
 
 
 // ============================================================================
 // >> CLASSES
 // ============================================================================
-// |this| pointer is always passed as implicit first argument on the stack.
-class x86GccThiscall: public x86GccCdecl
+
+x86GccThiscall::x86GccThiscall(ke::Vector<DataTypeSized_t> &vecArgTypes, DataTypeSized_t returnType, int iAlignment) :
+	x86GccCdecl(vecArgTypes, returnType, iAlignment)
 {
-public:
-	x86GccThiscall(ke::Vector<DataTypeSized_t> &vecArgTypes, DataTypeSized_t returnType, int iAlignment = 4);
+	// Always add the |this| pointer.
+	DataTypeSized_t type;
+	type.type = DATA_TYPE_POINTER;
+	type.size = GetDataTypeSize(type, iAlignment);
+	type.custom_register = None;
+	m_vecArgTypes.insert(0, type);
+}
 
-	virtual int GetArgStackSize();
-	virtual void** GetStackArgumentPtr(CRegisters* pRegisters);
-};
+int x86GccThiscall::GetArgStackSize()
+{
+	// Remove the this pointer from the arguments size.
+	DataTypeSized_t type;
+	type.type = DATA_TYPE_POINTER;
+	return x86GccCdecl::GetArgStackSize() - GetDataTypeSize(type, m_iAlignment);
+}
 
-#endif // _X86_GCC_THISCALL_H
+void** x86GccThiscall::GetStackArgumentPtr(CRegisters* pRegisters)
+{
+	// Skip return address and this pointer.
+	DataTypeSized_t type;
+	type.type = DATA_TYPE_POINTER;
+	return (void **)(pRegisters->m_esp->GetValue<unsigned long>() + 4 + GetDataTypeSize(type, m_iAlignment));
+}
