@@ -193,7 +193,7 @@ void* __cdecl CHook::GetReturnAddress(void* pESP)
 	assert(r.found());
 	if (!r.found())
 	{
-		puts("ESP not present.");
+		smutils->LogError(myself, "FATAL: Failed to find return address of original function. Check the arguments and return type of your detour setup.");
 		return NULL;
 	}
 
