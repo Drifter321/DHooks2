@@ -380,7 +380,20 @@ SMCResult SignatureGameConfig::ReadSMC_LeavingSection(const SMCStates *states)
 		if (g_CurrentArgumentInfo.info.pass_type == SourceHook::PassInfo::PassType::PassType_Unknown)
 			g_CurrentArgumentInfo.info.pass_type = GetParamTypePassType(g_CurrentArgumentInfo.info.type);
 
-		g_CurrentSignature->args.append(g_CurrentArgumentInfo);
+		// See if we were changing an existing argument.
+		bool changed = false;
+		for (auto &arg : g_CurrentSignature->args)
+		{
+			if (!arg.name.compare(g_CurrentArgumentInfo.name))
+			{
+				arg.info = g_CurrentArgumentInfo.info;
+				changed = true;
+				break;
+			}
+		}
+		// This was a new argument. Add it to the end of the list.
+		if (!changed)
+			g_CurrentSignature->args.append(g_CurrentArgumentInfo);
 
 		g_CurrentArgumentInfo.name = nullptr;
 		break;
