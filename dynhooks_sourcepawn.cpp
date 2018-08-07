@@ -100,7 +100,7 @@ bool RemoveDetourPluginHook(HookType_t hookType, CHook *pDetour, IPluginFunction
 		{
 			bRemoved = true;
 			delete pWrapper;
-			wrappers->remove(i--);
+			wrappers->remove(i);
 		}
 	}
 
@@ -129,11 +129,11 @@ void RemoveAllCallbacksForContext(HookType_t hookType, DetourMap *map, IPluginCo
 		for (int i = wrappers->length() - 1; i >= 0; i--)
 		{
 			pWrapper = wrappers->at(i);
-			if (pWrapper->plugin_callback->GetParentContext() != pContext)
+			if (pWrapper->plugin_callback->GetParentRuntime()->GetDefaultContext() != pContext)
 				continue;
 
 			delete pWrapper;
-			wrappers->remove(i--);
+			wrappers->remove(i);
 		}
 
 		// No plugin interested in this hook anymore. unhook.
