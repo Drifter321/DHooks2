@@ -387,7 +387,7 @@ ReturnAction_t HandleDetour(HookType_t hookType, CHook* pDetour)
 				}
 				else if (pWrapper->returnType == ReturnType_Float)
 				{
-					*(float *)tempRetBuf = *(float *)returnStruct->newResult;
+					*(float *)&tempRetBuf = *(float *)returnStruct->newResult;
 				}
 				else
 				{

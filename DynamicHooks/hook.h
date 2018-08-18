@@ -174,8 +174,8 @@ private:
 
 	void Write_ModifyReturnAddress(sp::MacroAssembler& masm);
 	void Write_CallHandler(sp::MacroAssembler& masm, HookType_t type);
-	void Write_SaveRegisters(sp::MacroAssembler& masm);
-	void Write_RestoreRegisters(sp::MacroAssembler& masm);
+	void Write_SaveRegisters(sp::MacroAssembler& masm, HookType_t type);
+	void Write_RestoreRegisters(sp::MacroAssembler& masm, HookType_t type);
 
 	void* CreatePostCallback();
 

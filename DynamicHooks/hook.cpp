@@ -227,7 +227,7 @@ void* CHook::CreateBridge()
 	masm.cmpb(r8_al, ReturnAction_Supercede);
 	
 	// Restore the previously saved registers, so any changes will be applied
-	Write_RestoreRegisters(masm);
+	Write_RestoreRegisters(masm, HOOKTYPE_PRE);
 
 	masm.j(equal, &label_supercede);
 
@@ -293,7 +293,7 @@ void* CHook::CreatePostCallback()
 	Write_CallHandler(masm, HOOKTYPE_POST);
 
 	// Restore the previously saved registers, so any changes will be applied
-	Write_RestoreRegisters(masm);
+	Write_RestoreRegisters(masm, HOOKTYPE_POST);
 
 	// Save scratch registers that are used by GetReturnAddress
 	static void* pEAX = NULL;
@@ -337,16 +337,19 @@ void CHook::Write_CallHandler(sp::MacroAssembler& masm, HookType_t type)
 	ReturnAction_t (__cdecl CHook::*HookHandler)(HookType_t) = &CHook::HookHandler;
 
 	// Save the registers so that we can access them in our handlers
-	Write_SaveRegisters(masm);
+	Write_SaveRegisters(masm, type);
+
+	// Align the stack to 16 bytes.
+	masm.subl(esp, 8);
 
 	// Call the global hook handler
 	masm.push(type);
 	masm.push(intptr_t(this));
 	masm.call(ExternalAddress((void *&)HookHandler));
-	masm.addl(esp, 8);
+	masm.addl(esp, 16);
 }
 
-void CHook::Write_SaveRegisters(sp::MacroAssembler& masm)
+void CHook::Write_SaveRegisters(sp::MacroAssembler& masm, HookType_t type)
 {
 	ke::Vector<Register_t> vecRegistersToSave = m_pCallingConvention->GetRegisters();
 	for(size_t i = 0; i < vecRegistersToSave.length(); i++)
@@ -394,7 +397,12 @@ void CHook::Write_SaveRegisters(sp::MacroAssembler& masm)
 		// ========================================================================
 		// >> 80-bit FPU registers
 		// ========================================================================
-		case ST0: masm.fst32(Operand(ExternalAddress(m_pRegisters->m_st0->m_pAddress))); break;
+		case ST0:
+			// Don't mess with the FPU stack in a pre-hook. The float return is returned in st0,
+			// so only load it in a post hook to avoid writing back NaN.
+			if (type == HOOKTYPE_POST)
+				masm.fst32(Operand(ExternalAddress(m_pRegisters->m_st0->m_pAddress)));
+			break;
 		//case ST1: masm.movl(tword_ptr_abs(Ptr(m_pRegisters->m_st1->m_pAddress)), st1); break;
 		//case ST2: masm.movl(tword_ptr_abs(Ptr(m_pRegisters->m_st2->m_pAddress)), st2); break;
 		//case ST3: masm.movl(tword_ptr_abs(Ptr(m_pRegisters->m_st3->m_pAddress)), st3); break;
@@ -408,7 +416,7 @@ void CHook::Write_SaveRegisters(sp::MacroAssembler& masm)
 	}
 }
 
-void CHook::Write_RestoreRegisters(sp::MacroAssembler& masm)
+void CHook::Write_RestoreRegisters(sp::MacroAssembler& masm, HookType_t type)
 {
 	ke::Vector<Register_t> vecRegistersToSave = m_pCallingConvention->GetRegisters();
 	for (size_t i = 0; i < vecRegistersToSave.length(); i++)
@@ -456,7 +464,17 @@ void CHook::Write_RestoreRegisters(sp::MacroAssembler& masm)
 		// ========================================================================
 		// >> 80-bit FPU registers
 		// ========================================================================
-		case ST0: masm.fld32(Operand(ExternalAddress(m_pRegisters->m_st0->m_pAddress))); break;
+		case ST0:
+			if (type == HOOKTYPE_POST) {
+				// Replace the top of the FPU stack.
+				// Copy st0 to st0 and pop -> just pop the FPU stack.
+				masm.fstp(st0);
+				// Push a value to the FPU stack.
+				// TODO: Only write back when changed? Save full 80bits for that case.
+				//       Avoid truncation of the data if it's unchanged.
+				masm.fld32(Operand(ExternalAddress(m_pRegisters->m_st0->m_pAddress)));
+			}
+			break;
 		//case ST1: masm.movl(st1, tword_ptr_abs(Ptr(m_pRegisters->m_st1->m_pAddress))); break;
 		//case ST2: masm.movl(st2, tword_ptr_abs(Ptr(m_pRegisters->m_st2->m_pAddress))); break;
 		//case ST3: masm.movl(st3, tword_ptr_abs(Ptr(m_pRegisters->m_st3->m_pAddress))); break;
