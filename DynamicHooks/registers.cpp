@@ -151,14 +151,15 @@ CRegisters::CRegisters(ke::Vector<Register_t> registers)
 	// ========================================================================
 	// >> 128-bit XMM registers
 	// ========================================================================
-	m_xmm0 = CreateRegister(registers, XMM0, 16);
-	m_xmm1 = CreateRegister(registers, XMM1, 16);
-	m_xmm2 = CreateRegister(registers, XMM2, 16);
-	m_xmm3 = CreateRegister(registers, XMM3, 16);
-	m_xmm4 = CreateRegister(registers, XMM4, 16);
-	m_xmm5 = CreateRegister(registers, XMM5, 16);
-	m_xmm6 = CreateRegister(registers, XMM6, 16);
-	m_xmm7 = CreateRegister(registers, XMM7, 16);
+	// Copying data from xmm0-7 requires the memory address to be 16-byte aligned.
+	m_xmm0 = CreateRegister(registers, XMM0, 16, 16);
+	m_xmm1 = CreateRegister(registers, XMM1, 16, 16);
+	m_xmm2 = CreateRegister(registers, XMM2, 16, 16);
+	m_xmm3 = CreateRegister(registers, XMM3, 16, 16);
+	m_xmm4 = CreateRegister(registers, XMM4, 16, 16);
+	m_xmm5 = CreateRegister(registers, XMM5, 16, 16);
+	m_xmm6 = CreateRegister(registers, XMM6, 16, 16);
+	m_xmm7 = CreateRegister(registers, XMM7, 16, 16);
 
 	// 64-bit mode only
 	/*
@@ -360,13 +361,13 @@ CRegisters::~CRegisters()
 	DeleteRegister(m_st7);
 }
 
-CRegister* CRegisters::CreateRegister(ke::Vector<Register_t>& registers, Register_t reg, int iSize)
+CRegister* CRegisters::CreateRegister(ke::Vector<Register_t>& registers, Register_t reg, uint16_t iSize, uint16_t iAlignment)
 {
 	for(size_t i = 0; i < registers.length(); i++)
 	{
 		if (registers[i] == reg)
 		{
-			return new CRegister(iSize);
+			return new CRegister(iSize, iAlignment);
 		}
 	}
 	return NULL;

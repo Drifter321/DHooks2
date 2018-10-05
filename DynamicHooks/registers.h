@@ -216,15 +216,31 @@ enum Register_t
 class CRegister
 {
 public:
-	CRegister(int iSize)
+	CRegister(uint16_t iSize, uint16_t iAlignment = 0)
 	{
 		m_iSize = iSize;
-		m_pAddress = malloc(iSize);
+		m_iAlignment = iAlignment;
+		if (iAlignment > 0)
+#ifdef KE_WINDOWS
+			m_pAddress = _aligned_malloc(iSize, iAlignment);
+#else
+			m_pAddress = aligned_alloc(iAlignment, iSize);
+#endif
+		else
+			m_pAddress = malloc(iSize);
 	}
 
 	~CRegister()
 	{
+
+#ifdef KE_WINDOWS
+		if (m_iAlignment > 0)
+			_aligned_free(m_pAddress);
+		else
+			free(m_pAddress);
+#else
 		free(m_pAddress);
+#endif
 	}
 
 	template<class T>
@@ -252,7 +268,8 @@ public:
 	}
 
 public:
-	int m_iSize;
+	uint16_t m_iSize;
+	uint16_t m_iAlignment;
 	void* m_pAddress;
 };
 
@@ -269,7 +286,7 @@ public:
 	CRegister* GetRegister(Register_t reg);
 
 private:
-	CRegister* CreateRegister(ke::Vector<Register_t>& registers, Register_t reg, int iSize);
+	CRegister* CreateRegister(ke::Vector<Register_t>& registers, Register_t reg, uint16_t iSize, uint16_t iAlignment = 0);
 	void DeleteRegister(CRegister* pRegister);
 
 public:
