@@ -381,6 +381,8 @@ cell_t GetThisPtr(void *iface, ThisPointerType type)
 {
 	if(type == ThisPointer_CBaseEntity)
 	{
+		if (!iface)
+			return -1;
 		return gamehelpers->EntityToBCompatRef((CBaseEntity *)iface);
 	}
 
