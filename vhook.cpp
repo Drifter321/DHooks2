@@ -8,6 +8,7 @@ SourceHook::IHookManagerAutoGen *g_pHookManager = NULL;
 ke::Vector<DHooksManager *> g_pHooks;
 
 using namespace SourceHook;
+using namespace sp;
 
 #ifdef  WIN32
 #define OBJECT_OFFSET sizeof(void *)

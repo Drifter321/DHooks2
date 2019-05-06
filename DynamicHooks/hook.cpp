@@ -37,6 +37,7 @@
 #include <macro-assembler-x86.h>
 #include "extension.h"
 
+using namespace sp;
 
 // ============================================================================
 // >> DEFINITIONS
