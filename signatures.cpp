@@ -190,6 +190,8 @@ SMCResult SignatureGameConfig::ReadSMC_KeyValue(const SMCStates *states, const c
 				callConv = CallConv_THISCALL;
 			else if (!strcmp(value, "stdcall"))
 				callConv = CallConv_STDCALL;
+			else if (!strcmp(value, "fastcall"))
+				callConv = CallConv_FASTCALL;
 			else
 			{
 				smutils->LogError(myself, "Invalid calling convention \"%s\": line: %i col: %i", value, states->line, states->col);

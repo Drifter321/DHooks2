@@ -111,6 +111,7 @@
     <ClCompile Include="$(SOURCEMOD)\sourcepawn\vm\x86\assembler-x86.cpp" />
     <ClCompile Include="..\DynamicHooks\asm.cpp" />
     <ClCompile Include="..\DynamicHooks\conventions\x86MsCdecl.cpp" />
+    <ClCompile Include="..\DynamicHooks\conventions\x86MsFastcall.cpp" />
     <ClCompile Include="..\DynamicHooks\conventions\x86MsStdcall.cpp" />
     <ClCompile Include="..\DynamicHooks\conventions\x86MsThiscall.cpp" />
     <ClCompile Include="..\DynamicHooks\hook.cpp" />

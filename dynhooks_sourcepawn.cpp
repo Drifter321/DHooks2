@@ -6,17 +6,22 @@
 #include "conventions/x86MsCdecl.h"
 #include "conventions/x86MsThiscall.h"
 #include "conventions/x86MsStdcall.h"
+#include "conventions/x86MsFastcall.h"
 typedef x86MsCdecl x86DetourCdecl;
 typedef x86MsThiscall x86DetourThisCall;
 typedef x86MsStdcall x86DetourStdCall;
+typedef x86MsFastcall x86DetourFastCall;
 #elif defined KE_LINUX
 #include "conventions/x86GccCdecl.h"
 #include "conventions/x86GccThiscall.h"
 #include "conventions/x86MsStdcall.h"
+#include "conventions/x86MsFastcall.h"
 typedef x86GccCdecl x86DetourCdecl;
 typedef x86GccThiscall x86DetourThisCall;
 // Uhm, stdcall on linux?
 typedef x86MsStdcall x86DetourStdCall;
+// Uhumm, fastcall on linux?
+typedef x86MsFastcall x86DetourFastCall;
 #else
 #error "Unsupported platform."
 #endif
@@ -212,6 +217,9 @@ ICallingConvention *ConstructCallingConvention(HookSetup *setup)
 		break;
 	case CallConv_STDCALL:
 		pCallConv = new x86DetourStdCall(vecArgTypes, returnType);
+		break;
+	case CallConv_FASTCALL:
+		pCallConv = new x86DetourFastCall(vecArgTypes, returnType);
 		break;
 	default:
 		smutils->LogError(myself, "Unknown calling convention %d.", setup->callConv);
