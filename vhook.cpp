@@ -219,18 +219,6 @@ HookReturnStruct::~HookReturnStruct()
 		free(this->newResult);
 		free(this->orgResult);
 	}
-	else if (this->isChanged)
-	{
-		if (this->type == ReturnType_CharPtr)
-		{
-			delete[](char *)this->newResult;
-		}
-		else if (this->type == ReturnType_VectorPtr)
-		{
-			delete (SDKVector *)this->newResult;
-		}
-	}
-
 }
 
 HookParamsStruct::~HookParamsStruct()
@@ -245,23 +233,6 @@ HookParamsStruct::~HookParamsStruct()
 	}
 	if (this->newParams != NULL)
 	{
-		for (int i = dg->params.size() - 1; i >= 0; i--)
-		{
-			size_t offset = GetParamOffset(this, i);
-			void *addr = (void **)((intptr_t)this->newParams + offset);
-
-			if (*(void **)addr == NULL)
-				continue;
-
-			if (dg->params.at(i).type == HookParamType_VectorPtr)
-			{
-				delete *(SDKVector **)addr;
-			}
-			else if (dg->params.at(i).type == HookParamType_CharPtr)
-			{
-				delete *(char **)addr;
-			}
-		}
 		free(this->newParams);
 	}
 }

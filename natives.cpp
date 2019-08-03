@@ -753,6 +753,12 @@ cell_t Native_GetParamVector(IPluginContext *pContext, const cell_t *params)
 
 	return pContext->ThrowNativeError("Invalid param type to get. Param is not a vector.");
 }
+
+static void FreeChangedVector(void *pData)
+{
+	delete (SDKVector *)pData;
+}
+
 // native DHookSetParamVector(Handle:hParams, num, Float:vec[3])
 cell_t Native_SetParamVector(IPluginContext *pContext, const cell_t *params)
 {
@@ -777,14 +783,13 @@ cell_t Native_SetParamVector(IPluginContext *pContext, const cell_t *params)
 	{
 		case HookParamType_VectorPtr:
 		{
-			if(paramStruct->isChanged[index])
-				delete *(SDKVector **)addr;
-
 			cell_t *buffer;
 			pContext->LocalToPhysAddr(params[3], &buffer);
 
 			*(SDKVector **)addr = new SDKVector(sp_ctof(buffer[0]), sp_ctof(buffer[1]), sp_ctof(buffer[2]));
 			paramStruct->isChanged[index] = true;
+			// Free it later (cheaply) after the function returned.
+			smutils->AddFrameAction(FreeChangedVector, *(SDKVector **)addr);
 			return 1;
 		}
 	}
@@ -850,6 +855,11 @@ cell_t Native_GetReturnString(IPluginContext *pContext, const cell_t *params)
 	}
 }
 
+static void FreeChangedCharPtr(void *pData)
+{
+	delete[](char *)pData;
+}
+
 //native DHookSetReturnString(Handle:hReturn, String:value[])
 cell_t Native_SetReturnString(IPluginContext *pContext, const cell_t *params)
 {
@@ -867,13 +877,11 @@ cell_t Native_SetReturnString(IPluginContext *pContext, const cell_t *params)
 	{
 		case ReturnType_CharPtr:
 		{
-			if(returnStruct->isChanged == true)
-			{
-				delete (char *)returnStruct->newResult;
-			}
 			returnStruct->newResult = new char[strlen(value) + 1];
 			strcpy((char *)returnStruct->newResult, value);
 			returnStruct->isChanged = true;
+			// Free it later (cheaply) after the function returned.
+			smutils->AddFrameAction(FreeChangedCharPtr, returnStruct->newResult);
 			return 1;
 		}
 		default:
@@ -905,12 +913,11 @@ cell_t Native_SetParamString(IPluginContext *pContext, const cell_t *params)
 
 	if(paramStruct->dg->params.at(index).type == HookParamType_CharPtr)
 	{
-		if(paramStruct->isChanged[index])
-			delete *(char **)addr;
-
 		*(char **)addr = new char[strlen(value)+1];
 		strcpy(*(char **)addr, value);
 		paramStruct->isChanged[index] = true;
+		// Free it later (cheaply) after the function returned.
+		smutils->AddFrameAction(FreeChangedCharPtr, *(char **)addr);
 	}
 	return 1;
 }
@@ -1299,6 +1306,8 @@ cell_t Native_SetReturnVector(IPluginContext *pContext, const cell_t *params)
 	{
 		returnStruct->newResult = new SDKVector(sp_ctof(buffer[0]), sp_ctof(buffer[1]), sp_ctof(buffer[2]));
 		returnStruct->isChanged = true;
+		// Free it later (cheaply) after the function returned.
+		smutils->AddFrameAction(FreeChangedVector, returnStruct->newResult);
 		
 		return 1;
 	}
