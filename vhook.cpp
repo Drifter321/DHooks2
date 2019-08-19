@@ -784,7 +784,7 @@ SDKVector *Callback_vector(DHooksCallback *dg, void **argStack)
 			{
 				if(returnStruct->isChanged)
 				{
-					*vec_result = **(SDKVector **)returnStruct->newResult;
+					*vec_result = *(SDKVector *)returnStruct->newResult;
 				}
 				else //Throw an error if no override was set
 				{
@@ -806,7 +806,7 @@ SDKVector *Callback_vector(DHooksCallback *dg, void **argStack)
 				{
 					g_SHPtr->SetRes(MRES_OVERRIDE);
 					mres = MRES_OVERRIDE;
-					*vec_result = **(SDKVector **)returnStruct->newResult;
+					*vec_result = *(SDKVector *)returnStruct->newResult;
 				}
 				else //Throw an error if no override was set
 				{
@@ -823,7 +823,7 @@ SDKVector *Callback_vector(DHooksCallback *dg, void **argStack)
 				{
 					g_SHPtr->SetRes(MRES_SUPERCEDE);
 					mres = MRES_SUPERCEDE;
-					*vec_result = **(SDKVector **)returnStruct->newResult;
+					*vec_result = *(SDKVector *)returnStruct->newResult;
 				}
 				else //Throw an error if no override was set
 				{
