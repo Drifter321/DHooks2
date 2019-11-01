@@ -45,9 +45,16 @@ class x86GccThiscall: public x86GccCdecl
 {
 public:
 	x86GccThiscall(ke::Vector<DataTypeSized_t> &vecArgTypes, DataTypeSized_t returnType, int iAlignment = 4);
+	virtual ~x86GccThiscall();
 
 	virtual int GetArgStackSize();
 	virtual void** GetStackArgumentPtr(CRegisters* pRegisters);
+
+	virtual void SavePostCallRegisters(CRegisters* pRegisters);
+	virtual void RestorePostCallRegisters(CRegisters* pRegisters);
+
+private:
+	void* m_pSavedThisPointer;
 };
 
 #endif // _X86_GCC_THISCALL_H
