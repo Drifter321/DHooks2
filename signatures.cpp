@@ -324,10 +324,7 @@ SMCResult SignatureGameConfig::ReadSMC_LeavingSection(const SMCStates *states)
 	if (g_IgnoreLevel > 0)
 	{
 		g_IgnoreLevel--;
-
-		// We were in a subsection of an ignored section. Keep ignoring.
-		if (g_IgnoreLevel > 0)
-			return SMCResult_Continue;
+		return SMCResult_Continue;
 	}
 
 	// We were in a section only for our OS.
