@@ -82,7 +82,7 @@ struct IntegerPolicy
 
 typedef ke::HashSet<HookHandlerFn*, ke::PointerPolicy<HookHandlerFn>> HookHandlerSet;
 typedef ke::HashMap<HookType_t, HookHandlerSet, IntegerPolicy> HookTypeMap;
-typedef ke::HashMap<void*, void*, ke::PointerPolicy<void>> ReturnAddressMap;
+typedef ke::HashMap<void*, ke::Vector<void*>, ke::PointerPolicy<void>> ReturnAddressMap;
 
 namespace sp
 {

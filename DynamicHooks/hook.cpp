@@ -198,10 +198,12 @@ void* __cdecl CHook::GetReturnAddress(void* pESP)
 		return NULL;
 	}
 
-	void *pRetAddr = r->value;
+	void *pRetAddr = r->value.back();
+	r->value.pop();
 
-	// Clear the stack address from the cache now that we ran the post hook code.
-	m_RetAddr.remove(r);
+	// Clear the stack address from the cache now that we ran the last post hook.
+	if (r->value.empty())
+		m_RetAddr.remove(r);
 
 	return pRetAddr;
 }
@@ -209,10 +211,10 @@ void* __cdecl CHook::GetReturnAddress(void* pESP)
 void __cdecl CHook::SetReturnAddress(void* pRetAddr, void* pESP)
 {
 	ReturnAddressMap::Insert i = m_RetAddr.findForAdd(pESP);
-	if (i.found())
-		i->value = pRetAddr;
-	else
-		m_RetAddr.add(i, pESP, pRetAddr);
+	if (!i.found())
+		m_RetAddr.add(i, pESP, ke::Move(ke::Vector<void *>()));
+
+	i->value.append(pRetAddr);
 }
 
 void* CHook::CreateBridge()
