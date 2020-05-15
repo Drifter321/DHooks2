@@ -47,13 +47,10 @@ x86GccThiscall::x86GccThiscall(ke::Vector<DataTypeSized_t> &vecArgTypes, DataTyp
 	type.size = GetDataTypeSize(type, iAlignment);
 	type.custom_register = None;
 	m_vecArgTypes.insert(0, type);
-
-	m_pSavedThisPointer = malloc(sizeof(size_t));
 }
 
 x86GccThiscall::~x86GccThiscall()
 {
-	free(m_pSavedThisPointer);
 }
 
 int x86GccThiscall::GetArgStackSize()
@@ -74,10 +71,14 @@ void** x86GccThiscall::GetStackArgumentPtr(CRegisters* pRegisters)
 
 void x86GccThiscall::SavePostCallRegisters(CRegisters* pRegisters)
 {
-	memcpy(m_pSavedThisPointer, GetArgumentPtr(0, pRegisters), sizeof(size_t));
+	void* pSavedThisPointer = malloc(sizeof(size_t));
+	memcpy(pSavedThisPointer, GetArgumentPtr(0, pRegisters), sizeof(size_t));
+	m_pSavedThisPointers.append(pSavedThisPointer);
 }
 
 void x86GccThiscall::RestorePostCallRegisters(CRegisters* pRegisters)
 {
-	memcpy(GetArgumentPtr(0, pRegisters), m_pSavedThisPointer, sizeof(size_t));
+	void* pSavedThisPointer = m_pSavedThisPointers.back();
+	memcpy(GetArgumentPtr(0, pRegisters), pSavedThisPointer, sizeof(size_t));
+	m_pSavedThisPointers.pop();
 }

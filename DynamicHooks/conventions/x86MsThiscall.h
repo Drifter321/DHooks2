@@ -35,6 +35,8 @@
 // >> INCLUDES
 // ============================================================================
 #include "../convention.h"
+#include <am-vector.h>
+#include <am-autoptr.h>
 
 
 // ============================================================================
@@ -84,7 +86,7 @@ public:
 
 private:
 	void* m_pReturnBuffer;
-	void* m_pSavedThisPointer;
+	ke::Vector<ke::AutoPtr<void>> m_pSavedThisPointers;
 };
 
 #endif // _X86_MS_THISCALL_H

@@ -49,7 +49,6 @@ x86MsThiscall::x86MsThiscall(ke::Vector<DataTypeSized_t> &vecArgTypes, DataTypeS
 	{
 		m_pReturnBuffer = NULL;
 	}
-	m_pSavedThisPointer = malloc(sizeof(size_t));
 }
 
 x86MsThiscall::~x86MsThiscall()
@@ -58,7 +57,6 @@ x86MsThiscall::~x86MsThiscall()
 	{
 		free(m_pReturnBuffer);
 	}
-	free(m_pSavedThisPointer);
 }
 
 ke::Vector<Register_t> x86MsThiscall::GetRegisters()
@@ -209,10 +207,14 @@ void x86MsThiscall::ReturnPtrChanged(CRegisters* pRegisters, void* pReturnPtr)
 
 void x86MsThiscall::SavePostCallRegisters(CRegisters* pRegisters)
 {
-	memcpy(m_pSavedThisPointer, GetArgumentPtr(0, pRegisters), sizeof(size_t));
+	void* pSavedThisPointer = malloc(sizeof(size_t));
+	memcpy(pSavedThisPointer, GetArgumentPtr(0, pRegisters), sizeof(size_t));
+	m_pSavedThisPointers.append(pSavedThisPointer);
 }
 
 void x86MsThiscall::RestorePostCallRegisters(CRegisters* pRegisters)
 {
-	memcpy(GetArgumentPtr(0, pRegisters), m_pSavedThisPointer, sizeof(size_t));
+	void* pSavedThisPointer = m_pSavedThisPointers.back();
+	memcpy(GetArgumentPtr(0, pRegisters), pSavedThisPointer, sizeof(size_t));
+	m_pSavedThisPointers.pop();
 }

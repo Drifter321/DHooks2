@@ -53,7 +53,6 @@ CHook::CHook(void* pFunc, ICallingConvention* pConvention)
 	m_pFunc = pFunc;
 	m_pRegisters = new CRegisters(pConvention->GetRegisters());
 	m_pCallingConvention = pConvention;
-	m_LastPreReturnAction = ReturnAction_Ignored;
 
 	if (!m_hookHandler.init())
 		return;
@@ -157,9 +156,11 @@ ReturnAction_t CHook::HookHandler(HookType_t eHookType)
 {
 	if (eHookType == HOOKTYPE_POST)
 	{
-		if (m_LastPreReturnAction == ReturnAction_Override)
+		ReturnAction_t lastPreReturnAction = m_LastPreReturnAction.back();
+		m_LastPreReturnAction.pop();
+		if (lastPreReturnAction == ReturnAction_Override)
 			m_pCallingConvention->RestoreReturnValue(m_pRegisters);
-		if (m_LastPreReturnAction < ReturnAction_Supercede)
+		if (lastPreReturnAction < ReturnAction_Supercede)
 			m_pCallingConvention->RestorePostCallRegisters(m_pRegisters);
 	}
 
@@ -178,7 +179,7 @@ ReturnAction_t CHook::HookHandler(HookType_t eHookType)
 
 	if (eHookType == HOOKTYPE_PRE)
 	{
-		m_LastPreReturnAction = returnAction;
+		m_LastPreReturnAction.append(returnAction);
 		if (returnAction == ReturnAction_Override)
 			m_pCallingConvention->SaveReturnValue(m_pRegisters);
 		if (returnAction < ReturnAction_Supercede)

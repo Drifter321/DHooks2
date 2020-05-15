@@ -35,6 +35,8 @@
 // >> INCLUDES
 // ============================================================================
 #include "x86GccCdecl.h"
+#include <am-vector.h>
+#include <am-autoptr.h>
 
 
 // ============================================================================
@@ -54,7 +56,7 @@ public:
 	virtual void RestorePostCallRegisters(CRegisters* pRegisters);
 
 private:
-	void* m_pSavedThisPointer;
+	ke::Vector<ke::AutoPtr<void>> m_pSavedThisPointers;
 };
 
 #endif // _X86_GCC_THISCALL_H

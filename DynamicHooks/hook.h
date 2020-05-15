@@ -208,7 +208,7 @@ public:
 	ReturnAddressMap m_RetAddr;
 
 	// Save the last return action of the pre HookHandler for use in the post handler.
-	ReturnAction_t m_LastPreReturnAction;
+	ke::Vector<ReturnAction_t> m_LastPreReturnAction;
 };
 
 #endif // _HOOK_H

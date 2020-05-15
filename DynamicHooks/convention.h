@@ -37,6 +37,7 @@
 #include "registers.h"
 #include <string.h>
 #include <am-vector.h>
+#include <am-autoptr.h>
 
 // ============================================================================
 // >> DataType_t
@@ -164,12 +165,10 @@ public:
 		if (!m_returnType.size)
 			m_returnType.size = GetDataTypeSize(m_returnType, iAlignment);
 		m_iAlignment = iAlignment;
-		m_pSavedReturnBuffer = malloc(m_returnType.size);
 	}
 
 	virtual ~ICallingConvention()
 	{
-		free(m_pSavedReturnBuffer);
 	}
 
 	/*
@@ -223,13 +222,17 @@ public:
 	*/
 	virtual void SaveReturnValue(CRegisters* pRegisters)
 	{
-		memcpy(m_pSavedReturnBuffer, GetReturnPtr(pRegisters), m_returnType.size);
+		void* pSavedReturnValue = malloc(m_returnType.size);
+		memcpy(pSavedReturnValue, GetReturnPtr(pRegisters), m_returnType.size);
+		m_pSavedReturnBuffers.append(pSavedReturnValue);
 	}
 
 	virtual void RestoreReturnValue(CRegisters* pRegisters)
 	{
-		memcpy(GetReturnPtr(pRegisters), m_pSavedReturnBuffer, m_returnType.size);
-		ReturnPtrChanged(pRegisters, m_pSavedReturnBuffer);
+		void* pSavedReturnValue = m_pSavedReturnBuffers.back();
+		memcpy(GetReturnPtr(pRegisters), pSavedReturnValue, m_returnType.size);
+		ReturnPtrChanged(pRegisters, pSavedReturnValue);
+		m_pSavedReturnBuffers.pop();
 	}
 
 	virtual void SavePostCallRegisters(CRegisters* pRegisters) {}
@@ -240,7 +243,7 @@ public:
 	DataTypeSized_t m_returnType;
 	int m_iAlignment;
 	// Save the return in case we call the original function and want to override the return again.
-	void* m_pSavedReturnBuffer;
+	ke::Vector<ke::AutoPtr<void>> m_pSavedReturnBuffers;
 };
 
 #endif // _CONVENTION_H
