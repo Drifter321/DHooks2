@@ -86,7 +86,7 @@ public:
 
 private:
 	void* m_pReturnBuffer;
-	ke::Vector<ke::AutoPtr<void>> m_pSavedThisPointers;
+	ke::Vector<ke::AutoPtr<uint8_t>> m_pSavedThisPointers;
 };
 
 #endif // _X86_MS_THISCALL_H

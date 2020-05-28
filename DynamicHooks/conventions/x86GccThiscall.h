@@ -56,7 +56,7 @@ public:
 	virtual void RestorePostCallRegisters(CRegisters* pRegisters);
 
 private:
-	ke::Vector<ke::AutoPtr<void>> m_pSavedThisPointers;
+	ke::Vector<ke::AutoPtr<uint8_t>> m_pSavedThisPointers;
 };
 
 #endif // _X86_GCC_THISCALL_H

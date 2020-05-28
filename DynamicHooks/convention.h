@@ -222,14 +222,14 @@ public:
 	*/
 	virtual void SaveReturnValue(CRegisters* pRegisters)
 	{
-		void* pSavedReturnValue = malloc(m_returnType.size);
+		uint8_t* pSavedReturnValue = new uint8_t[m_returnType.size];
 		memcpy(pSavedReturnValue, GetReturnPtr(pRegisters), m_returnType.size);
 		m_pSavedReturnBuffers.append(pSavedReturnValue);
 	}
 
 	virtual void RestoreReturnValue(CRegisters* pRegisters)
 	{
-		void* pSavedReturnValue = m_pSavedReturnBuffers.back();
+		uint8_t* pSavedReturnValue = m_pSavedReturnBuffers.back();
 		memcpy(GetReturnPtr(pRegisters), pSavedReturnValue, m_returnType.size);
 		ReturnPtrChanged(pRegisters, pSavedReturnValue);
 		m_pSavedReturnBuffers.pop();
@@ -243,7 +243,7 @@ public:
 	DataTypeSized_t m_returnType;
 	int m_iAlignment;
 	// Save the return in case we call the original function and want to override the return again.
-	ke::Vector<ke::AutoPtr<void>> m_pSavedReturnBuffers;
+	ke::Vector<ke::AutoPtr<uint8_t>> m_pSavedReturnBuffers;
 };
 
 #endif // _CONVENTION_H

@@ -71,14 +71,14 @@ void** x86GccThiscall::GetStackArgumentPtr(CRegisters* pRegisters)
 
 void x86GccThiscall::SavePostCallRegisters(CRegisters* pRegisters)
 {
-	void* pSavedThisPointer = malloc(sizeof(size_t));
+	uint8_t* pSavedThisPointer = new uint8_t[sizeof(size_t)];
 	memcpy(pSavedThisPointer, GetArgumentPtr(0, pRegisters), sizeof(size_t));
 	m_pSavedThisPointers.append(pSavedThisPointer);
 }
 
 void x86GccThiscall::RestorePostCallRegisters(CRegisters* pRegisters)
 {
-	void* pSavedThisPointer = m_pSavedThisPointers.back();
+	uint8_t* pSavedThisPointer = m_pSavedThisPointers.back();
 	memcpy(GetArgumentPtr(0, pRegisters), pSavedThisPointer, sizeof(size_t));
 	m_pSavedThisPointers.pop();
 }
