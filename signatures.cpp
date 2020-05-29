@@ -277,7 +277,7 @@ SMCResult SignatureGameConfig::ReadSMC_KeyValue(const SMCStates *states, const c
 				flags |= PASSFLAG_BYVAL;
 			else if (strstr(value, "byref"))
 				flags |= PASSFLAG_BYREF;
-			else if (strstr(value, "byref"))
+			else if (strstr(value, "odtor"))
 				flags |= PASSFLAG_ODTOR;
 			else if (strstr(value, "octor"))
 				flags |= PASSFLAG_OCTOR;
