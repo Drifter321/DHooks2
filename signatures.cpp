@@ -275,20 +275,20 @@ SMCResult SignatureGameConfig::ReadSMC_KeyValue(const SMCStates *states, const c
 			size_t flags = 0;
 			if (strstr(value, "byval"))
 				flags |= PASSFLAG_BYVAL;
-			else if (strstr(value, "byref"))
+			if (strstr(value, "byref"))
 				flags |= PASSFLAG_BYREF;
-			else if (strstr(value, "odtor"))
+			if (strstr(value, "odtor"))
 				flags |= PASSFLAG_ODTOR;
-			else if (strstr(value, "octor"))
+			if (strstr(value, "octor"))
 				flags |= PASSFLAG_OCTOR;
-			else if (strstr(value, "oassignop"))
+			if (strstr(value, "oassignop"))
 				flags |= PASSFLAG_OASSIGNOP;
 #ifdef PASSFLAG_OCOPYCTOR
-			else if (strstr(value, "ocopyctor"))
+			if (strstr(value, "ocopyctor"))
 				flags |= PASSFLAG_OCOPYCTOR;
 #endif
 #ifdef PASSFLAG_OUNALIGN
-			else if (strstr(value, "ounalign"))
+			if (strstr(value, "ounalign"))
 				flags |= PASSFLAG_OUNALIGN;
 #endif
 
