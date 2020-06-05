@@ -3,6 +3,9 @@
 #endif
 #define _dhooks_included
 
+// Needed for the SDKFuncConfSource enum.
+#include <sdktools>
+
 enum ObjectValueType
 {
 	ObjectValueType_Int = 0,
