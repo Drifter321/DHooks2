@@ -38,6 +38,14 @@ void DHooksEntityListener::CleanupListeners(IPluginContext *pContext)
 			g_EntityListeners.remove(i);
 		}
 	}
+	for (int i = g_pRemoveList.length() -1; i >= 0; i--)
+	{
+		DHooksManager *manager = g_pRemoveList.at(i);
+		if (pContext == NULL || pContext == manager->callback->plugin_callback->GetParentRuntime()->GetDefaultContext())
+		{
+			g_pRemoveList.remove(i);
+		}
+	}
 }
 
 void DHooksEntityListener::OnEntityCreated(CBaseEntity *pEntity, const char *classname)

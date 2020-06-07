@@ -123,12 +123,12 @@ bool DHooks::SDK_OnMetamodLoad(ISmmAPI *ismm, char *error, size_t maxlength, boo
 
 void DHooks::OnPluginUnloaded(IPlugin *plugin)
 {
-	CleanupHooks(plugin->GetBaseContext());
-	RemoveAllCallbacksForContext(plugin->GetBaseContext());
 	if(g_pEntityListener)
 	{
 		g_pEntityListener->CleanupListeners(plugin->GetBaseContext());
 	}
+	CleanupHooks(plugin->GetBaseContext());
+	RemoveAllCallbacksForContext(plugin->GetBaseContext());
 }
 // The next 3 functions handle cleanup if our interfaces are going to be unloaded
 bool DHooks::QueryRunning(char *error, size_t maxlength)
