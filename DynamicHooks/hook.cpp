@@ -154,14 +154,11 @@ bool CHook::AreCallbacksRegistered()
 
 ReturnAction_t CHook::HookHandler(HookType_t eHookType)
 {
-	if (eHookType == HOOKTYPE_POST)
+	if (eHookType == HOOKTYPE_POST && !m_LastPreReturnAction.empty())
 	{
-		ReturnAction_t lastPreReturnAction = ReturnAction_Ignored;
 		// Ignore hooks without a registered pre-hook handler.
-		if (!m_LastPreReturnAction.empty()) {
-			lastPreReturnAction = m_LastPreReturnAction.back();
-			m_LastPreReturnAction.pop();
-		}
+		ReturnAction_t lastPreReturnAction = m_LastPreReturnAction.back();
+		m_LastPreReturnAction.pop();
 		if (lastPreReturnAction == ReturnAction_Override)
 			m_pCallingConvention->RestoreReturnValue(m_pRegisters);
 		if (lastPreReturnAction < ReturnAction_Supercede)
