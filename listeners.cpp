@@ -43,7 +43,7 @@ void DHooksEntityListener::CleanupListeners(IPluginContext *pContext)
 		DHooksManager *manager = g_pRemoveList.at(i);
 		if (pContext == NULL || pContext == manager->callback->plugin_callback->GetParentRuntime()->GetDefaultContext())
 		{
-			g_pRemoveList.remove(i);
+			manager->remove_callback = nullptr;
 		}
 	}
 }
