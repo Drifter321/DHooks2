@@ -48,7 +48,12 @@ IPluginFunction *GetCallback(IPluginContext *pContext, HookSetup * setup, const 
 //native Handle:DHookCreate(offset, HookType:hooktype, ReturnType:returntype, ThisPointerType:thistype, DHookCallback:callback = INVALID_FUNCTION); // Callback is now optional here.
 cell_t Native_CreateHook(IPluginContext *pContext, const cell_t *params)
 {
-	HookSetup *setup = new HookSetup((ReturnType)params[3], PASSFLAG_BYVAL, (HookType)params[2], (ThisPointerType)params[4], params[1], pContext->GetFunctionById(params[5]));
+	IPluginFunction *callback = nullptr;
+	// The methodmap constructor doesn't have the callback parameter anymore.
+	if (params[0] >= 5)
+		callback = pContext->GetFunctionById(params[5]);
+
+	HookSetup *setup = new HookSetup((ReturnType)params[3], PASSFLAG_BYVAL, (HookType)params[2], (ThisPointerType)params[4], params[1], callback);
 
 	Handle_t hndl = handlesys->CreateHandle(g_HookSetupHandle, setup, pContext->GetIdentity(), myself->GetIdentity(), NULL);
 
@@ -342,8 +347,7 @@ cell_t Native_DisableDetour(IPluginContext *pContext, const cell_t *params)
 	return RemoveDetourPluginHook(hookType, pDetour, callback);
 }
 
-// native DHookEntity(Handle:setup, bool:post, entity, DHookRemovalCB:removalcb, DHookCallback:callback = INVALID_FUNCTION); // Both callbacks are optional
-cell_t Native_HookEntity(IPluginContext *pContext, const cell_t *params)
+cell_t HookEntityImpl(IPluginContext *pContext, const cell_t *params, uint32_t callbackIndex, uint32_t removalcbIndex)
 {
 	HookSetup *setup;
 
@@ -361,12 +365,20 @@ cell_t Native_HookEntity(IPluginContext *pContext, const cell_t *params)
 	{
 		return pContext->ThrowNativeError("Hook is not an entity hook");
 	}
+
+	IPluginFunction *cb = GetCallback(pContext, setup, params, callbackIndex);
+	if (!cb)
+	{
+		return pContext->ThrowNativeError("Failed to hook entity %i, no callback provided", params[2]);
+	}
+
 	bool post = params[2] != 0;
+	IPluginFunction *removalcb = pContext->GetFunctionById(params[removalcbIndex]);
 
 	for(int i = g_pHooks.length() -1; i >= 0; i--)
 	{
 		DHooksManager *manager = g_pHooks.at(i);
-		if(manager->callback->hookType == HookType_Entity && manager->callback->entity == gamehelpers->ReferenceToBCompatRef(params[3]) && manager->callback->offset == setup->offset && manager->callback->post == post && manager->remove_callback == pContext->GetFunctionById(params[4]) && manager->callback->plugin_callback == setup->callback)
+		if(manager->callback->hookType == HookType_Entity && manager->callback->entity == gamehelpers->ReferenceToBCompatRef(params[3]) && manager->callback->offset == setup->offset && manager->callback->post == post && manager->remove_callback == removalcb && manager->callback->plugin_callback == cb)
 		{
 			return manager->hookid;
 		}
@@ -378,14 +390,7 @@ cell_t Native_HookEntity(IPluginContext *pContext, const cell_t *params)
 		return pContext->ThrowNativeError("Invalid entity passed %i", params[2]);
 	}
 
-	IPluginFunction *cb = GetCallback(pContext, setup, params, 5);
-
-	if (!cb)
-	{
-		pContext->ThrowNativeError("Failed to hook entity %i, no callback provided", params[2]);
-	}
-
-	DHooksManager *manager = new DHooksManager(setup, pEnt, pContext->GetFunctionById(params[4]), cb, post);
+	DHooksManager *manager = new DHooksManager(setup, pEnt, removalcb, cb, post);
 
 	if(!manager->hookid)
 	{
@@ -397,8 +402,19 @@ cell_t Native_HookEntity(IPluginContext *pContext, const cell_t *params)
 
 	return manager->hookid;
 }
-// native DHookGamerules(Handle:setup, bool:post, DHookRemovalCB:removalcb, DHookCallback:callback = INVALID_FUNCTION); // Both callbacks are optional
-cell_t Native_HookGamerules(IPluginContext *pContext, const cell_t *params)
+
+// native DHookEntity(Handle:setup, bool:post, entity, DHookRemovalCB:removalcb, DHookCallback:callback = INVALID_FUNCTION); // Both callbacks are optional
+cell_t Native_HookEntity(IPluginContext *pContext, const cell_t *params)
+{
+	return HookEntityImpl(pContext, params, 5, 4);
+}
+// public native int DynamicHook.HookEntity(HookMode mode, int entity, DHookCallback callback, DHookRemovalCB removalcb=INVALID_FUNCTION);
+cell_t Native_HookEntity_Methodmap(IPluginContext *pContext, const cell_t *params)
+{
+	return HookEntityImpl(pContext, params, 4, 5);
+}
+
+cell_t HookGamerulesImpl(IPluginContext *pContext, const cell_t *params, uint32_t callbackIndex, uint32_t removalcbIndex)
 {
 	HookSetup *setup;
 
@@ -417,32 +433,31 @@ cell_t Native_HookGamerules(IPluginContext *pContext, const cell_t *params)
 		return pContext->ThrowNativeError("Hook is not a gamerules hook");
 	}
 
+	IPluginFunction *cb = GetCallback(pContext, setup, params, callbackIndex);
+	if (!cb)
+	{
+		return pContext->ThrowNativeError("Failed to hook gamerules, no callback provided");
+	}
+
 	bool post = params[2] != 0;
+	IPluginFunction *removalcb = pContext->GetFunctionById(params[removalcbIndex]);
 
 	for(int i = g_pHooks.length() -1; i >= 0; i--)
 	{
 		DHooksManager *manager = g_pHooks.at(i);
-		if(manager->callback->hookType == HookType_GameRules && manager->callback->offset == setup->offset && manager->callback->post == post && manager->remove_callback == pContext->GetFunctionById(params[3]) && manager->callback->plugin_callback == setup->callback)
+		if(manager->callback->hookType == HookType_GameRules && manager->callback->offset == setup->offset && manager->callback->post == post && manager->remove_callback == removalcb && manager->callback->plugin_callback == cb)
 		{
 			return manager->hookid;
 		}
 	}
 
 	void *rules = g_pSDKTools->GetGameRules();
-
 	if(!rules)
 	{
 		return pContext->ThrowNativeError("Could not get gamerules pointer");
 	}
 
-	IPluginFunction *cb = GetCallback(pContext, setup, params, 4);
-
-	if (!cb)
-	{
-		pContext->ThrowNativeError("Failed to hook gamerules, no callback provided");
-	}
-
-	DHooksManager *manager = new DHooksManager(setup, rules, pContext->GetFunctionById(params[3]), cb, post);
+	DHooksManager *manager = new DHooksManager(setup, rules, removalcb, cb, post);
 
 	if(!manager->hookid)
 	{
@@ -454,8 +469,20 @@ cell_t Native_HookGamerules(IPluginContext *pContext, const cell_t *params)
 
 	return manager->hookid;
 }
-// DHookRaw(Handle:setup, bool:post, Address:addr, DHookRemovalCB:removalcb, DHookCallback:callback = INVALID_FUNCTION); // Both callbacks are optional
-cell_t Native_HookRaw(IPluginContext *pContext, const cell_t *params)
+
+// native DHookGamerules(Handle:setup, bool:post, DHookRemovalCB:removalcb, DHookCallback:callback = INVALID_FUNCTION); // Both callbacks are optional
+cell_t Native_HookGamerules(IPluginContext *pContext, const cell_t *params)
+{
+	return HookGamerulesImpl(pContext, params, 4, 3);
+}
+
+// public native int DynamicHook.HookGamerules(HookMode mode, DHookCallback callback, DHookRemovalCB removalcb=INVALID_FUNCTION);
+cell_t Native_HookGamerules_Methodmap(IPluginContext *pContext, const cell_t *params)
+{
+	return HookGamerulesImpl(pContext, params, 3, 4);
+}
+
+cell_t HookRawImpl(IPluginContext *pContext, const cell_t *params, int callbackIndex, int removalcbIndex)
 {
 	HookSetup *setup;
 
@@ -474,13 +501,23 @@ cell_t Native_HookRaw(IPluginContext *pContext, const cell_t *params)
 		return pContext->ThrowNativeError("Hook is not a raw hook");
 	}
 
+	IPluginFunction *cb = GetCallback(pContext, setup, params, callbackIndex);
+	if (!cb)
+	{
+		return pContext->ThrowNativeError("Failed to hook address, no callback provided");
+	}
+
 	bool post = params[2] != 0;
+	IPluginFunction *removalcb = nullptr;
+	if (removalcbIndex > 0)
+		removalcb = pContext->GetFunctionById(params[removalcbIndex]);
+
 	void *iface = (void *)(params[3]);
 
 	for(int i = g_pHooks.length() -1; i >= 0; i--)
 	{
 		DHooksManager *manager = g_pHooks.at(i);
-		if(manager->callback->hookType == HookType_Raw && manager->addr == (intptr_t)iface && manager->callback->offset == setup->offset && manager->callback->post == post && manager->remove_callback == pContext->GetFunctionById(params[4]) && manager->callback->plugin_callback == setup->callback)
+		if(manager->callback->hookType == HookType_Raw && manager->addr == (intptr_t)iface && manager->callback->offset == setup->offset && manager->callback->post == post && manager->remove_callback == removalcb && manager->callback->plugin_callback == cb)
 		{
 			return manager->hookid;
 		}
@@ -491,14 +528,7 @@ cell_t Native_HookRaw(IPluginContext *pContext, const cell_t *params)
 		return pContext->ThrowNativeError("Invalid address passed");
 	}
 
-	IPluginFunction *cb = GetCallback(pContext, setup, params, 5);
-
-	if (!cb)
-	{
-		pContext->ThrowNativeError("Failed to hook address, no callback provided");
-	}
-
-	DHooksManager *manager = new DHooksManager(setup, iface, pContext->GetFunctionById(params[4]), cb, post);
+	DHooksManager *manager = new DHooksManager(setup, iface, removalcb, cb, post);
 
 	if(!manager->hookid)
 	{
@@ -510,6 +540,19 @@ cell_t Native_HookRaw(IPluginContext *pContext, const cell_t *params)
 
 	return manager->hookid;
 }
+
+// DHookRaw(Handle:setup, bool:post, Address:addr, DHookRemovalCB:removalcb, DHookCallback:callback = INVALID_FUNCTION); // Both callbacks are optional
+cell_t Native_HookRaw(IPluginContext *pContext, const cell_t *params)
+{
+	return HookRawImpl(pContext, params, 5, 4);
+}
+
+// public native int DynamicHook.HookRaw(HookMode mode, Address addr, DHookCallback callback);
+cell_t Native_HookRaw_Methodmap(IPluginContext *pContext, const cell_t *params)
+{
+	return HookRawImpl(pContext, params, 4, 0);
+}
+
 // native bool:DHookRemoveHookID(hookid);
 cell_t Native_RemoveHookID(IPluginContext *pContext, const cell_t *params)
 {
@@ -1373,5 +1416,41 @@ sp_nativeinfo_t g_Natives[] =
 	{"DHookSetParamObjectPtrVarVector",		Native_SetParamObjectPtrVarVector},
 	{"DHookGetParamObjectPtrString",		Native_GetParamObjectPtrString},
 	{"DHookIsNullParam",					Native_IsNullParam},
-	{NULL,									NULL}
+
+  // Methodmap API
+  {"DHookSetup.AddParam",             Native_AddParam},
+  {"DHookSetup.SetFromConf",          Native_SetFromConf},
+
+  {"DynamicHook.DynamicHook",         Native_CreateHook},
+  {"DynamicHook.FromConf",            Native_DHookCreateFromConf},
+  {"DynamicHook.HookEntity",          Native_HookEntity_Methodmap},
+  {"DynamicHook.HookGamerules",       Native_HookGamerules_Methodmap},
+  {"DynamicHook.HookRaw",             Native_HookRaw_Methodmap},
+  {"DynamicHook.RemoveHook",          Native_RemoveHookID},
+
+  {"DynamicDetour.DynamicDetour",     Native_CreateDetour},
+  {"DynamicDetour.FromConf",          Native_DHookCreateFromConf},
+  {"DynamicDetour.Enable",            Native_EnableDetour},
+  {"DynamicDetour.Disable",           Native_DisableDetour},
+
+  {"DHookParam.Get",                  Native_GetParam},
+  {"DHookParam.GetVector",            Native_GetParamVector},
+  {"DHookParam.GetString",            Native_GetParamString},
+  {"DHookParam.Set",                  Native_SetParam},
+  {"DHookParam.SetVector",            Native_SetParamVector},
+  {"DHookParam.SetString",            Native_SetParamString},
+  {"DHookParam.GetObjectVar",         Native_GetParamObjectPtrVar},
+  {"DHookParam.GetObjectVarVector",   Native_GetParamObjectPtrVarVector},
+  {"DHookParam.GetObjectVarString",   Native_GetParamObjectPtrString},
+  {"DHookParam.SetObjectVar",         Native_SetParamObjectPtrVar},
+  {"DHookParam.SetObjectVarVector",   Native_SetParamObjectPtrVarVector},
+
+  {"DHookParam.IsNull",               Native_IsNullParam},
+  {"DHookReturn.Value.get",           Native_GetReturn},
+  {"DHookReturn.Value.set",           Native_SetReturn},
+  {"DHookReturn.GetVector",           Native_GetReturnVector},
+  {"DHookReturn.SetVector",           Native_SetReturnVector},
+  {"DHookReturn.GetString",           Native_GetReturnString},
+  {"DHookReturn.SetString",           Native_SetReturnString},
+	{NULL,                              NULL}
 };

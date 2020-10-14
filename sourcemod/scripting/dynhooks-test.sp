@@ -1,74 +1,76 @@
-#include <dhooks>
+#pragma semicolon 1
+#pragma newdecls required
 #include <sdktools>
+#include <dhooks>
 
 // Uses Flashbang Tools gamedata
 // https://forums.alliedmods.net/showthread.php?t=159876
 
-Handle hFlashbangDetonateDetour;
-Handle hFlashbangDeafen;
-//Handle hPercentageOfFlashForPlayer;
+DynamicDetour hFlashbangDetonateDetour;
+DynamicDetour hFlashbangDeafen;
+//DynamicDetour hPercentageOfFlashForPlayer;
 
 public void OnPluginStart()
 {
-	Handle temp = LoadGameConfigFile("fbtools.games");
+	GameData temp = new GameData("fbtools.games");
 	
 	if(temp == INVALID_HANDLE)
 	{
 		SetFailState("Why you no has gamedata?");
 	}
 	
-	hFlashbangDetonateDetour = DHookCreateDetour(Address_Null, CallConv_THISCALL, ReturnType_Void, ThisPointer_CBaseEntity);
+	hFlashbangDetonateDetour = new DynamicDetour(Address_Null, CallConv_THISCALL, ReturnType_Void, ThisPointer_CBaseEntity);
 	if (!hFlashbangDetonateDetour)
 		SetFailState("Failed to setup detour for Detonate");
 	
-	if (!DHookSetFromConf(hFlashbangDetonateDetour, temp, SDKConf_Signature, "CFlashbangProjectile::Detonate"))
+	if (!hFlashbangDetonateDetour.SetFromConf(temp, SDKConf_Signature, "CFlashbangProjectile::Detonate"))
 		SetFailState("Failed to load Detonate signature from gamedata");
 	
-	if (!DHookEnableDetour(hFlashbangDetonateDetour, false, Detour_OnFlashbangDetonate))
+	if (!hFlashbangDetonateDetour.Enable(Hook_Pre, Detour_OnFlashbangDetonate))
 		SetFailState("Failed to detour Detonate.");
 		
-	if (!DHookEnableDetour(hFlashbangDetonateDetour, true, Detour_OnFlashbangDetonate_Post))
+	if (!hFlashbangDetonateDetour.Enable(Hook_Post, Detour_OnFlashbangDetonate_Post))
 		SetFailState("Failed to detour Detonate post.");
 	
 	PrintToServer("CFlashbangProjectile::Detonate detoured!");
 	
 
-	hFlashbangDeafen = DHookCreateFromConf(temp, "Deafen");
+	hFlashbangDeafen = DynamicDetour.FromConf(temp, "Deafen");
 	if (!hFlashbangDeafen)
 		SetFailState("Failed to setup detour for Deafen");
-	/*hFlashbangDeafen = DHookCreateDetour(Address_Null, CallConv_THISCALL, ReturnType_Void, ThisPointer_CBaseEntity);
+	/*hFlashbangDeafen = new DynamicDetour(Address_Null, CallConv_THISCALL, ReturnType_Void, ThisPointer_CBaseEntity);
 	if (!hFlashbangDeafen)
 		SetFailState("Failed to setup detour for Deafen");
 	
-	if (!DHookSetFromConf(hFlashbangDeafen, temp, SDKConf_Signature, "Deafen"))
+	if (!hFlashbangDeafen.SetFromConf(temp, SDKConf_Signature, "Deafen"))
 		SetFailState("Failed to load Deafen signature from gamedata");
 	
-	DHookAddParam(hFlashbangDeafen, HookParamType_Float, .custom_register=DHookRegister_XMM1);*/
+	hFlashbangDeafen.AddParam(HookParamType_Float, .custom_register=DHookRegister_XMM1);*/
 	
-	if (!DHookEnableDetour(hFlashbangDeafen, false, Detour_OnDeafen))
+	if (!hFlashbangDeafen.Enable(Hook_Pre, Detour_OnDeafen))
 		SetFailState("Failed to detour Deafen.");
 		
-	if (!DHookEnableDetour(hFlashbangDeafen, true, Detour_OnDeafen_Post))
+	if (!hFlashbangDeafen.Enable(Hook_Post, Detour_OnDeafen_Post))
 		SetFailState("Failed to detour Deafen post.");
 	
 	PrintToServer("CCSPlayer::Deafen detoured!");
 	
 	
-	/*hPercentageOfFlashForPlayer = DHookCreateDetour(Address_Null, CallConv_CDECL, ReturnType_Float, ThisPointer_Ignore);
+	/*hPercentageOfFlashForPlayer = new DynamicDetour(Address_Null, CallConv_CDECL, ReturnType_Float, ThisPointer_Ignore);
 	if (!hPercentageOfFlashForPlayer)
 		SetFailState("Failed to setup detour for PercentageOfFlashForPlayer");
 	
-	if (!DHookSetFromConf(hPercentageOfFlashForPlayer, temp, SDKConf_Signature, "PercentageOfFlashForPlayer"))
+	if (!hPercentageOfFlashForPlayer.SetFromConf(temp, SDKConf_Signature, "PercentageOfFlashForPlayer"))
 		SetFailState("Failed to load PercentageOfFlashForPlayer signature from gamedata");
 	
-	DHookAddParam(hPercentageOfFlashForPlayer, HookParamType_CBaseEntity);
-	DHookAddParam(hPercentageOfFlashForPlayer, HookParamType_Object, 12);
-	DHookAddParam(hPercentageOfFlashForPlayer, HookParamType_CBaseEntity);
+	hPercentageOfFlashForPlayer.AddParam(HookParamType_CBaseEntity);
+	hPercentageOfFlashForPlayer.AddParam(HookParamType_Object, 12);
+	hPercentageOfFlashForPlayer.AddParam(HookParamType_CBaseEntity);
 	
-	if (!DHookEnableDetour(hPercentageOfFlashForPlayer, false, Detour_OnPercentageOfFlashForPlayer))
+	if (!hPercentageOfFlashForPlayer.Enable(Hook_Pre, Detour_OnPercentageOfFlashForPlayer))
 		SetFailState("Failed to detour PercentageOfFlashForPlayer.");
 	
-	if (!DHookEnableDetour(hPercentageOfFlashForPlayer, true, Detour_OnPercentageOfFlashForPlayer_Post))
+	if (!hPercentageOfFlashForPlayer.Enable(Hook_Post, Detour_OnPercentageOfFlashForPlayer_Post))
 		SetFailState("Failed to detour PercentageOfFlashForPlayer post.");
 	
 	PrintToServer("PercentageOfFlashForPlayer detoured!");*/
@@ -86,30 +88,30 @@ public MRESReturn Detour_OnFlashbangDetonate_Post(int pThis)
 	return MRES_Handled;
 }
 
-public MRESReturn Detour_OnDeafen(int pThis, Handle hParams)
+public MRESReturn Detour_OnDeafen(int pThis, DHookParam hParams)
 {
 	PrintToServer("Deafen called on entity %d! distance: %f", pThis, DHookGetParam(hParams, 1));
-	DHookSetParam(hParams, 1, 999.0);
+	hParams.Set(1, 999.0);
 	return MRES_ChangedHandled;
 }
 
-public MRESReturn Detour_OnDeafen_Post(int pThis, Handle hParams)
+public MRESReturn Detour_OnDeafen_Post(int pThis, DHookParam hParams)
 {
 	PrintToServer("Deafen post called on entity %d! distance: %f", pThis, DHookGetParam(hParams, 1));
 }
 
-public MRESReturn Detour_OnPercentageOfFlashForPlayer(Handle hReturn, Handle hParams)
+public MRESReturn Detour_OnPercentageOfFlashForPlayer(DHookReturn hReturn, DHookParam hParams)
 {
 	float pos[3];
-	DHookGetParamObjectPtrVarVector(hParams, 2, 0, ObjectValueType_Vector, pos);
-	PrintToServer("PercentageOfFlashForPlayer called! entity1 %d, pos [%f %f %f], entity2 %d", DHookGetParam(hParams, 1), pos[0], pos[1], pos[2], DHookGetParam(hParams, 3));
-	DHookSetReturn(hReturn, 0.3);
+	hParams.GetObjectVarVector(2, 0, ObjectValueType_Vector, pos);
+	PrintToServer("PercentageOfFlashForPlayer called! entity1 %d, pos [%f %f %f], entity2 %d", hParams.Get(1), pos[0], pos[1], pos[2], hParams.Get(3));
+	hReturn.Value = 0.3;
 	return MRES_Supercede;
 }
 
-public MRESReturn Detour_OnPercentageOfFlashForPlayer_Post(Handle hReturn, Handle hParams)
+public MRESReturn Detour_OnPercentageOfFlashForPlayer_Post(DHookReturn hReturn, DHookParam hParams)
 {
 	float pos[3];
-	DHookGetParamObjectPtrVarVector(hParams, 2, 0, ObjectValueType_Vector, pos);
-	PrintToServer("PercentageOfFlashForPlayer_Post called! entity1 %d, pos [%f %f %f], entity2 %d: %f", DHookGetParam(hParams, 1), pos[0], pos[1], pos[2], DHookGetParam(hParams, 3), DHookGetReturn(hReturn));
+	hParams.GetObjectVarVector(2, 0, ObjectValueType_Vector, pos);
+	PrintToServer("PercentageOfFlashForPlayer_Post called! entity1 %d, pos [%f %f %f], entity2 %d: %f", hParams.Get(1), pos[0], pos[1], pos[2], hParams.Get(3), hReturn.Value);
 }
