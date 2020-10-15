@@ -205,16 +205,30 @@ void x86MsThiscall::ReturnPtrChanged(CRegisters* pRegisters, void* pReturnPtr)
 	}
 }
 
-void x86MsThiscall::SavePostCallRegisters(CRegisters* pRegisters)
+void x86MsThiscall::SaveCallArguments(CRegisters* pRegisters)
 {
-	uint8_t* pSavedThisPointer = new uint8_t[sizeof(size_t)];
-	memcpy(pSavedThisPointer, GetArgumentPtr(0, pRegisters), sizeof(size_t));
-	m_pSavedThisPointers.append(pSavedThisPointer);
+	// Account for implicit this-pointer in ecx.
+	int size = GetArgStackSize() + GetArgRegisterSize() + sizeof(void *);
+	uint8_t* pSavedCallArguments = new uint8_t[size];
+	memcpy(pSavedCallArguments, GetArgumentPtr(0, pRegisters), sizeof(void *));
+
+	size_t offset = sizeof(void *);
+	for (size_t i = 0; i < m_vecArgTypes.length(); i++) {
+		DataTypeSized_t &type = m_vecArgTypes[i];
+		memcpy(pSavedCallArguments + offset, GetArgumentPtr(i + 1, pRegisters), type.size);
+	}
+	m_pSavedCallArguments.append(pSavedCallArguments);
 }
 
-void x86MsThiscall::RestorePostCallRegisters(CRegisters* pRegisters)
+void x86MsThiscall::RestoreCallArguments(CRegisters* pRegisters)
 {
-	uint8_t* pSavedThisPointer = m_pSavedThisPointers.back();
-	memcpy(GetArgumentPtr(0, pRegisters), pSavedThisPointer, sizeof(size_t));
-	m_pSavedThisPointers.pop();
+	uint8_t* pSavedCallArguments = m_pSavedCallArguments.back();
+	memcpy(GetArgumentPtr(0, pRegisters), pSavedCallArguments, sizeof(void *));
+
+	size_t offset = sizeof(void *);
+	for (size_t i = 0; i < m_vecArgTypes.length(); i++) {
+		DataTypeSized_t &type = m_vecArgTypes[i];
+		memcpy(GetArgumentPtr(i + 1, pRegisters), pSavedCallArguments + offset, type.size);
+	}
+	m_pSavedCallArguments.pop();
 }

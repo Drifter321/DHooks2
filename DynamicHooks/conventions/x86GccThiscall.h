@@ -52,11 +52,7 @@ public:
 	virtual int GetArgStackSize();
 	virtual void** GetStackArgumentPtr(CRegisters* pRegisters);
 
-	virtual void SavePostCallRegisters(CRegisters* pRegisters);
-	virtual void RestorePostCallRegisters(CRegisters* pRegisters);
-
-private:
-	ke::Vector<ke::AutoPtr<uint8_t>> m_pSavedThisPointers;
+	virtual void SaveCallArguments(CRegisters* pRegisters);
 };
 
 #endif // _X86_GCC_THISCALL_H

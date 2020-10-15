@@ -69,16 +69,15 @@ void** x86GccThiscall::GetStackArgumentPtr(CRegisters* pRegisters)
 	return (void **)(pRegisters->m_esp->GetValue<unsigned long>() + 4 + GetDataTypeSize(type, m_iAlignment));
 }
 
-void x86GccThiscall::SavePostCallRegisters(CRegisters* pRegisters)
+void x86GccThiscall::SaveCallArguments(CRegisters* pRegisters)
 {
-	uint8_t* pSavedThisPointer = new uint8_t[sizeof(size_t)];
-	memcpy(pSavedThisPointer, GetArgumentPtr(0, pRegisters), sizeof(size_t));
-	m_pSavedThisPointers.append(pSavedThisPointer);
-}
-
-void x86GccThiscall::RestorePostCallRegisters(CRegisters* pRegisters)
-{
-	uint8_t* pSavedThisPointer = m_pSavedThisPointers.back();
-	memcpy(GetArgumentPtr(0, pRegisters), pSavedThisPointer, sizeof(size_t));
-	m_pSavedThisPointers.pop();
+	// Count the this pointer.
+	int size = x86GccCdecl::GetArgStackSize() + GetArgRegisterSize();
+	uint8_t* pSavedCallArguments = new uint8_t[size];
+	size_t offset = 0;
+	for (size_t i = 0; i < m_vecArgTypes.length(); i++) {
+		DataTypeSized_t &type = m_vecArgTypes[i];
+		memcpy(pSavedCallArguments + offset, GetArgumentPtr(i, pRegisters), type.size);
+	}
+	m_pSavedCallArguments.append(pSavedCallArguments);
 }
