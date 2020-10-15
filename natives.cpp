@@ -28,6 +28,28 @@ bool GetHandleIfValidOrError(HandleType_t type, void **object, IPluginContext *p
 	return true;
 }
 
+bool GetCallbackArgHandleIfValidOrError(HandleType_t type, HandleType_t otherType, void **object, IPluginContext *pContext, cell_t param)
+{
+	if (param == BAD_HANDLE)
+	{
+		return pContext->ThrowNativeError("Invalid Handle %i", BAD_HANDLE) != 0;
+	}
+
+	HandleError err;
+	HandleSecurity sec(pContext->GetIdentity(), myself->GetIdentity());
+
+	if ((err = handlesys->ReadHandle(param, type, &sec, object)) != HandleError_None)
+	{
+		// Check if the user mixed up the callback signature and tried to call 
+		// e.g. DHookGetParam on a hReturn handle. Print a nicer error message in that case.
+		void *dummy;
+		if (handlesys->ReadHandle(param, otherType, &sec, &dummy) == HandleError_None)
+			return pContext->ThrowNativeError("Invalid Handle %x (error %d). It looks like you've chosen the wrong hook callback signature for your setup and you're trying to access the wrong handle.", param, err) != 0;
+		return pContext->ThrowNativeError("Invalid Handle %x (error %d)", param, err) != 0;
+	}
+	return true;
+}
+
 IPluginFunction *GetCallback(IPluginContext *pContext, HookSetup * setup, const cell_t *params, cell_t callback_index)
 {
 	IPluginFunction *ret = NULL;
@@ -573,7 +595,7 @@ cell_t Native_GetParam(IPluginContext *pContext, const cell_t *params)
 {
 	HookParamsStruct *paramStruct;
 
-	if(!GetHandleIfValidOrError(g_HookParamsHandle, (void **)&paramStruct, pContext, params[1]))
+	if(!GetCallbackArgHandleIfValidOrError(g_HookParamsHandle, g_HookReturnHandle, (void **)&paramStruct, pContext, params[1]))
 	{
 		return 0;
 	}
@@ -622,7 +644,7 @@ cell_t Native_SetParam(IPluginContext *pContext, const cell_t *params)
 {
 	HookParamsStruct *paramStruct;
 
-	if(!GetHandleIfValidOrError(g_HookParamsHandle, (void **)&paramStruct, pContext, params[1]))
+	if(!GetCallbackArgHandleIfValidOrError(g_HookParamsHandle, g_HookReturnHandle, (void **)&paramStruct, pContext, params[1]))
 	{
 		return 0;
 	}
@@ -685,7 +707,7 @@ cell_t Native_GetReturn(IPluginContext *pContext, const cell_t *params)
 {
 	HookReturnStruct *returnStruct;
 
-	if(!GetHandleIfValidOrError(g_HookReturnHandle, (void **)&returnStruct, pContext, params[1]))
+	if(!GetCallbackArgHandleIfValidOrError(g_HookReturnHandle, g_HookParamsHandle, (void **)&returnStruct, pContext, params[1]))
 	{
 		return 0;
 	}
@@ -712,7 +734,7 @@ cell_t Native_SetReturn(IPluginContext *pContext, const cell_t *params)
 {
 	HookReturnStruct *returnStruct;
 
-	if(!GetHandleIfValidOrError(g_HookReturnHandle, (void **)&returnStruct, pContext, params[1]))
+	if(!GetCallbackArgHandleIfValidOrError(g_HookReturnHandle, g_HookParamsHandle, (void **)&returnStruct, pContext, params[1]))
 	{
 		return 0;
 	}
@@ -759,7 +781,7 @@ cell_t Native_GetParamVector(IPluginContext *pContext, const cell_t *params)
 {
 	HookParamsStruct *paramStruct;
 
-	if(!GetHandleIfValidOrError(g_HookParamsHandle, (void **)&paramStruct, pContext, params[1]))
+	if(!GetCallbackArgHandleIfValidOrError(g_HookParamsHandle, g_HookReturnHandle, (void **)&paramStruct, pContext, params[1]))
 	{
 		return 0;
 	}
@@ -807,7 +829,7 @@ cell_t Native_SetParamVector(IPluginContext *pContext, const cell_t *params)
 {
 	HookParamsStruct *paramStruct;
 
-	if(!GetHandleIfValidOrError(g_HookParamsHandle, (void **)&paramStruct, pContext, params[1]))
+	if(!GetCallbackArgHandleIfValidOrError(g_HookParamsHandle, g_HookReturnHandle, (void **)&paramStruct, pContext, params[1]))
 	{
 		return 0;
 	}
@@ -844,7 +866,7 @@ cell_t Native_GetParamString(IPluginContext *pContext, const cell_t *params)
 {
 	HookParamsStruct *paramStruct;
 
-	if(!GetHandleIfValidOrError(g_HookParamsHandle, (void **)&paramStruct, pContext, params[1]))
+	if(!GetCallbackArgHandleIfValidOrError(g_HookParamsHandle, g_HookReturnHandle, (void **)&paramStruct, pContext, params[1]))
 	{
 		return 0;
 	}
@@ -877,7 +899,7 @@ cell_t Native_GetReturnString(IPluginContext *pContext, const cell_t *params)
 {
 	HookReturnStruct *returnStruct;
 
-	if(!GetHandleIfValidOrError(g_HookReturnHandle, (void **)&returnStruct, pContext, params[1]))
+	if(!GetCallbackArgHandleIfValidOrError(g_HookReturnHandle, g_HookParamsHandle, (void **)&returnStruct, pContext, params[1]))
 	{
 		return 0;
 	}
@@ -908,7 +930,7 @@ cell_t Native_SetReturnString(IPluginContext *pContext, const cell_t *params)
 {
 	HookReturnStruct *returnStruct;
 
-	if(!GetHandleIfValidOrError(g_HookReturnHandle, (void **)&returnStruct, pContext, params[1]))
+	if(!GetCallbackArgHandleIfValidOrError(g_HookReturnHandle, g_HookParamsHandle, (void **)&returnStruct, pContext, params[1]))
 	{
 		return 0;
 	}
@@ -937,7 +959,7 @@ cell_t Native_SetParamString(IPluginContext *pContext, const cell_t *params)
 {
 	HookParamsStruct *paramStruct;
 
-	if(!GetHandleIfValidOrError(g_HookParamsHandle, (void **)&paramStruct, pContext, params[1]))
+	if(!GetCallbackArgHandleIfValidOrError(g_HookParamsHandle, g_HookReturnHandle, (void **)&paramStruct, pContext, params[1]))
 	{
 		return 0;
 	}
@@ -990,7 +1012,7 @@ cell_t Native_GetParamObjectPtrVar(IPluginContext *pContext, const cell_t *param
 {
 	HookParamsStruct *paramStruct;
 
-	if(!GetHandleIfValidOrError(g_HookParamsHandle, (void **)&paramStruct, pContext, params[1]))
+	if(!GetCallbackArgHandleIfValidOrError(g_HookParamsHandle, g_HookReturnHandle, (void **)&paramStruct, pContext, params[1]))
 	{
 		return 0;
 	}
@@ -1061,7 +1083,7 @@ cell_t Native_SetParamObjectPtrVar(IPluginContext *pContext, const cell_t *param
 {
 	HookParamsStruct *paramStruct;
 
-	if(!GetHandleIfValidOrError(g_HookParamsHandle, (void **)&paramStruct, pContext, params[1]))
+	if(!GetCallbackArgHandleIfValidOrError(g_HookParamsHandle, g_HookReturnHandle, (void **)&paramStruct, pContext, params[1]))
 	{
 		return 0;
 	}
@@ -1146,7 +1168,7 @@ cell_t Native_GetParamObjectPtrVarVector(IPluginContext *pContext, const cell_t 
 {
 	HookParamsStruct *paramStruct;
 
-	if(!GetHandleIfValidOrError(g_HookParamsHandle, (void **)&paramStruct, pContext, params[1]))
+	if(!GetCallbackArgHandleIfValidOrError(g_HookParamsHandle, g_HookReturnHandle, (void **)&paramStruct, pContext, params[1]))
 	{
 		return 0;
 	}
@@ -1200,7 +1222,7 @@ cell_t Native_SetParamObjectPtrVarVector(IPluginContext *pContext, const cell_t 
 {
 	HookParamsStruct *paramStruct;
 
-	if(!GetHandleIfValidOrError(g_HookParamsHandle, (void **)&paramStruct, pContext, params[1]))
+	if(!GetCallbackArgHandleIfValidOrError(g_HookParamsHandle, g_HookReturnHandle, (void **)&paramStruct, pContext, params[1]))
 	{
 		return 0;
 	}
@@ -1253,7 +1275,7 @@ cell_t Native_GetParamObjectPtrString(IPluginContext *pContext, const cell_t *pa
 {
 	HookParamsStruct *paramStruct;
 
-	if(!GetHandleIfValidOrError(g_HookParamsHandle, (void **)&paramStruct, pContext, params[1]))
+	if(!GetCallbackArgHandleIfValidOrError(g_HookParamsHandle, g_HookReturnHandle, (void **)&paramStruct, pContext, params[1]))
 	{
 		return 0;
 	}
@@ -1298,7 +1320,7 @@ cell_t Native_GetReturnVector(IPluginContext *pContext, const cell_t *params)
 {
 	HookReturnStruct *returnStruct;
 
-	if(!GetHandleIfValidOrError(g_HookReturnHandle, (void **)&returnStruct, pContext, params[1]))
+	if(!GetCallbackArgHandleIfValidOrError(g_HookReturnHandle, g_HookParamsHandle, (void **)&returnStruct, pContext, params[1]))
 	{
 		return 0;
 	}
@@ -1330,7 +1352,7 @@ cell_t Native_SetReturnVector(IPluginContext *pContext, const cell_t *params)
 {
 	HookReturnStruct *returnStruct;
 
-	if(!GetHandleIfValidOrError(g_HookReturnHandle, (void **)&returnStruct, pContext, params[1]))
+	if(!GetCallbackArgHandleIfValidOrError(g_HookReturnHandle, g_HookParamsHandle, (void **)&returnStruct, pContext, params[1]))
 	{
 		return 0;
 	}
@@ -1362,7 +1384,7 @@ cell_t Native_IsNullParam(IPluginContext *pContext, const cell_t *params)
 {
 	HookParamsStruct *paramStruct;
 
-	if(!GetHandleIfValidOrError(g_HookParamsHandle, (void **)&paramStruct, pContext, params[1]))
+	if(!GetCallbackArgHandleIfValidOrError(g_HookParamsHandle, g_HookReturnHandle, (void **)&paramStruct, pContext, params[1]))
 	{
 		return 0;
 	}
