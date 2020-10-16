@@ -156,7 +156,6 @@ ReturnAction_t CHook::HookHandler(HookType_t eHookType)
 {
 	if (eHookType == HOOKTYPE_POST)
 	{
-		// Ignore hooks without a registered pre-hook handler.
 		ReturnAction_t lastPreReturnAction = m_LastPreReturnAction.back();
 		m_LastPreReturnAction.pop();
 		if (lastPreReturnAction == ReturnAction_Override)

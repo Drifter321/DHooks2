@@ -215,7 +215,8 @@ void x86MsThiscall::SaveCallArguments(CRegisters* pRegisters)
 	size_t offset = sizeof(void *);
 	for (size_t i = 0; i < m_vecArgTypes.length(); i++) {
 		DataTypeSized_t &type = m_vecArgTypes[i];
-		memcpy(pSavedCallArguments + offset, GetArgumentPtr(i + 1, pRegisters), type.size);
+		memcpy((void *)((unsigned long)pSavedCallArguments + offset), GetArgumentPtr(i + 1, pRegisters), type.size);
+		offset += type.size;
 	}
 	m_pSavedCallArguments.append(pSavedCallArguments);
 }
@@ -228,7 +229,8 @@ void x86MsThiscall::RestoreCallArguments(CRegisters* pRegisters)
 	size_t offset = sizeof(void *);
 	for (size_t i = 0; i < m_vecArgTypes.length(); i++) {
 		DataTypeSized_t &type = m_vecArgTypes[i];
-		memcpy(GetArgumentPtr(i + 1, pRegisters), pSavedCallArguments + offset, type.size);
+		memcpy(GetArgumentPtr(i + 1, pRegisters), (void *)((unsigned long)pSavedCallArguments + offset), type.size);
+		offset += type.size;
 	}
 	m_pSavedCallArguments.pop();
 }
