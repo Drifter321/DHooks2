@@ -67,7 +67,7 @@ class DHooksConfig(object):
     if builder.options.sm_path:
       self.sm_root = builder.options.sm_path
     else:
-      self.sm_root = ResolveEnvPath('SOURCEMOD18', 'sourcemod-1.8')
+      self.sm_root = ResolveEnvPath('SOURCEMOD110', 'sourcemod-1.10')
 
     if not self.sm_root or not os.path.isdir(self.sm_root):
       raise Exception('Could not find a source copy of Sourcemod')
@@ -76,7 +76,9 @@ class DHooksConfig(object):
   def configure(self):
     builder.AddConfigureFile('push.txt')
 
-    cxx = builder.DetectCompilers()
+    cxx = builder.DetectCxx(target_arch='x86')
+
+    builder.cxx = cxx
 
     if cxx.like('gcc'):
       cxx.defines += [
@@ -106,8 +108,8 @@ class DHooksConfig(object):
           '-std=c++11',
       ]
 
-      have_gcc = cxx.vendor == 'gcc'
-      have_clang = cxx.vendor == 'clang'
+      have_gcc = cxx.family == 'gcc'
+      have_clang = cxx.family == 'clang'
       if cxx.version >= 'clang-3.6':
         cxx.cxxflags += ['-Wno-inconsistent-missing-override']
       if have_clang or (have_gcc and cxx.version >= '4'):
@@ -121,7 +123,7 @@ class DHooksConfig(object):
           cxx.cflags += ['-Wno-unused-result']
       if have_clang:
         cxx.cxxflags += ['-Wno-implicit-exception-spec-mismatch']
-        if (builder.target_platform == 'mac' and cxx.version >= '5.1') or cxx.version >= '3.4':
+        if (cxx.target.platform == 'mac' and cxx.version >= '5.1') or cxx.version >= '3.4':
           cxx.cxxflags += ['-Wno-deprecated-register']
         else:
           cxx.cxxflags += ['-Wno-deprecated']
@@ -137,7 +139,7 @@ class DHooksConfig(object):
 
       if have_gcc:
         cxx.cflags += ['-mfpmath=sse']
-    elif cxx.vendor == 'msvc':
+    elif cxx.family == 'msvc':
       if builder.options.debug == '1':
         cxx.cflags += ['/MTd']
         cxx.linkflags += ['/NODEFAULTLIB:libcmt']
@@ -192,18 +194,18 @@ class DHooksConfig(object):
           cxx.cflags += ['/d2Zi+']
 
     # This needs to be after our optimization flags which could otherwise disable it.
-    if cxx.vendor == 'msvc':
+    if cxx.family == 'msvc':
       # Don't omit the frame pointer.
       cxx.cflags += ['/Oy-']
 
     # Platform-specifics
-    if builder.target_platform == 'linux':
+    if cxx.target.platform == 'linux':
       cxx.defines += ['_LINUX', 'POSIX']
-      if cxx.vendor == 'gcc':
+      if cxx.family == 'gcc':
         cxx.linkflags += ['-static-libgcc']
-      elif cxx.vendor == 'clang':
+      elif cxx.family == 'clang':
         cxx.linkflags += ['-lgcc_eh']
-    elif builder.target_platform == 'mac':
+    elif cxx.target.platform == 'mac':
       cxx.defines += ['OSX', '_OSX', 'POSIX']
       cxx.cflags += ['-mmacosx-version-min=10.5']
       cxx.linkflags += [
@@ -213,18 +215,18 @@ class DHooksConfig(object):
         '-stdlib=libstdc++',
       ]
       cxx.cxxflags += ['-stdlib=libstdc++']
-    elif builder.target_platform == 'windows':
+    elif cxx.target.platform == 'windows':
       cxx.defines += ['WIN32', '_WINDOWS']
 
-    if cxx.vendor == 'gcc' or cxx.vendor == 'clang':
+    if cxx.family == 'gcc' or cxx.family == 'clang':
       cxx.cxxflags += ['-fno-rtti']
-    elif cxx.vendor == 'msvc':
+    elif cxx.family == 'msvc':
       cxx.cxxflags += ['/GR-']
  
     cxx.defines += ['META_NO_HL2SDK']
 	
   def IncludeSDKs(self, builder):
-    builder.compiler.cxxincludes += [
+    builder.cxx.cxxincludes += [
       os.path.join(builder.currentSourcePath),
       os.path.join(builder.currentSourcePath, 'sdk'),
       os.path.join(self.mms_root, 'core'),
@@ -249,7 +251,7 @@ DHooks.detectSDKs()
 DHooks.configure()
 DHooks.IncludeSDKs(builder)
 
-program = builder.compiler.Library('dhooks.ext')
+program = builder.cxx.Library('dhooks.ext')
 
 program.sources += [
   'extension.cpp',
@@ -273,7 +275,7 @@ program.sources += [
 	os.path.join('DynamicHooks', 'conventions', 'x86MsFastcall.cpp'),
 ]
 
-if builder.target_platform == 'windows':
+if builder.cxx.target.platform == 'windows':
 	program.sources += [os.path.join('DynamicHooks', 'conventions', 'x86MsThiscall.cpp')]
 else:
 	program.sources += [os.path.join('DynamicHooks', 'conventions', 'x86GccThiscall.cpp')]
@@ -289,4 +291,4 @@ else:
 
 DHooks.task = builder.Add(program)
 
-builder.RunScript('buildbot/PackageScript', { 'DHooks': DHooks })
+builder.Build('buildbot/PackageScript', { 'DHooks': DHooks })
