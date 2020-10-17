@@ -154,21 +154,29 @@ bool CHook::AreCallbacksRegistered()
 
 ReturnAction_t CHook::HookHandler(HookType_t eHookType)
 {
-	if (eHookType == HOOKTYPE_POST && !m_LastPreReturnAction.empty())
+	if (eHookType == HOOKTYPE_POST)
 	{
-		// Ignore hooks without a registered pre-hook handler.
 		ReturnAction_t lastPreReturnAction = m_LastPreReturnAction.back();
 		m_LastPreReturnAction.pop();
 		if (lastPreReturnAction == ReturnAction_Override)
 			m_pCallingConvention->RestoreReturnValue(m_pRegisters);
 		if (lastPreReturnAction < ReturnAction_Supercede)
-			m_pCallingConvention->RestorePostCallRegisters(m_pRegisters);
+			m_pCallingConvention->RestoreCallArguments(m_pRegisters);
 	}
 
 	ReturnAction_t returnAction = ReturnAction_Ignored;
 	HookTypeMap::Result r = m_hookHandler.find(eHookType);
 	if (!r.found())
+	{
+		// Still save the arguments for the post hook even if there
+		// is no pre-handler registered.
+		if (eHookType == HOOKTYPE_PRE)
+		{
+			m_LastPreReturnAction.append(returnAction);
+			m_pCallingConvention->SaveCallArguments(m_pRegisters);
+		}
 		return returnAction;
+	}
 
 	HookHandlerSet &callbacks = r->value;
 	for(HookHandlerSet::iterator it=callbacks.iter(); !it.empty(); it.next())
@@ -184,7 +192,7 @@ ReturnAction_t CHook::HookHandler(HookType_t eHookType)
 		if (returnAction == ReturnAction_Override)
 			m_pCallingConvention->SaveReturnValue(m_pRegisters);
 		if (returnAction < ReturnAction_Supercede)
-			m_pCallingConvention->SavePostCallRegisters(m_pRegisters);
+			m_pCallingConvention->SaveCallArguments(m_pRegisters);
 	}
 
 	return returnAction;

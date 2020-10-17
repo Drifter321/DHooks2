@@ -81,12 +81,11 @@ public:
 	virtual void* GetReturnPtr(CRegisters* pRegisters);
 	virtual void ReturnPtrChanged(CRegisters* pRegisters, void* pReturnPtr);
 
-	virtual void SavePostCallRegisters(CRegisters* pRegisters);
-	virtual void RestorePostCallRegisters(CRegisters* pRegisters);
+	virtual void SaveCallArguments(CRegisters* pRegisters);
+	virtual void RestoreCallArguments(CRegisters* pRegisters);
 
 private:
 	void* m_pReturnBuffer;
-	ke::Vector<ke::AutoPtr<uint8_t>> m_pSavedThisPointers;
 };
 
 #endif // _X86_MS_THISCALL_H

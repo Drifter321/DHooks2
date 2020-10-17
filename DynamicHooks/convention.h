@@ -186,7 +186,7 @@ public:
 	virtual void** GetStackArgumentPtr(CRegisters* pRegisters) = 0;
 
 	/*
-	Returns the number of bytes that the buffer to store all the arguments in that are passed in a register.
+	Returns the number of bytes for the buffer to store all the arguments that are passed in a register in.
 	*/
 	virtual int GetArgRegisterSize() = 0;
 
@@ -219,6 +219,9 @@ public:
 
 	/*
 	Save the return value in a seperate buffer, so we can restore it after calling the original function.
+
+	@param <pRegisters>:
+	A snapshot of all saved registers.
 	*/
 	virtual void SaveReturnValue(CRegisters* pRegisters)
 	{
@@ -235,8 +238,39 @@ public:
 		m_pSavedReturnBuffers.pop();
 	}
 
-	virtual void SavePostCallRegisters(CRegisters* pRegisters) {}
-	virtual void RestorePostCallRegisters(CRegisters* pRegisters)	{}
+	/*
+	Save the value of arguments in a seperate buffer for the post callback.
+	Compiler optimizations might cause the registers or stack space to be reused
+	and overwritten during function execution if the value isn't needed anymore
+	at some point. This leads to different values in the post hook.
+
+	@param <pRegisters>:
+	A snapshot of all saved registers.
+	*/
+	virtual void SaveCallArguments(CRegisters* pRegisters)
+	{
+		int size = GetArgStackSize() + GetArgRegisterSize();
+		uint8_t* pSavedCallArguments = new uint8_t[size];
+		size_t offset = 0;
+		for (size_t i = 0; i < m_vecArgTypes.length(); i++) {
+			DataTypeSized_t &type = m_vecArgTypes[i];
+			memcpy((void *)((unsigned long)pSavedCallArguments + offset), GetArgumentPtr(i, pRegisters), type.size);
+			offset += type.size;
+		}
+		m_pSavedCallArguments.append(pSavedCallArguments);
+	}
+
+	virtual void RestoreCallArguments(CRegisters* pRegisters)
+	{
+		uint8_t* pSavedCallArguments = m_pSavedCallArguments.back();
+		size_t offset = 0;
+		for (size_t i = 0; i < m_vecArgTypes.length(); i++) {
+			DataTypeSized_t &type = m_vecArgTypes[i];
+			memcpy(GetArgumentPtr(i, pRegisters), (void *)((unsigned long)pSavedCallArguments + offset), type.size);
+			offset += type.size;
+		}
+		m_pSavedCallArguments.pop();
+	}
 
 public:
 	ke::Vector<DataTypeSized_t> m_vecArgTypes;
@@ -244,6 +278,8 @@ public:
 	int m_iAlignment;
 	// Save the return in case we call the original function and want to override the return again.
 	ke::Vector<ke::AutoPtr<uint8_t>> m_pSavedReturnBuffers;
+	// Save call arguments in case the function reuses the space and overwrites the values for the post hook.
+	ke::Vector<ke::AutoPtr<uint8_t>> m_pSavedCallArguments;
 };
 
 #endif // _CONVENTION_H
