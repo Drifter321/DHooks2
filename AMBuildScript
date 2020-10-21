@@ -68,6 +68,12 @@ class DHooksConfig(object):
       self.sm_root = builder.options.sm_path
     else:
       self.sm_root = ResolveEnvPath('SOURCEMOD110', 'sourcemod-1.10')
+      if not self.sm_root:
+        self.sm_root = ResolveEnvPath('SOURCEMOD19', 'sourcemod-1.9')
+      if not self.sm_root:
+        self.sm_root = ResolveEnvPath('SOURCEMOD18', 'sourcemod-1.8')
+      if not self.sm_root:
+        self.sm_root = ResolveEnvPath('SOURCEMOD', 'sourcemod')
 
     if not self.sm_root or not os.path.isdir(self.sm_root):
       raise Exception('Could not find a source copy of Sourcemod')

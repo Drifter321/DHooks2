@@ -570,7 +570,7 @@ methodmap DynamicDetour < DHookSetup
 	// @param callback      Callback function.
 	//
 	// @return              True if detour was disabled, false otherwise.
-	// @error				Hook handle is not setup for a detour or function is not detoured.
+	// @error               Hook handle is not setup for a detour or function is not detoured.
 	public native bool Disable(HookMode mode, DHookCallback callback);
 };
 
