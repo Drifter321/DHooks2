@@ -99,6 +99,7 @@ void DHooks::SDK_OnUnload()
 	if(g_pEntityListener)
 	{
 		g_pEntityListener->CleanupListeners();
+		g_pEntityListener->CleanupRemoveList();
 		g_pSDKHooks->RemoveEntityListener(g_pEntityListener);
 		delete g_pEntityListener;
 	}

@@ -41,10 +41,22 @@ void DHooksEntityListener::CleanupListeners(IPluginContext *pContext)
 	for (int i = g_pRemoveList.length() -1; i >= 0; i--)
 	{
 		DHooksManager *manager = g_pRemoveList.at(i);
-		if (pContext == NULL || pContext == manager->callback->plugin_callback->GetParentRuntime()->GetDefaultContext())
+		IPluginFunction *cb = manager->callback->plugin_callback;
+		if (pContext == NULL || (cb && pContext == cb->GetParentRuntime()->GetDefaultContext()))
 		{
+			manager->callback->plugin_callback = nullptr;
 			manager->remove_callback = nullptr;
 		}
+	}
+}
+
+void DHooksEntityListener::CleanupRemoveList()
+{
+	for (int i = g_pRemoveList.length() - 1; i >= 0; i--)
+	{
+		DHooksManager *manager = g_pRemoveList.at(i);
+		delete manager;
+		g_pRemoveList.remove(i);
 	}
 }
 
