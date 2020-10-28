@@ -35,8 +35,6 @@
 // >> INCLUDES
 // ============================================================================
 #include "x86GccCdecl.h"
-#include <am-vector.h>
-#include <am-autoptr.h>
 
 
 // ============================================================================
@@ -46,7 +44,7 @@
 class x86GccThiscall: public x86GccCdecl
 {
 public:
-	x86GccThiscall(ke::Vector<DataTypeSized_t> &vecArgTypes, DataTypeSized_t returnType, int iAlignment = 4);
+	x86GccThiscall(std::vector<DataTypeSized_t> &vecArgTypes, DataTypeSized_t returnType, int iAlignment = 4);
 	virtual ~x86GccThiscall();
 
 	virtual int GetArgStackSize();

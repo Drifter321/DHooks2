@@ -35,7 +35,10 @@
 // ============================================================================
 // >> INCLUDES
 // ============================================================================
-#include <am-vector.h>
+#include <vector>
+#include <am-platform.h>
+#include <cinttypes>
+#include <cstdlib>
 
 
 // ============================================================================
@@ -280,13 +283,13 @@ public:
 class CRegisters
 {
 public:
-	CRegisters(ke::Vector<Register_t> registers);
+	CRegisters(std::vector<Register_t> registers);
 	~CRegisters();
 
 	CRegister* GetRegister(Register_t reg);
 
 private:
-	CRegister* CreateRegister(ke::Vector<Register_t>& registers, Register_t reg, uint16_t iSize, uint16_t iAlignment = 0);
+	CRegister* CreateRegister(std::vector<Register_t>& registers, Register_t reg, uint16_t iSize, uint16_t iAlignment = 0);
 	void DeleteRegister(CRegister* pRegister);
 
 public:

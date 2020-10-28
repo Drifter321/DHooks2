@@ -15,7 +15,7 @@ HandleType_t g_HookSetupHandle = 0;
 HandleType_t g_HookParamsHandle = 0;
 HandleType_t g_HookReturnHandle = 0;
 
-ke::ThreadId g_MainThreadId;
+std::thread::id g_MainThreadId;
 
 bool DHooks::SDK_OnLoad(char *error, size_t maxlength, bool late)
 {
@@ -61,7 +61,7 @@ bool DHooks::SDK_OnLoad(char *error, size_t maxlength, bool late)
 
 	g_pEntityListener = new DHooksEntityListener();
 	g_pSignatures = new SignatureGameConfig();
-	g_MainThreadId = ke::GetCurrentThreadId();
+	g_MainThreadId = std::this_thread::get_id();
 
 	return true;
 }

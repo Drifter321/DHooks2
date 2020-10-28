@@ -37,11 +37,11 @@
 // ============================================================================
 // >> x86MsFastcall
 // ============================================================================
-x86MsFastcall::x86MsFastcall(ke::Vector<DataTypeSized_t> &vecArgTypes, DataTypeSized_t returnType, int iAlignment) :
+x86MsFastcall::x86MsFastcall(std::vector<DataTypeSized_t> &vecArgTypes, DataTypeSized_t returnType, int iAlignment) :
 	x86MsStdcall(vecArgTypes, returnType, iAlignment)
 {
 	// First argument is passed in ecx.
-	if (m_vecArgTypes.length() > 0) {
+	if (m_vecArgTypes.size() > 0) {
 		DataTypeSized_t &type = m_vecArgTypes[0];
 		// Don't force the register on the user.
 		// Why choose Fastcall if you set your own argument registers though..
@@ -50,7 +50,7 @@ x86MsFastcall::x86MsFastcall(ke::Vector<DataTypeSized_t> &vecArgTypes, DataTypeS
 	}
 
 	// Second argument is passed in edx.
-	if (m_vecArgTypes.length() > 1) {
+	if (m_vecArgTypes.size() > 1) {
 		DataTypeSized_t &type = m_vecArgTypes[1];
 		if (type.custom_register == None)
 			type.custom_register = EDX;

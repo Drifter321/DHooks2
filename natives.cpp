@@ -128,7 +128,7 @@ cell_t Native_DHookCreateFromConf(IPluginContext *pContext, const cell_t *params
 	if (sig->offset.length() > 0)
 	{
 		int offset;
-		if (!conf->GetOffset(sig->offset.chars(), &offset))
+		if (!conf->GetOffset(sig->offset.c_str(), &offset))
 		{
 			return BAD_HANDLE;
 		}
@@ -141,14 +141,14 @@ cell_t Native_DHookCreateFromConf(IPluginContext *pContext, const cell_t *params
 		void *addr = nullptr;;
 		if (sig->signature.length() > 0)
 		{
-			if (!conf->GetMemSig(sig->signature.chars(), &addr) || !addr)
+			if (!conf->GetMemSig(sig->signature.c_str(), &addr) || !addr)
 			{
 				return BAD_HANDLE;
 			}
 		}
 		else
 		{
-			if (!conf->GetAddress(sig->address.chars(), &addr) || !addr)
+			if (!conf->GetAddress(sig->address.c_str(), &addr) || !addr)
 			{
 				return BAD_HANDLE;
 			}
@@ -397,7 +397,7 @@ cell_t HookEntityImpl(IPluginContext *pContext, const cell_t *params, uint32_t c
 	bool post = params[2] != 0;
 	IPluginFunction *removalcb = pContext->GetFunctionById(params[removalcbIndex]);
 
-	for(int i = g_pHooks.length() -1; i >= 0; i--)
+	for(int i = g_pHooks.size() -1; i >= 0; i--)
 	{
 		DHooksManager *manager = g_pHooks.at(i);
 		if(manager->callback->hookType == HookType_Entity && manager->callback->entity == gamehelpers->ReferenceToBCompatRef(params[3]) && manager->callback->offset == setup->offset && manager->callback->post == post && manager->remove_callback == removalcb && manager->callback->plugin_callback == cb)
@@ -420,7 +420,7 @@ cell_t HookEntityImpl(IPluginContext *pContext, const cell_t *params, uint32_t c
 		return 0;
 	}
 
-	g_pHooks.append(manager);
+	g_pHooks.push_back(manager);
 
 	return manager->hookid;
 }
@@ -464,7 +464,7 @@ cell_t HookGamerulesImpl(IPluginContext *pContext, const cell_t *params, uint32_
 	bool post = params[2] != 0;
 	IPluginFunction *removalcb = pContext->GetFunctionById(params[removalcbIndex]);
 
-	for(int i = g_pHooks.length() -1; i >= 0; i--)
+	for(int i = g_pHooks.size() -1; i >= 0; i--)
 	{
 		DHooksManager *manager = g_pHooks.at(i);
 		if(manager->callback->hookType == HookType_GameRules && manager->callback->offset == setup->offset && manager->callback->post == post && manager->remove_callback == removalcb && manager->callback->plugin_callback == cb)
@@ -487,7 +487,7 @@ cell_t HookGamerulesImpl(IPluginContext *pContext, const cell_t *params, uint32_
 		return 0;
 	}
 
-	g_pHooks.append(manager);
+	g_pHooks.push_back(manager);
 
 	return manager->hookid;
 }
@@ -536,7 +536,7 @@ cell_t HookRawImpl(IPluginContext *pContext, const cell_t *params, int callbackI
 
 	void *iface = (void *)(params[3]);
 
-	for(int i = g_pHooks.length() -1; i >= 0; i--)
+	for(int i = g_pHooks.size() -1; i >= 0; i--)
 	{
 		DHooksManager *manager = g_pHooks.at(i);
 		if(manager->callback->hookType == HookType_Raw && manager->addr == (intptr_t)iface && manager->callback->offset == setup->offset && manager->callback->post == post && manager->remove_callback == removalcb && manager->callback->plugin_callback == cb)
@@ -558,7 +558,7 @@ cell_t HookRawImpl(IPluginContext *pContext, const cell_t *params, int callbackI
 		return 0;
 	}
 
-	g_pHooks.append(manager);
+	g_pHooks.push_back(manager);
 
 	return manager->hookid;
 }
@@ -578,13 +578,13 @@ cell_t Native_HookRaw_Methodmap(IPluginContext *pContext, const cell_t *params)
 // native bool:DHookRemoveHookID(hookid);
 cell_t Native_RemoveHookID(IPluginContext *pContext, const cell_t *params)
 {
-	for(int i = g_pHooks.length() -1; i >= 0; i--)
+	for(int i = g_pHooks.size() -1; i >= 0; i--)
 	{
 		DHooksManager *manager = g_pHooks.at(i);
 		if(manager->hookid == params[1] && manager->callback->plugin_callback->GetParentRuntime()->GetDefaultContext() == pContext)
 		{
 			delete manager;
-			g_pHooks.remove(i);
+			g_pHooks.erase(g_pHooks.begin() + i);
 			return 1;
 		}
 	}

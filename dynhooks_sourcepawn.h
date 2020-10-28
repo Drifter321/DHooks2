@@ -3,12 +3,11 @@
 
 #include "manager.h"
 #include "vhook.h"
-#include <am-vector.h>
 #include <am-hashmap.h>
 
 class CDynamicHooksSourcePawn;
 typedef ke::HashMap<IPluginFunction *, CDynamicHooksSourcePawn *, ke::PointerPolicy<IPluginFunction>> CallbackMap;
-typedef ke::Vector<CDynamicHooksSourcePawn *> PluginCallbackList;
+typedef std::vector<CDynamicHooksSourcePawn *> PluginCallbackList;
 typedef ke::HashMap<CHook *, PluginCallbackList *, ke::PointerPolicy<CHook>> DetourMap;
 
 //extern ke::Vector<CHook *> g_pDetours;

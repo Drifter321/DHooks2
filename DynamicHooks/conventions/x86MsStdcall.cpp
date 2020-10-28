@@ -38,7 +38,7 @@
 // ============================================================================
 // >> x86MsStdcall
 // ============================================================================
-x86MsStdcall::x86MsStdcall(ke::Vector<DataTypeSized_t> &vecArgTypes, DataTypeSized_t returnType, int iAlignment) :
+x86MsStdcall::x86MsStdcall(std::vector<DataTypeSized_t> &vecArgTypes, DataTypeSized_t returnType, int iAlignment) :
 	ICallingConvention(vecArgTypes, returnType, iAlignment)
 {
 	if (m_returnType.size > 4)
@@ -59,33 +59,33 @@ x86MsStdcall::~x86MsStdcall()
 	}
 }
 
-ke::Vector<Register_t> x86MsStdcall::GetRegisters()
+std::vector<Register_t> x86MsStdcall::GetRegisters()
 {
-	ke::Vector<Register_t> registers;
+	std::vector<Register_t> registers;
 
-	registers.append(ESP);
+	registers.push_back(ESP);
 
 	if (m_returnType.type == DATA_TYPE_FLOAT || m_returnType.type == DATA_TYPE_DOUBLE)
 	{
-		registers.append(ST0);
+		registers.push_back(ST0);
 	}
 	else
 	{
-		registers.append(EAX);
+		registers.push_back(EAX);
 		if (m_pReturnBuffer)
 		{
-			registers.append(EDX);
+			registers.push_back(EDX);
 		}
 	}
 
 	// Save all the custom calling convention registers as well.
-	for (unsigned int i = 0; i < m_vecArgTypes.length(); i++)
+	for (size_t i = 0; i < m_vecArgTypes.size(); i++)
 	{
 		if (m_vecArgTypes[i].custom_register == None)
 			continue;
 
 		// TODO: Make sure the list is unique? Set?
-		registers.append(m_vecArgTypes[i].custom_register);
+		registers.push_back(m_vecArgTypes[i].custom_register);
 	}
 
 	return registers;
@@ -95,7 +95,7 @@ int x86MsStdcall::GetPopSize()
 {
 	int iPopSize = 0;
 
-	for(unsigned int i=0; i < m_vecArgTypes.length(); i++)
+	for(size_t i=0; i < m_vecArgTypes.size(); i++)
 	{
 		if (m_vecArgTypes[i].custom_register == None)
 			iPopSize += m_vecArgTypes[i].size;
@@ -108,7 +108,7 @@ int x86MsStdcall::GetArgStackSize()
 {
 	int iArgStackSize = 0;
 
-	for (unsigned int i = 0; i < m_vecArgTypes.length(); i++)
+	for (size_t i = 0; i < m_vecArgTypes.size(); i++)
 	{
 		if (m_vecArgTypes[i].custom_register == None)
 			iArgStackSize += m_vecArgTypes[i].size;
@@ -126,7 +126,7 @@ int x86MsStdcall::GetArgRegisterSize()
 {
 	int iArgRegisterSize = 0;
 
-	for (unsigned int i = 0; i < m_vecArgTypes.length(); i++)
+	for (size_t i = 0; i < m_vecArgTypes.size(); i++)
 	{
 		if (m_vecArgTypes[i].custom_register != None)
 			iArgRegisterSize += m_vecArgTypes[i].size;
@@ -137,7 +137,7 @@ int x86MsStdcall::GetArgRegisterSize()
 
 void* x86MsStdcall::GetArgumentPtr(unsigned int iIndex, CRegisters* pRegisters)
 {
-	if (iIndex >= m_vecArgTypes.length())
+	if (iIndex >= m_vecArgTypes.size())
 		return NULL;
 
 	// Check if this argument was passed in a register.

@@ -5,7 +5,7 @@
 
 SourceHook::IHookManagerAutoGen *g_pHookManager = NULL;
 
-ke::Vector<DHooksManager *> g_pHooks;
+std::vector<DHooksManager *> g_pHooks;
 
 using namespace SourceHook;
 using namespace sp;
@@ -167,14 +167,14 @@ DHooksManager::DHooksManager(HookSetup *setup, void *iface, IPluginFunction *rem
 
 void CleanupHooks(IPluginContext *pContext)
 {
-	for(int i = g_pHooks.length() -1; i >= 0; i--)
+	for(int i = g_pHooks.size() -1; i >= 0; i--)
 	{
 		DHooksManager *manager = g_pHooks.at(i);
 
 		if(pContext == NULL || pContext == manager->callback->plugin_callback->GetParentRuntime()->GetDefaultContext())
 		{
 			delete manager;
-			g_pHooks.remove(i);
+			g_pHooks.erase(g_pHooks.begin() + i);
 		}
 	}
 }

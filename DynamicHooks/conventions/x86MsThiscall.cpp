@@ -38,7 +38,7 @@
 // ============================================================================
 // >> x86MsThiscall
 // ============================================================================
-x86MsThiscall::x86MsThiscall(ke::Vector<DataTypeSized_t> &vecArgTypes, DataTypeSized_t returnType, int iAlignment) :
+x86MsThiscall::x86MsThiscall(std::vector<DataTypeSized_t> &vecArgTypes, DataTypeSized_t returnType, int iAlignment) :
 	ICallingConvention(vecArgTypes, returnType, iAlignment)
 {
 	if (m_returnType.size > 4)
@@ -59,35 +59,35 @@ x86MsThiscall::~x86MsThiscall()
 	}
 }
 
-ke::Vector<Register_t> x86MsThiscall::GetRegisters()
+std::vector<Register_t> x86MsThiscall::GetRegisters()
 {
-	ke::Vector<Register_t> registers;
+	std::vector<Register_t> registers;
 	
-	registers.append(ESP);
+	registers.push_back(ESP);
 	// TODO: Allow custom this register.
-	registers.append(ECX);
+	registers.push_back(ECX);
 
 	if (m_returnType.type == DATA_TYPE_FLOAT || m_returnType.type == DATA_TYPE_DOUBLE)
 	{
-		registers.append(ST0);
+		registers.push_back(ST0);
 	}
 	else
 	{
-		registers.append(EAX);
+		registers.push_back(EAX);
 		if (m_pReturnBuffer)
 		{
-			registers.append(EDX);
+			registers.push_back(EDX);
 		}
 	}
 
 	// Save all the custom calling convention registers as well.
-	for (unsigned int i = 0; i < m_vecArgTypes.length(); i++)
+	for (size_t i = 0; i < m_vecArgTypes.size(); i++)
 	{
 		if (m_vecArgTypes[i].custom_register == None)
 			continue;
 
 		// TODO: Make sure the list is unique? Set?
-		registers.append(m_vecArgTypes[i].custom_register);
+		registers.push_back(m_vecArgTypes[i].custom_register);
 	}
 
 	return registers;
@@ -100,7 +100,7 @@ int x86MsThiscall::GetPopSize()
 	//int iPopSize = GetDataTypeSize(DATA_TYPE_POINTER, m_iAlignment);
 	int iPopSize = 0;
 
-	for(unsigned int i=0; i < m_vecArgTypes.length(); i++)
+	for(size_t i=0; i < m_vecArgTypes.size(); i++)
 	{
 		// Only pop arguments that are actually on the stack.
 		if (m_vecArgTypes[i].custom_register == None)
@@ -114,7 +114,7 @@ int x86MsThiscall::GetArgStackSize()
 {
 	int iArgStackSize = 0;
 
-	for (unsigned int i = 0; i < m_vecArgTypes.length(); i++)
+	for (size_t i = 0; i < m_vecArgTypes.size(); i++)
 	{
 		if (m_vecArgTypes[i].custom_register == None)
 			iArgStackSize += m_vecArgTypes[i].size;
@@ -132,7 +132,7 @@ int x86MsThiscall::GetArgRegisterSize()
 {
 	int iArgRegisterSize = 0;
 
-	for (unsigned int i = 0; i < m_vecArgTypes.length(); i++)
+	for (size_t i = 0; i < m_vecArgTypes.size(); i++)
 	{
 		if (m_vecArgTypes[i].custom_register != None)
 			iArgRegisterSize += m_vecArgTypes[i].size;
@@ -152,7 +152,7 @@ void* x86MsThiscall::GetArgumentPtr(unsigned int iIndex, CRegisters* pRegisters)
 	// The this pointer isn't explicitly defined as an argument.
 	iIndex--;
 	
-	if (iIndex >= m_vecArgTypes.length())
+	if (iIndex >= m_vecArgTypes.size())
 		return NULL;
 
 	// Check if this argument was passed in a register.
@@ -209,28 +209,28 @@ void x86MsThiscall::SaveCallArguments(CRegisters* pRegisters)
 {
 	// Account for implicit this-pointer in ecx.
 	int size = GetArgStackSize() + GetArgRegisterSize() + sizeof(void *);
-	uint8_t* pSavedCallArguments = new uint8_t[size];
-	memcpy(pSavedCallArguments, GetArgumentPtr(0, pRegisters), sizeof(void *));
+	std::unique_ptr<uint8_t[]> pSavedCallArguments = std::make_unique<uint8_t[]>(size);
+	memcpy(pSavedCallArguments.get(), GetArgumentPtr(0, pRegisters), sizeof(void *));
 
 	size_t offset = sizeof(void *);
-	for (size_t i = 0; i < m_vecArgTypes.length(); i++) {
+	for (size_t i = 0; i < m_vecArgTypes.size(); i++) {
 		DataTypeSized_t &type = m_vecArgTypes[i];
-		memcpy((void *)((unsigned long)pSavedCallArguments + offset), GetArgumentPtr(i + 1, pRegisters), type.size);
+		memcpy((void *)((unsigned long)pSavedCallArguments.get() + offset), GetArgumentPtr(i + 1, pRegisters), type.size);
 		offset += type.size;
 	}
-	m_pSavedCallArguments.append(pSavedCallArguments);
+	m_pSavedCallArguments.push_back(std::move(pSavedCallArguments));
 }
 
 void x86MsThiscall::RestoreCallArguments(CRegisters* pRegisters)
 {
-	uint8_t* pSavedCallArguments = m_pSavedCallArguments.back();
+	uint8_t* pSavedCallArguments = m_pSavedCallArguments.back().get();
 	memcpy(GetArgumentPtr(0, pRegisters), pSavedCallArguments, sizeof(void *));
 
 	size_t offset = sizeof(void *);
-	for (size_t i = 0; i < m_vecArgTypes.length(); i++) {
+	for (size_t i = 0; i < m_vecArgTypes.size(); i++) {
 		DataTypeSized_t &type = m_vecArgTypes[i];
 		memcpy(GetArgumentPtr(i + 1, pRegisters), (void *)((unsigned long)pSavedCallArguments + offset), type.size);
 		offset += type.size;
 	}
-	m_pSavedCallArguments.pop();
+	m_pSavedCallArguments.pop_back();
 }

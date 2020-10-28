@@ -35,9 +35,11 @@
 // >> INCLUDES
 // ============================================================================
 #include "registers.h"
-#include <string.h>
-#include <am-vector.h>
-#include <am-autoptr.h>
+#include <cstdio>
+#include <cstring>
+#include <memory>
+#include <vector>
+#include <utility>
 
 // ============================================================================
 // >> DataType_t
@@ -151,11 +153,11 @@ public:
 	@param <returnType>:
 	The return type of the function.
 	*/
-	ICallingConvention(ke::Vector<DataTypeSized_t> &vecArgTypes, DataTypeSized_t returnType, int iAlignment=4)
+	ICallingConvention(std::vector<DataTypeSized_t> &vecArgTypes, DataTypeSized_t returnType, int iAlignment=4)
 	{
-		m_vecArgTypes = ke::Move(vecArgTypes);
+		m_vecArgTypes = std::move(vecArgTypes);
 		
-		for (size_t i=0; i < m_vecArgTypes.length(); i++)
+		for (size_t i=0; i < m_vecArgTypes.size(); i++)
 		{
 			DataTypeSized_t &type = m_vecArgTypes[i];
 			if (!type.size)
@@ -175,7 +177,7 @@ public:
 	This should return a list of Register_t values. These registers will be
 	saved for later access.
 	*/
-	virtual ke::Vector<Register_t> GetRegisters() = 0;
+	virtual std::vector<Register_t> GetRegisters() = 0;
 
 	/*
 	Returns the number of bytes that should be added to the stack to clean up.
@@ -225,17 +227,17 @@ public:
 	*/
 	virtual void SaveReturnValue(CRegisters* pRegisters)
 	{
-		uint8_t* pSavedReturnValue = new uint8_t[m_returnType.size];
-		memcpy(pSavedReturnValue, GetReturnPtr(pRegisters), m_returnType.size);
-		m_pSavedReturnBuffers.append(pSavedReturnValue);
+		std::unique_ptr<uint8_t[]> pSavedReturnValue = std::make_unique<uint8_t[]>(m_returnType.size);
+		memcpy(pSavedReturnValue.get(), GetReturnPtr(pRegisters), m_returnType.size);
+		m_pSavedReturnBuffers.push_back(std::move(pSavedReturnValue));
 	}
 
 	virtual void RestoreReturnValue(CRegisters* pRegisters)
 	{
-		uint8_t* pSavedReturnValue = m_pSavedReturnBuffers.back();
+		uint8_t* pSavedReturnValue = m_pSavedReturnBuffers.back().get();
 		memcpy(GetReturnPtr(pRegisters), pSavedReturnValue, m_returnType.size);
 		ReturnPtrChanged(pRegisters, pSavedReturnValue);
-		m_pSavedReturnBuffers.pop();
+		m_pSavedReturnBuffers.pop_back();
 	}
 
 	/*
@@ -250,36 +252,36 @@ public:
 	virtual void SaveCallArguments(CRegisters* pRegisters)
 	{
 		int size = GetArgStackSize() + GetArgRegisterSize();
-		uint8_t* pSavedCallArguments = new uint8_t[size];
+		std::unique_ptr<uint8_t[]> pSavedCallArguments = std::make_unique<uint8_t[]>(size);
 		size_t offset = 0;
-		for (size_t i = 0; i < m_vecArgTypes.length(); i++) {
+		for (size_t i = 0; i < m_vecArgTypes.size(); i++) {
 			DataTypeSized_t &type = m_vecArgTypes[i];
-			memcpy((void *)((unsigned long)pSavedCallArguments + offset), GetArgumentPtr(i, pRegisters), type.size);
+			memcpy((void *)((unsigned long)pSavedCallArguments.get() + offset), GetArgumentPtr(i, pRegisters), type.size);
 			offset += type.size;
 		}
-		m_pSavedCallArguments.append(pSavedCallArguments);
+		m_pSavedCallArguments.push_back(std::move(pSavedCallArguments));
 	}
 
 	virtual void RestoreCallArguments(CRegisters* pRegisters)
 	{
-		uint8_t* pSavedCallArguments = m_pSavedCallArguments.back();
+		uint8_t *pSavedCallArguments = m_pSavedCallArguments.back().get();
 		size_t offset = 0;
-		for (size_t i = 0; i < m_vecArgTypes.length(); i++) {
+		for (size_t i = 0; i < m_vecArgTypes.size(); i++) {
 			DataTypeSized_t &type = m_vecArgTypes[i];
 			memcpy(GetArgumentPtr(i, pRegisters), (void *)((unsigned long)pSavedCallArguments + offset), type.size);
 			offset += type.size;
 		}
-		m_pSavedCallArguments.pop();
+		m_pSavedCallArguments.pop_back();
 	}
 
 public:
-	ke::Vector<DataTypeSized_t> m_vecArgTypes;
+	std::vector<DataTypeSized_t> m_vecArgTypes;
 	DataTypeSized_t m_returnType;
 	int m_iAlignment;
 	// Save the return in case we call the original function and want to override the return again.
-	ke::Vector<ke::AutoPtr<uint8_t>> m_pSavedReturnBuffers;
+	std::vector<std::unique_ptr<uint8_t[]>> m_pSavedReturnBuffers;
 	// Save call arguments in case the function reuses the space and overwrites the values for the post hook.
-	ke::Vector<ke::AutoPtr<uint8_t>> m_pSavedCallArguments;
+	std::vector<std::unique_ptr<uint8_t[]>> m_pSavedCallArguments;
 };
 
 #endif // _CONVENTION_H

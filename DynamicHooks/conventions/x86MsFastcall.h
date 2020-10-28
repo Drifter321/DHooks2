@@ -63,7 +63,7 @@ Return values:
 class x86MsFastcall: public x86MsStdcall
 {	
 public:
-	x86MsFastcall(ke::Vector<DataTypeSized_t> &vecArgTypes, DataTypeSized_t returnType, int iAlignment=4);
+	x86MsFastcall(std::vector<DataTypeSized_t> &vecArgTypes, DataTypeSized_t returnType, int iAlignment=4);
 };
 
 #endif // _X86_MS_FASTCALL_H

@@ -3,27 +3,27 @@
 
 #include "extension.h"
 #include "util.h"
-#include <am-string.h>
-#include <am-vector.h>
+#include <string>
+#include <vector>
 #include <sm_stringhashmap.h>
 
 struct ArgumentInfo {
-	ArgumentInfo() : name(nullptr)
+	ArgumentInfo() : name()
 	{ }
 
-	ArgumentInfo(ke::AString name, ParamInfo info) : name(name), info(info)
+	ArgumentInfo(std::string name, ParamInfo info) : name(name), info(info)
 	{ }
 
-	ke::AString name;
+	std::string name;
 	ParamInfo info;
 };
 
 class SignatureWrapper {
 public:
-	ke::AString signature;
-	ke::AString address;
-	ke::AString offset;
-	ke::Vector<ArgumentInfo> args;
+	std::string signature;
+	std::string address;
+	std::string offset;
+	std::vector<ArgumentInfo> args;
 	CallingConvention callConv;
 	HookType hookType;
 	ReturnType retType;

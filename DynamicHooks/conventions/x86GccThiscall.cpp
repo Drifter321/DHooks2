@@ -38,7 +38,7 @@
 // >> CLASSES
 // ============================================================================
 
-x86GccThiscall::x86GccThiscall(ke::Vector<DataTypeSized_t> &vecArgTypes, DataTypeSized_t returnType, int iAlignment) :
+x86GccThiscall::x86GccThiscall(std::vector<DataTypeSized_t> &vecArgTypes, DataTypeSized_t returnType, int iAlignment) :
 	x86GccCdecl(vecArgTypes, returnType, iAlignment)
 {
 	// Always add the |this| pointer.
@@ -46,7 +46,7 @@ x86GccThiscall::x86GccThiscall(ke::Vector<DataTypeSized_t> &vecArgTypes, DataTyp
 	type.type = DATA_TYPE_POINTER;
 	type.size = GetDataTypeSize(type, iAlignment);
 	type.custom_register = None;
-	m_vecArgTypes.insert(0, type);
+	m_vecArgTypes.insert(m_vecArgTypes.begin(), type);
 }
 
 x86GccThiscall::~x86GccThiscall()
@@ -73,12 +73,12 @@ void x86GccThiscall::SaveCallArguments(CRegisters* pRegisters)
 {
 	// Count the this pointer.
 	int size = x86GccCdecl::GetArgStackSize() + GetArgRegisterSize();
-	uint8_t* pSavedCallArguments = new uint8_t[size];
+	std::unique_ptr<uint8_t[]> pSavedCallArguments = std::make_unique<uint8_t[]>(size);
 	size_t offset = 0;
-	for (size_t i = 0; i < m_vecArgTypes.length(); i++) {
+	for (size_t i = 0; i < m_vecArgTypes.size(); i++) {
 		DataTypeSized_t &type = m_vecArgTypes[i];
-		memcpy((void *)((unsigned long)pSavedCallArguments + offset), GetArgumentPtr(i, pRegisters), type.size);
+		memcpy((void *)((unsigned long)pSavedCallArguments.get() + offset), GetArgumentPtr(i, pRegisters), type.size);
 		offset += type.size;
 	}
-	m_pSavedCallArguments.append(pSavedCallArguments);
+	m_pSavedCallArguments.push_back(std::move(pSavedCallArguments));
 }

@@ -36,7 +36,6 @@
 // ============================================================================
 #include "../convention.h"
 #include <am-vector.h>
-#include <am-autoptr.h>
 
 
 // ============================================================================
@@ -66,10 +65,10 @@ Return values:
 class x86MsThiscall: public ICallingConvention
 {	
 public:
-	x86MsThiscall(ke::Vector<DataTypeSized_t> &vecArgTypes, DataTypeSized_t returnType, int iAlignment=4);
+	x86MsThiscall(std::vector<DataTypeSized_t> &vecArgTypes, DataTypeSized_t returnType, int iAlignment=4);
 	virtual ~x86MsThiscall();
 
-	virtual ke::Vector<Register_t> GetRegisters();
+	virtual std::vector<Register_t> GetRegisters();
 	virtual int GetPopSize();
 	virtual int GetArgStackSize();
 	virtual void** GetStackArgumentPtr(CRegisters* pRegisters);

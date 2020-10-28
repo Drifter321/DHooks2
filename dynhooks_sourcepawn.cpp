@@ -1,6 +1,6 @@
 #include "dynhooks_sourcepawn.h"
 #include "util.h"
-#include <am-autoptr.h>
+#include <memory>
 
 #ifdef KE_WINDOWS
 #include "conventions/x86MsCdecl.h"
@@ -68,17 +68,7 @@ bool AddDetourPluginHook(HookType_t hookType, CHook *pDetour, HookSetup *setup, 
 
 	// Add the plugin callback to the detour list.
 	CDynamicHooksSourcePawn *pWrapper = new CDynamicHooksSourcePawn(setup, pDetour, pCallback, hookType == HOOKTYPE_POST);
-	if (!wrappers->append(pWrapper))
-	{
-		if (wrappers->empty())
-		{
-			delete wrappers;
-			UnhookFunction(hookType, pDetour);
-			map->remove(f);
-		}
-		delete pWrapper;
-		return false;
-	}
+	wrappers->push_back(pWrapper);
 
 	return true;
 }
@@ -98,14 +88,14 @@ bool RemoveDetourPluginHook(HookType_t hookType, CHook *pDetour, IPluginFunction
 	// Remove the plugin's callback
 	bool bRemoved = false;
 	PluginCallbackList *wrappers = res->value;
-	for (int i = wrappers->length()-1; i >= 0 ; i--)
+	for (int i = wrappers->size()-1; i >= 0 ; i--)
 	{
 		CDynamicHooksSourcePawn *pWrapper = wrappers->at(i);
 		if (pWrapper->plugin_callback == pCallback)
 		{
 			bRemoved = true;
 			delete pWrapper;
-			wrappers->remove(i);
+			wrappers->erase(wrappers->begin() + i);
 		}
 	}
 
@@ -131,14 +121,14 @@ void RemoveAllCallbacksForContext(HookType_t hookType, DetourMap *map, IPluginCo
 		wrappers = it->value;
 		// See if there are callbacks of this plugin context registered
 		// and remove them.
-		for (int i = wrappers->length() - 1; i >= 0; i--)
+		for (int i = wrappers->size() - 1; i >= 0; i--)
 		{
 			pWrapper = wrappers->at(i);
 			if (pWrapper->plugin_callback->GetParentRuntime()->GetDefaultContext() != pContext)
 				continue;
 
 			delete pWrapper;
-			wrappers->remove(i);
+			wrappers->erase(wrappers->begin() + i);
 		}
 
 		// No plugin interested in this hook anymore. unhook.
@@ -167,7 +157,7 @@ void CleanupDetours(HookType_t hookType, DetourMap *map)
 	{
 		wrappers = it->value;
 		// Remove all callbacks
-		for (int i = wrappers->length() - 1; i >= 0; i--)
+		for (int i = wrappers->size() - 1; i >= 0; i--)
 		{
 			pWrapper = wrappers->at(i);
 			delete pWrapper;
@@ -189,7 +179,7 @@ void CleanupDetours()
 ICallingConvention *ConstructCallingConvention(HookSetup *setup)
 {
 	// Convert function parameter types into DynamicHooks structures.
-	ke::Vector<DataTypeSized_t> vecArgTypes;
+	std::vector<DataTypeSized_t> vecArgTypes;
 	for (size_t i = 0; i < setup->params.size(); i++)
 	{
 		ParamInfo &info = setup->params[i];
@@ -197,7 +187,7 @@ ICallingConvention *ConstructCallingConvention(HookSetup *setup)
 		type.type = DynamicHooks_ConvertParamTypeFrom(info.type);
 		type.size = info.size;
 		type.custom_register = info.custom_register;
-		vecArgTypes.append(type);
+		vecArgTypes.push_back(type);
 	}
 
 	DataTypeSized_t returnType;
@@ -236,8 +226,8 @@ bool UpdateRegisterArgumentSizes(CHook* pDetour, HookSetup *setup)
 	// Update the type info to the size of the register that's now holding that argument,
 	// so we can copy the whole value.
 	ICallingConvention* callingConvention = pDetour->m_pCallingConvention;
-	ke::Vector<DataTypeSized_t> &argTypes = callingConvention->m_vecArgTypes;
-	int numArgs = argTypes.length();
+	std::vector<DataTypeSized_t> &argTypes = callingConvention->m_vecArgTypes;
+	int numArgs = argTypes.size();
 
 	for (int i = 0; i < numArgs; i++)
 	{
@@ -261,7 +251,7 @@ bool UpdateRegisterArgumentSizes(CHook* pDetour, HookSetup *setup)
 ReturnAction_t HandleDetour(HookType_t hookType, CHook* pDetour)
 {
 	// Can't call into SourcePawn offthread.
-	if (g_MainThreadId != ke::GetCurrentThreadId())
+	if (g_MainThreadId != std::this_thread::get_id())
 		return ReturnAction_Ignored;
 
 	DetourMap *map;
@@ -284,13 +274,13 @@ ReturnAction_t HandleDetour(HookType_t hookType, CHook* pDetour)
 	HookParamsStruct *paramStruct = NULL;
 	Handle_t pHndl = BAD_HANDLE;
 
-	int argNum = pDetour->m_pCallingConvention->m_vecArgTypes.length();
+	int argNum = pDetour->m_pCallingConvention->m_vecArgTypes.size();
 	// Keep a copy of the last return value if some plugin wants to override or supercede the function.
 	ReturnAction_t finalRet = ReturnAction_Ignored;
-	ke::AutoPtr<uint8_t> finalRetBuf(new uint8_t[pDetour->m_pCallingConvention->m_returnType.size]);
+	std::unique_ptr<uint8_t> finalRetBuf(new uint8_t[pDetour->m_pCallingConvention->m_returnType.size]);
 
 	// Call all the plugin functions..
-	for (size_t i = 0; i < wrappers->length(); i++)
+	for (size_t i = 0; i < wrappers->size(); i++)
 	{
 		CDynamicHooksSourcePawn *pWrapper = wrappers->at(i);
 		IPluginFunction *pCallback = pWrapper->plugin_callback;
@@ -423,7 +413,7 @@ ReturnAction_t HandleDetour(HookType_t hookType, CHook* pDetour)
 		{
 			// Copy the action and return value.
 			finalRet = tempRet;
-			memcpy(finalRetBuf, &tempRetBuf, pDetour->m_pCallingConvention->m_returnType.size);
+			memcpy(finalRetBuf.get(), &tempRetBuf, pDetour->m_pCallingConvention->m_returnType.size);
 		}
 
 		// Free the handles again.
@@ -442,7 +432,7 @@ ReturnAction_t HandleDetour(HookType_t hookType, CHook* pDetour)
 	if (finalRet >= ReturnAction_Override)
 	{
 		void* pPtr = pDetour->m_pCallingConvention->GetReturnPtr(pDetour->m_pRegisters);
-		memcpy(pPtr, finalRetBuf, pDetour->m_pCallingConvention->m_returnType.size);
+		memcpy(pPtr, finalRetBuf.get(), pDetour->m_pCallingConvention->m_returnType.size);
 		pDetour->m_pCallingConvention->ReturnPtrChanged(pDetour->m_pRegisters, pPtr);
 	}
 
@@ -558,8 +548,8 @@ HookParamsStruct *CDynamicHooksSourcePawn::GetParamStruct()
 	ICallingConvention* callingConvention = m_pDetour->m_pCallingConvention;
 	size_t stackSize = callingConvention->GetArgStackSize();
 	size_t paramsSize = stackSize + callingConvention->GetArgRegisterSize();
-	ke::Vector<DataTypeSized_t> &argTypes = callingConvention->m_vecArgTypes;
-	int numArgs = argTypes.length();
+	std::vector<DataTypeSized_t> &argTypes = callingConvention->m_vecArgTypes;
+	size_t numArgs = argTypes.size();
 
 	// Create space for original parameters and changes plugins might do.
 	params->orgParams = (void **)malloc(paramsSize);
@@ -576,20 +566,20 @@ HookParamsStruct *CDynamicHooksSourcePawn::GetParamStruct()
 	memset(params->newParams, 0, paramsSize);
 	memset(params->isChanged, false, numArgs * sizeof(bool));
 
-	int firstArg = 0;
+	size_t firstArg = 0;
 	// TODO: Support custom register for this ptr.
 	if (callConv == CallConv_THISCALL)
 		firstArg = 1;
 
 	// Save the old parameters passed in a register.
 	size_t offset = stackSize;
-	for (int i = 0; i < numArgs; i++)
+	for (size_t i = 0; i < numArgs; i++)
 	{
 		// We already saved the stack arguments.
 		if (argTypes[i].custom_register == None)
 			continue;
 
-		int size = argTypes[i].size;
+		size_t size = argTypes[i].size;
 		// Register argument values are saved after all stack arguments in this buffer.
 		void *paramAddr = (void *)((intptr_t)params->orgParams + offset);
 		void *regAddr = callingConvention->GetArgumentPtr(i + firstArg, m_pDetour->m_pRegisters);
@@ -608,10 +598,10 @@ void CDynamicHooksSourcePawn::UpdateParamsFromStruct(HookParamsStruct *params)
 
 	ICallingConvention* callingConvention = m_pDetour->m_pCallingConvention;
 	size_t stackSize = callingConvention->GetArgStackSize();
-	ke::Vector<DataTypeSized_t> &argTypes = callingConvention->m_vecArgTypes;
-	int numArgs = argTypes.length();
+	std::vector<DataTypeSized_t> &argTypes = callingConvention->m_vecArgTypes;
+	size_t numArgs = argTypes.size();
 
-	int firstArg = 0;
+	size_t firstArg = 0;
 	// TODO: Support custom register for this ptr.
 	if (callConv == CallConv_THISCALL)
 		firstArg = 1;
@@ -620,9 +610,9 @@ void CDynamicHooksSourcePawn::UpdateParamsFromStruct(HookParamsStruct *params)
 	// Values of arguments stored in registers are saved after the stack arguments.
 	size_t registerOffset = stackSize;
 	size_t offset;
-	for (int i = 0; i < numArgs; i++)
+	for (size_t i = 0; i < numArgs; i++)
 	{
-		int size = argTypes[i].size;
+		size_t size = argTypes[i].size;
 		// Only have to copy something if the plugin changed this parameter.
 		if (params->isChanged[i])
 		{

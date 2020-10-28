@@ -6,6 +6,7 @@
 #include <sh_vector.h>
 #include <sourcehook_pibuilder.h>
 #include <registers.h>
+#include <vector>
 
 enum CallingConvention
 {

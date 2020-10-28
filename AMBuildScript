@@ -111,7 +111,7 @@ class DHooksConfig(object):
 		'-Wno-invalid-offsetof',
       ]
       cxx.cxxflags += [
-          '-std=c++11',
+          '-std=c++14',
       ]
 
       have_gcc = cxx.family == 'gcc'

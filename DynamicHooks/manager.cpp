@@ -50,7 +50,7 @@ CHook* CHookManager::HookFunction(void* pFunc, ICallingConvention* pConvention)
 	}
 	
 	pHook = new CHook(pFunc, pConvention);
-	m_Hooks.append(pHook);
+	m_Hooks.push_back(pHook);
 	return pHook;
 }
 
@@ -59,12 +59,12 @@ void CHookManager::UnhookFunction(void* pFunc)
 	if (!pFunc)
 		return;
 
-	for (size_t i = 0; i < m_Hooks.length(); i++)
+	for (size_t i = 0; i < m_Hooks.size(); i++)
 	{
 		CHook* pHook = m_Hooks[i];
 		if (pHook->m_pFunc == pFunc)
 		{
-			m_Hooks.remove(i);
+			m_Hooks.erase(m_Hooks.begin() + i);
 			delete pHook;
 			return;
 		}
@@ -76,7 +76,7 @@ CHook* CHookManager::FindHook(void* pFunc)
 	if (!pFunc)
 		return NULL;
 
-	for(size_t i = 0; i < m_Hooks.length(); i++)
+	for(size_t i = 0; i < m_Hooks.size(); i++)
 	{
 		CHook* pHook = m_Hooks[i];
 		if (pHook->m_pFunc == pFunc)
@@ -87,7 +87,7 @@ CHook* CHookManager::FindHook(void* pFunc)
 
 void CHookManager::UnhookAllFunctions()
 {
-	for(size_t i = 0; i < m_Hooks.length(); i++)
+	for(size_t i = 0; i < m_Hooks.size(); i++)
 		delete m_Hooks[i];
 
 	m_Hooks.clear();

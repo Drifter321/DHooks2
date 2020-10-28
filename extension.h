@@ -43,7 +43,7 @@
 #include <IBinTools.h>
 #include <ISDKTools.h>
 #include "sdk-hacks.h"
-#include <amtl/am-thread-utils.h>
+#include <thread>
 
 /**
  * @brief Sample implementation of the SDK Extension.
@@ -130,5 +130,5 @@ public:
 };
 extern SourceHook::IHookManagerAutoGen *g_pHookManager;
 extern sp_nativeinfo_t g_Natives[];
-extern ke::ThreadId g_MainThreadId;
+extern std::thread::id g_MainThreadId;
 #endif // _INCLUDE_SOURCEMOD_EXTENSION_PROPER_H_

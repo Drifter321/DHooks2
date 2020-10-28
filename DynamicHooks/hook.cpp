@@ -115,7 +115,7 @@ void CHook::AddCallback(HookType_t eHookType, HookHandlerFn* pCallback)
 	if (!i.found()) {
 		HookHandlerSet set;
 		set.init();
-		m_hookHandler.add(i, eHookType, ke::Move(set));
+		m_hookHandler.add(i, eHookType, std::move(set));
 	}
 
 	i->value.add(pCallback);
@@ -157,7 +157,7 @@ ReturnAction_t CHook::HookHandler(HookType_t eHookType)
 	if (eHookType == HOOKTYPE_POST)
 	{
 		ReturnAction_t lastPreReturnAction = m_LastPreReturnAction.back();
-		m_LastPreReturnAction.pop();
+		m_LastPreReturnAction.pop_back();
 		if (lastPreReturnAction == ReturnAction_Override)
 			m_pCallingConvention->RestoreReturnValue(m_pRegisters);
 		if (lastPreReturnAction < ReturnAction_Supercede)
@@ -172,7 +172,7 @@ ReturnAction_t CHook::HookHandler(HookType_t eHookType)
 		// is no pre-handler registered.
 		if (eHookType == HOOKTYPE_PRE)
 		{
-			m_LastPreReturnAction.append(returnAction);
+			m_LastPreReturnAction.push_back(returnAction);
 			m_pCallingConvention->SaveCallArguments(m_pRegisters);
 		}
 		return returnAction;
@@ -188,7 +188,7 @@ ReturnAction_t CHook::HookHandler(HookType_t eHookType)
 
 	if (eHookType == HOOKTYPE_PRE)
 	{
-		m_LastPreReturnAction.append(returnAction);
+		m_LastPreReturnAction.push_back(returnAction);
 		if (returnAction == ReturnAction_Override)
 			m_pCallingConvention->SaveReturnValue(m_pRegisters);
 		if (returnAction < ReturnAction_Supercede)
@@ -209,7 +209,7 @@ void* __cdecl CHook::GetReturnAddress(void* pESP)
 	}
 
 	void *pRetAddr = r->value.back();
-	r->value.pop();
+	r->value.pop_back();
 
 	// Clear the stack address from the cache now that we ran the last post hook.
 	if (r->value.empty())
@@ -222,9 +222,9 @@ void __cdecl CHook::SetReturnAddress(void* pRetAddr, void* pESP)
 {
 	ReturnAddressMap::Insert i = m_RetAddr.findForAdd(pESP);
 	if (!i.found())
-		m_RetAddr.add(i, pESP, ke::Move(ke::Vector<void *>()));
+		m_RetAddr.add(i, pESP, std::vector<void *>());
 
-	i->value.append(pRetAddr);
+	i->value.push_back(pRetAddr);
 }
 
 void* CHook::CreateBridge()
@@ -364,8 +364,8 @@ void CHook::Write_CallHandler(sp::MacroAssembler& masm, HookType_t type)
 
 void CHook::Write_SaveRegisters(sp::MacroAssembler& masm, HookType_t type)
 {
-	ke::Vector<Register_t> vecRegistersToSave = m_pCallingConvention->GetRegisters();
-	for(size_t i = 0; i < vecRegistersToSave.length(); i++)
+	std::vector<Register_t> vecRegistersToSave = m_pCallingConvention->GetRegisters();
+	for(size_t i = 0; i < vecRegistersToSave.size(); i++)
 	{
 		switch(vecRegistersToSave[i])
 		{
@@ -431,8 +431,8 @@ void CHook::Write_SaveRegisters(sp::MacroAssembler& masm, HookType_t type)
 
 void CHook::Write_RestoreRegisters(sp::MacroAssembler& masm, HookType_t type)
 {
-	ke::Vector<Register_t> vecRegistersToSave = m_pCallingConvention->GetRegisters();
-	for (size_t i = 0; i < vecRegistersToSave.length(); i++)
+	std::vector<Register_t> vecRegistersToSave = m_pCallingConvention->GetRegisters();
+	for (size_t i = 0; i < vecRegistersToSave.size(); i++)
 	{
 		switch (vecRegistersToSave[i])
 		{

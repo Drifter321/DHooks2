@@ -3,7 +3,6 @@
 
 #include "extension.h"
 #include "vhook.h"
-#include <am-vector.h>
 
 enum ListenType
 {
@@ -29,5 +28,5 @@ struct EntityListener
 	IPluginFunction *callback;
 };
 
-extern ke::Vector<DHooksManager *> g_pHooks;
+extern std::vector<DHooksManager *> g_pHooks;
 #endif

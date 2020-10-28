@@ -17,7 +17,7 @@ unsigned int g_IgnoreLevel;
 ParseState g_PlatformOnlyState;
 
 SignatureWrapper *g_CurrentSignature;
-ke::AString g_CurrentFunctionName;
+std::string g_CurrentFunctionName;
 ArgumentInfo g_CurrentArgumentInfo;
 
 SignatureWrapper *SignatureGameConfig::GetFunctionSignature(const char *function)
@@ -53,7 +53,7 @@ SMCResult SignatureGameConfig::ReadSMC_NewSection(const SMCStates *states, const
 		// We're already in a section for a different OS that we're ignoring. Can't have a section for our OS in here.
 		if (g_IgnoreLevel > 0)
 		{
-			smutils->LogError(myself, "Unreachable platform specific section in \"%s\" Function: line: %i col: %i", g_CurrentFunctionName.chars(), states->line, states->col);
+			smutils->LogError(myself, "Unreachable platform specific section in \"%s\" Function: line: %i col: %i", g_CurrentFunctionName.c_str(), states->line, states->col);
 			return SMCResult_HaltFail;
 		}
 
@@ -78,7 +78,7 @@ SMCResult SignatureGameConfig::ReadSMC_NewSection(const SMCStates *states, const
 	{
 		if (g_PlatformOnlyState != PState_None)
 		{
-			smutils->LogError(myself, "Unreachable platform specific section in \"%s\" Function: line: %i col: %i", g_CurrentFunctionName.chars(), states->line, states->col);
+			smutils->LogError(myself, "Unreachable platform specific section in \"%s\" Function: line: %i col: %i", g_CurrentFunctionName.c_str(), states->line, states->col);
 			return SMCResult_HaltFail;
 		}
 
@@ -256,7 +256,7 @@ SMCResult SignatureGameConfig::ReadSMC_KeyValue(const SMCStates *states, const c
 			g_CurrentArgumentInfo.info.type = GetHookParamTypeFromString(value);
 			if (g_CurrentArgumentInfo.info.type == HookParamType_Unknown)
 			{
-				smutils->LogError(myself, "Invalid argument type \"%s\" for argument \"%s\": line: %i col: %i", value, g_CurrentArgumentInfo.name.chars(), states->line, states->col);
+				smutils->LogError(myself, "Invalid argument type \"%s\" for argument \"%s\": line: %i col: %i", value, g_CurrentArgumentInfo.name.c_str(), states->line, states->col);
 				return SMCResult_HaltFail;
 			}
 		}
@@ -266,7 +266,7 @@ SMCResult SignatureGameConfig::ReadSMC_KeyValue(const SMCStates *states, const c
 
 			if (g_CurrentArgumentInfo.info.size < 1)
 			{
-				smutils->LogError(myself, "Invalid argument size \"%s\" for argument \"%s\": line: %i col: %i", value, g_CurrentArgumentInfo.name.chars(), states->line, states->col);
+				smutils->LogError(myself, "Invalid argument size \"%s\" for argument \"%s\": line: %i col: %i", value, g_CurrentArgumentInfo.name.c_str(), states->line, states->col);
 				return SMCResult_HaltFail;
 			}
 		}
@@ -341,12 +341,12 @@ SMCResult SignatureGameConfig::ReadSMC_LeavingSection(const SMCStates *states)
 
 		if (!g_CurrentSignature->address.length() && !g_CurrentSignature->signature.length() && !g_CurrentSignature->offset.length())
 		{
-			smutils->LogError(myself, "Function \"%s\" doesn't have a \"signature\", \"offset\" nor \"address\" set: line: %i col: %i", g_CurrentFunctionName.chars(), states->line, states->col);
+			smutils->LogError(myself, "Function \"%s\" doesn't have a \"signature\", \"offset\" nor \"address\" set: line: %i col: %i", g_CurrentFunctionName.c_str(), states->line, states->col);
 			return SMCResult_HaltFail;
 		}
 
 		// Save this function signature in our cache.
-		signatures_.insert(g_CurrentFunctionName.chars(), g_CurrentSignature);
+		signatures_.insert(g_CurrentFunctionName.c_str(), g_CurrentSignature);
 		g_CurrentFunctionName = nullptr;
 		g_CurrentSignature = nullptr;
 		break;
@@ -358,7 +358,7 @@ SMCResult SignatureGameConfig::ReadSMC_LeavingSection(const SMCStates *states)
 
 		if (g_CurrentArgumentInfo.info.type == HookParamType_Unknown)
 		{
-			smutils->LogError(myself, "Missing argument type for argument \"%s\": line: %i col: %i", g_CurrentArgumentInfo.name.chars(), states->line, states->col);
+			smutils->LogError(myself, "Missing argument type for argument \"%s\": line: %i col: %i", g_CurrentArgumentInfo.name.c_str(), states->line, states->col);
 			return SMCResult_HaltFail;
 		}
 
@@ -367,7 +367,7 @@ SMCResult SignatureGameConfig::ReadSMC_LeavingSection(const SMCStates *states)
 		{
 			if (g_CurrentArgumentInfo.info.type == HookParamType_Object)
 			{
-				smutils->LogError(myself, "Object param \"%s\" being set with no size: line: %i col: %i", g_CurrentArgumentInfo.name.chars(), states->line, states->col);
+				smutils->LogError(myself, "Object param \"%s\" being set with no size: line: %i col: %i", g_CurrentArgumentInfo.name.c_str(), states->line, states->col);
 				return SMCResult_HaltFail;
 			}
 			else
@@ -392,7 +392,7 @@ SMCResult SignatureGameConfig::ReadSMC_LeavingSection(const SMCStates *states)
 		}
 		// This was a new argument. Add it to the end of the list.
 		if (!changed)
-			g_CurrentSignature->args.append(g_CurrentArgumentInfo);
+			g_CurrentSignature->args.push_back(g_CurrentArgumentInfo);
 
 		g_CurrentArgumentInfo.name = nullptr;
 		break;

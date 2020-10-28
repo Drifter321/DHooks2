@@ -82,7 +82,7 @@ struct IntegerPolicy
 
 typedef ke::HashSet<HookHandlerFn*, ke::PointerPolicy<HookHandlerFn>> HookHandlerSet;
 typedef ke::HashMap<HookType_t, HookHandlerSet, IntegerPolicy> HookTypeMap;
-typedef ke::HashMap<void*, ke::Vector<void*>, ke::PointerPolicy<void>> ReturnAddressMap;
+typedef ke::HashMap<void*, std::vector<void*>, ke::PointerPolicy<void>> ReturnAddressMap;
 
 namespace sp
 {
@@ -208,7 +208,7 @@ public:
 	ReturnAddressMap m_RetAddr;
 
 	// Save the last return action of the pre HookHandler for use in the post handler.
-	ke::Vector<ReturnAction_t> m_LastPreReturnAction;
+	std::vector<ReturnAction_t> m_LastPreReturnAction;
 };
 
 #endif // _HOOK_H
