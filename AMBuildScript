@@ -220,6 +220,7 @@ class DHooksConfig(object):
         cxx.linkflags += ['-static-libgcc']
       elif cxx.family == 'clang':
         cxx.linkflags += ['-lgcc_eh']
+      cxx.linkflags += ['-static-libstdc++']
     elif cxx.target.platform == 'mac':
       cxx.defines += ['OSX', '_OSX', 'POSIX']
       cxx.cflags += ['-mmacosx-version-min=10.5']
