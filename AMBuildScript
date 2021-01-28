@@ -52,7 +52,11 @@ class DHooksConfig(object):
     if builder.options.mms_path:
       self.mms_root = builder.options.mms_path
     else:
-      self.mms_root = ResolveEnvPath('MMSOURCE110', 'mmsource-1.10')
+      self.mms_root = ResolveEnvPath('MMSOURCE11', 'mmsource-1.11')
+      if not self.mms_root:
+        self.mms_root = ResolveEnvPath('MMSOURCE11', 'metamod-1.11')
+      if not self.mms_root:
+        self.mms_root = ResolveEnvPath('MMSOURCE10', 'mmsource-1.10')
       if not self.mms_root:
         self.mms_root = ResolveEnvPath('MMSOURCE10', 'metamod-1.10')
       if not self.mms_root:
@@ -67,7 +71,9 @@ class DHooksConfig(object):
     if builder.options.sm_path:
       self.sm_root = builder.options.sm_path
     else:
-      self.sm_root = ResolveEnvPath('SOURCEMOD110', 'sourcemod-1.10')
+      self.sm_root = ResolveEnvPath('SOURCEMOD111', 'sourcemod-1.11')
+      if not self.sm_root:
+        self.sm_root = ResolveEnvPath('SOURCEMOD110', 'sourcemod-1.10')
       if not self.sm_root:
         self.sm_root = ResolveEnvPath('SOURCEMOD19', 'sourcemod-1.9')
       if not self.sm_root:
@@ -203,6 +209,9 @@ class DHooksConfig(object):
     if cxx.family == 'msvc':
       # Don't omit the frame pointer.
       cxx.cflags += ['/Oy-']
+    elif cxx.like('gcc'):
+      # Don't omit the frame pointer.
+      cxx.cflags += ['-fno-omit-frame-pointer']
 
     # Platform-specifics
     if cxx.target.platform == 'linux':
