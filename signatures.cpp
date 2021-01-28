@@ -347,7 +347,7 @@ SMCResult SignatureGameConfig::ReadSMC_LeavingSection(const SMCStates *states)
 
 		// Save this function signature in our cache.
 		signatures_.insert(g_CurrentFunctionName.c_str(), g_CurrentSignature);
-		g_CurrentFunctionName = nullptr;
+		g_CurrentFunctionName = "";
 		g_CurrentSignature = nullptr;
 		break;
 	case PState_Arguments:
@@ -394,7 +394,7 @@ SMCResult SignatureGameConfig::ReadSMC_LeavingSection(const SMCStates *states)
 		if (!changed)
 			g_CurrentSignature->args.push_back(g_CurrentArgumentInfo);
 
-		g_CurrentArgumentInfo.name = nullptr;
+		g_CurrentArgumentInfo.name = "";
 		break;
 	}
 
@@ -407,8 +407,8 @@ void SignatureGameConfig::ReadSMC_ParseStart()
 	g_IgnoreLevel = 0;
 	g_PlatformOnlyState = PState_None;
 	g_CurrentSignature = nullptr;
-	g_CurrentFunctionName = nullptr;
-	g_CurrentArgumentInfo.name = nullptr;
+	g_CurrentFunctionName = "";
+	g_CurrentArgumentInfo.name = "";
 }
 
 ReturnType SignatureGameConfig::GetReturnTypeFromString(const char *str)
