@@ -40,8 +40,8 @@
 /* Basic information exposed publicly */
 #define SMEXT_CONF_NAME			"DHooks"
 #define SMEXT_CONF_DESCRIPTION	"Dynamic Hooks"
-#define SMEXT_CONF_VERSION		"2.2.0-detours15"
-#define SMEXT_CONF_AUTHOR		"Dr!fter"
+#define SMEXT_CONF_VERSION		"2.2.0-detours16"
+#define SMEXT_CONF_AUTHOR		"Dr!fter and Peace-Maker"
 #define SMEXT_CONF_URL			"http://www.sourcemod.net/"
 #define SMEXT_CONF_LOGTAG		"DHOOKS"
 #define SMEXT_CONF_LICENSE		"GPL"
