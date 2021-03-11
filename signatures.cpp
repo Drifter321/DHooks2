@@ -262,7 +262,7 @@ SMCResult SignatureGameConfig::ReadSMC_KeyValue(const SMCStates *states, const c
 		}
 		else if (!strcmp(key, "size"))
 		{
-			g_CurrentArgumentInfo.info.size = atoi(value);
+			g_CurrentArgumentInfo.info.size = static_cast<int>(strtol(value, NULL, 0));
 
 			if (g_CurrentArgumentInfo.info.size < 1)
 			{
