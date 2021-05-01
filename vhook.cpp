@@ -517,7 +517,6 @@ void *Callback(DHooksCallback *dg, void **argStack)
 			}
 			else
 			{
-				g_SHPtr->DoRecall();
 				g_SHPtr->SetRes(MRES_SUPERCEDE);
 				mres = MRES_SUPERCEDE;
 			}
