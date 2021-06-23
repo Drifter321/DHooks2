@@ -38,6 +38,7 @@
 #ifdef __linux__
 	#include <sys/mman.h>
 	#include <unistd.h>
+	#include <stdio.h>
 	#define PAGE_SIZE 4096
 	#define ALIGN(ar) ((long)ar & ~(PAGE_SIZE-1))
 	#define PAGE_EXECUTE_READWRITE PROT_READ|PROT_WRITE|PROT_EXEC
@@ -52,7 +53,8 @@
 void SetMemPatchable(void* pAddr, size_t size)
 {
 #if defined __linux__
-	mprotect((void *) ALIGN(pAddr), sysconf(_SC_PAGESIZE), PAGE_EXECUTE_READWRITE);
+	if (mprotect((void *) ALIGN(pAddr), sysconf(_SC_PAGESIZE), PAGE_EXECUTE_READWRITE) == -1)
+		perror("mprotect");
 #elif defined _WIN32
 	DWORD old_prot;
 	VirtualProtect(pAddr, size, PAGE_EXECUTE_READWRITE, &old_prot);
