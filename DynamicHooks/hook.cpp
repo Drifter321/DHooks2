@@ -65,15 +65,14 @@ CHook::CHook(void* pFunc, ICallingConvention* pConvention)
 	// Determine the number of bytes we need to copy
 	int iBytesToCopy = copy_bytes(pTarget, NULL, JMP_SIZE);
 
-	// Create an array for the bytes to copy + a jump to the rest of the
+	// Create a buffer for the bytes to copy + a jump to the rest of the
 	// function.
-	unsigned char* pCopiedBytes = new unsigned char[iBytesToCopy + JMP_SIZE];
+	unsigned char* pCopiedBytes = (unsigned char *) smutils->GetScriptingEngine()->AllocatePageMemory(iBytesToCopy + JMP_SIZE);
 
 	// Fill the array with NOP instructions
 	memset(pCopiedBytes, 0x90, iBytesToCopy + JMP_SIZE);
 
 	// Copy the required bytes to our array
-	SetMemPatchable(pCopiedBytes, iBytesToCopy + JMP_SIZE);
 	copy_bytes(pTarget, pCopiedBytes, JMP_SIZE);
 
 	// Write a jump after the copied bytes to the function/bridge + number of bytes to copy
@@ -94,9 +93,8 @@ CHook::~CHook()
 	// Copy back the previously copied bytes
 	copy_bytes((unsigned char *) m_pTrampoline, (unsigned char *) m_pFunc, JMP_SIZE);
 
-	// Free the trampoline array
-	unsigned char* pTrampoline = (unsigned char *)m_pTrampoline;
-	delete [] pTrampoline;
+	// Free the trampoline buffer
+	smutils->GetScriptingEngine()->FreePageMemory(m_pTrampoline);
 
 	// Free the asm bridge and new return address
 	smutils->GetScriptingEngine()->FreePageMemory(m_pBridge);
