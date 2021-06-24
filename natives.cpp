@@ -1399,12 +1399,14 @@ cell_t Native_IsNullParam(IPluginContext *pContext, const cell_t *params)
 	}
 
 	int index = params[2] - 1;
+	size_t offset = GetParamOffset(paramStruct, index);
+	void *addr = (void **)((intptr_t)paramStruct->orgParams + offset);
 
 	HookParamType type = paramStruct->dg->params.at(index).type;
 
 	//Check that the type is ptr
 	if(type == HookParamType_StringPtr || type == HookParamType_CharPtr || type == HookParamType_VectorPtr || type == HookParamType_CBaseEntity || type == HookParamType_ObjectPtr || type == HookParamType_Edict || type == HookParamType_Unknown)
-		return (paramStruct->orgParams[index] == NULL);
+		return *(void **)addr == NULL;
 	else
 		return pContext->ThrowNativeError("Param is not a pointer!");
 }
@@ -1470,8 +1472,8 @@ sp_nativeinfo_t g_Natives[] =
   {"DHookParam.GetObjectVarString",   Native_GetParamObjectPtrString},
   {"DHookParam.SetObjectVar",         Native_SetParamObjectPtrVar},
   {"DHookParam.SetObjectVarVector",   Native_SetParamObjectPtrVarVector},
-
   {"DHookParam.IsNull",               Native_IsNullParam},
+
   {"DHookReturn.Value.get",           Native_GetReturn},
   {"DHookReturn.Value.set",           Native_SetReturn},
   {"DHookReturn.GetVector",           Native_GetReturnVector},
