@@ -277,7 +277,7 @@ ReturnAction_t HandleDetour(HookType_t hookType, CHook* pDetour)
 	int argNum = pDetour->m_pCallingConvention->m_vecArgTypes.size();
 	// Keep a copy of the last return value if some plugin wants to override or supercede the function.
 	ReturnAction_t finalRet = ReturnAction_Ignored;
-	std::unique_ptr<uint8_t> finalRetBuf(new uint8_t[pDetour->m_pCallingConvention->m_returnType.size]);
+	std::unique_ptr<uint8_t[]> finalRetBuf = std::make_unique<uint8_t[]>(pDetour->m_pCallingConvention->m_returnType.size);
 
 	// Call all the plugin functions..
 	for (size_t i = 0; i < wrappers->size(); i++)
