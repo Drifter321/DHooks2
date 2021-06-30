@@ -1,17 +1,108 @@
 #include "vhook.h"
 #include "vfunc_call.h"
 #include "util.h"
+#include <macro-assembler-x86.h>
 
 SourceHook::IHookManagerAutoGen *g_pHookManager = NULL;
 
-ke::Vector<DHooksManager *> g_pHooks;
+std::vector<DHooksManager *> g_pHooks;
 
 using namespace SourceHook;
+using namespace sp;
 
 #ifdef  WIN32
 #define OBJECT_OFFSET sizeof(void *)
 #else
 #define OBJECT_OFFSET (sizeof(void *)*2)
+#endif
+
+#ifndef  WIN32
+void *GenerateThunk(ReturnType type)
+{
+	sp::MacroAssembler masm;
+	static const size_t kStackNeeded = (2) * 4; // 2 args max
+	static const size_t kReserve = ke::Align(kStackNeeded + 8, 16) - 8;
+
+	masm.push(ebp);
+	masm.movl(ebp, esp);
+	masm.subl(esp, kReserve);
+	if (type != ReturnType_String && type != ReturnType_Vector)
+	{
+		masm.lea(eax, Operand(ebp, 12)); // grab the incoming caller argument vector
+		masm.movl(Operand(esp, 1 * 4), eax); // set that as the 2nd argument
+		masm.movl(eax, Operand(ebp, 8)); // grab the |this|
+		masm.movl(Operand(esp, 0 * 4), eax); // set |this| as the 1st argument*/
+	}
+	else
+	{
+		masm.lea(eax, Operand(ebp, 8)); // grab the incoming caller argument vector
+		masm.movl(Operand(esp, 1 * 4), eax); // set that as the 2nd argument
+		masm.movl(eax, Operand(ebp, 12)); // grab the |this|
+		masm.movl(Operand(esp, 0 * 4), eax); // set |this| as the 1st argument*/
+	}
+	if (type == ReturnType_Float)
+	{
+		masm.call(ExternalAddress((void *)Callback_float));
+	}
+	else if (type == ReturnType_Vector)
+	{
+		masm.call(ExternalAddress((void *)Callback_vector));
+	}
+	else if (type == ReturnType_String)
+	{
+		masm.call(ExternalAddress((void *)Callback_stringt));
+	}
+	else
+	{
+		masm.call(ExternalAddress((void *)Callback));
+	}
+	masm.addl(esp, kReserve);
+	masm.pop(ebp); // restore ebp
+	masm.ret();
+
+	void *base = g_pSM->GetScriptingEngine()->AllocatePageMemory(masm.length());
+	masm.emitToExecutableMemory(base);
+	return base;
+}
+#else
+// HUGE THANKS TO BAILOPAN (dvander)!
+void *GenerateThunk(ReturnType type)
+{
+	sp::MacroAssembler masm;
+	static const size_t kStackNeeded = (3 + 1) * 4; // 3 args max, 1 locals max
+	static const size_t kReserve = ke::Align(kStackNeeded + 8, 16) - 8;
+
+	masm.push(ebp);
+	masm.movl(ebp, esp);
+	masm.subl(esp, kReserve);
+	masm.lea(eax, Operand(esp, 3 * 4)); // ptr to 2nd var after argument space
+	masm.movl(Operand(esp, 2 * 4), eax); // set the ptr as the third argument
+	masm.lea(eax, Operand(ebp, 8)); // grab the incoming caller argument vector
+	masm.movl(Operand(esp, 1 * 4), eax); // set that as the 2nd argument
+	masm.movl(Operand(esp, 0 * 4), ecx); // set |this| as the 1st argument
+	if (type == ReturnType_Float)
+	{
+		masm.call(ExternalAddress(Callback_float));
+	}
+	else if (type == ReturnType_Vector)
+	{
+		masm.call(ExternalAddress(Callback_vector));
+	}
+	else
+	{
+		masm.call(ExternalAddress(Callback));
+	}
+	masm.movl(ecx, Operand(esp, 3 * 4));
+	masm.addl(esp, kReserve);
+	masm.pop(ebp); // restore ebp
+	masm.pop(edx); // grab return address in edx
+	masm.addl(esp, ecx); // remove arguments
+	masm.jmp(edx); // return to caller
+
+	void *base = g_pSM->GetScriptingEngine()->AllocatePageMemory(masm.length());
+	masm.emitToExecutableMemory(base);
+	return base;
+}
 #endif
 
 DHooksManager::DHooksManager(HookSetup *setup, void *iface, IPluginFunction *remove_callback, IPluginFunction *plugincb, bool post)
@@ -76,14 +167,14 @@ DHooksManager::DHooksManager(HookSetup *setup, void *iface, IPluginFunction *rem
 
 void CleanupHooks(IPluginContext *pContext)
 {
-	for(int i = g_pHooks.length() -1; i >= 0; i--)
+	for(int i = g_pHooks.size() -1; i >= 0; i--)
 	{
 		DHooksManager *manager = g_pHooks.at(i);
 
 		if(pContext == NULL || pContext == manager->callback->plugin_callback->GetParentRuntime()->GetDefaultContext())
 		{
 			delete manager;
-			g_pHooks.remove(i);
+			g_pHooks.erase(g_pHooks.begin() + i);
 		}
 	}
 }
@@ -121,6 +212,15 @@ size_t GetStackArgsSize(DHooksCallback *dg)
 	return res;
 }
 
+HookReturnStruct::~HookReturnStruct()
+{
+	if (this->type == ReturnType_String || this->type == ReturnType_Int || this->type == ReturnType_Bool || this->type == ReturnType_Float || this->type == ReturnType_Vector)
+	{
+		free(this->newResult);
+		free(this->orgResult);
+	}
+}
+
 HookParamsStruct::~HookParamsStruct()
 {
 	if (this->orgParams != NULL)
@@ -133,23 +233,6 @@ HookParamsStruct::~HookParamsStruct()
 	}
 	if (this->newParams != NULL)
 	{
-		for (int i = dg->params.size() - 1; i >= 0; i--)
-		{
-			size_t offset = GetParamOffset(this, i);
-			void *addr = (void **)((intptr_t)this->newParams + offset);
-
-			if (*(void **)addr == NULL)
-				continue;
-
-			if (dg->params.at(i).type == HookParamType_VectorPtr)
-			{
-				delete *(SDKVector **)addr;
-			}
-			else if (dg->params.at(i).type == HookParamType_CharPtr)
-			{
-				delete *(char **)addr;
-			}
-		}
 		free(this->newParams);
 	}
 }
@@ -270,6 +353,8 @@ cell_t GetThisPtr(void *iface, ThisPointerType type)
 {
 	if(type == ThisPointer_CBaseEntity)
 	{
+		if (!iface)
+			return -1;
 		return gamehelpers->EntityToBCompatRef((CBaseEntity *)iface);
 	}
 
@@ -329,7 +414,8 @@ void *Callback(DHooksCallback *dg, void **argStack)
 			dg->plugin_callback->Cancel();
 			if(returnStruct)
 			{
-				delete returnStruct;
+				HandleSecurity sec(dg->plugin_callback->GetParentRuntime()->GetDefaultContext()->GetIdentity(), myself->GetIdentity());
+				handlesys->FreeHandle(rHndl, &sec);
 			}
 			if(paramStruct)
 			{
@@ -431,7 +517,6 @@ void *Callback(DHooksCallback *dg, void **argStack)
 			}
 			else
 			{
-				g_SHPtr->DoRecall();
 				g_SHPtr->SetRes(MRES_SUPERCEDE);
 				mres = MRES_SUPERCEDE;
 			}

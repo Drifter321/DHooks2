@@ -1,5 +1,7 @@
 #include "extension.h"
 #include "listeners.h"
+#include "dynhooks_sourcepawn.h"
+#include "signatures.h"
 
 DHooks g_DHooksIface;		/**< Global singleton for extension's main interface */
 SMEXT_LINK(&g_DHooksIface);
@@ -12,6 +14,8 @@ DHooksEntityListener *g_pEntityListener = NULL;
 HandleType_t g_HookSetupHandle = 0;
 HandleType_t g_HookParamsHandle = 0;
 HandleType_t g_HookReturnHandle = 0;
+
+std::thread::id g_MainThreadId;
 
 bool DHooks::SDK_OnLoad(char *error, size_t maxlength, bool late)
 {
@@ -35,6 +39,18 @@ bool DHooks::SDK_OnLoad(char *error, size_t maxlength, bool late)
 		return false;
 	}
 
+	if (!g_pPreDetours.init())
+	{
+		snprintf(error, maxlength, "Could not initialize pre hook detours hashmap.");
+		return false;
+	}
+
+	if (!g_pPostDetours.init())
+	{
+		snprintf(error, maxlength, "Could not initialize post hook detours hashmap.");
+		return false;
+	}
+
 	sharesys->AddDependency(myself, "bintools.ext", true, true);
 	sharesys->AddDependency(myself, "sdktools.ext", true, true);
 	sharesys->AddDependency(myself, "sdkhooks.ext", true, true);
@@ -44,6 +60,8 @@ bool DHooks::SDK_OnLoad(char *error, size_t maxlength, bool late)
 	sharesys->AddNatives(myself, g_Natives);
 
 	g_pEntityListener = new DHooksEntityListener();
+	g_pSignatures = new SignatureGameConfig();
+	g_MainThreadId = std::this_thread::get_id();
 
 	return true;
 }
@@ -71,14 +89,17 @@ void DHooks::SDK_OnAllLoaded()
 	SM_GET_LATE_IFACE(SDKHOOKS, g_pSDKHooks);
 
 	g_pSDKHooks->AddEntityListener(g_pEntityListener);
+	gameconfs->AddUserConfigHook("Functions", g_pSignatures);
 }
 
 void DHooks::SDK_OnUnload()
 {
 	CleanupHooks();
+	CleanupDetours();
 	if(g_pEntityListener)
 	{
 		g_pEntityListener->CleanupListeners();
+		g_pEntityListener->CleanupRemoveList();
 		g_pSDKHooks->RemoveEntityListener(g_pEntityListener);
 		delete g_pEntityListener;
 	}
@@ -87,6 +108,8 @@ void DHooks::SDK_OnUnload()
 	handlesys->RemoveType(g_HookSetupHandle, myself->GetIdentity());
 	handlesys->RemoveType(g_HookParamsHandle, myself->GetIdentity());
 	handlesys->RemoveType(g_HookReturnHandle, myself->GetIdentity());
+
+	gameconfs->RemoveUserConfigHook("Functions", g_pSignatures);
 }
 
 bool DHooks::SDK_OnMetamodLoad(ISmmAPI *ismm, char *error, size_t maxlength, bool late)
@@ -102,6 +125,7 @@ bool DHooks::SDK_OnMetamodLoad(ISmmAPI *ismm, char *error, size_t maxlength, boo
 void DHooks::OnPluginUnloaded(IPlugin *plugin)
 {
 	CleanupHooks(plugin->GetBaseContext());
+	RemoveAllCallbacksForContext(plugin->GetBaseContext());
 	if(g_pEntityListener)
 	{
 		g_pEntityListener->CleanupListeners(plugin->GetBaseContext());

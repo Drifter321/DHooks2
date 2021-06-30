@@ -3,7 +3,18 @@
 
 #include "extension.h"
 #include <sourcehook.h>
-#include <macro-assembler-x86.h>
+#include <sh_vector.h>
+#include <sourcehook_pibuilder.h>
+#include <registers.h>
+#include <vector>
+
+enum CallingConvention
+{
+	CallConv_CDECL,
+	CallConv_THISCALL,
+	CallConv_STDCALL,
+	CallConv_FASTCALL,
+};
 
 enum MRESReturn
 {
@@ -84,31 +95,19 @@ struct ParamInfo
 	size_t size;
 	unsigned int flags;
 	SourceHook::PassInfo::PassType pass_type;
+	Register_t custom_register;
 };
+
+#ifdef  WIN32
+#define OBJECT_OFFSET sizeof(void *)
+#else
+#define OBJECT_OFFSET (sizeof(void *)*2)
+#endif
 
 class HookReturnStruct
 {
 public:
-	~HookReturnStruct()
-	{
-		if(this->type == ReturnType_String || this->type == ReturnType_Int || this->type == ReturnType_Bool || this->type == ReturnType_Float || this->type == ReturnType_Vector)
-		{
-			free(this->newResult);
-			free(this->orgResult);
-		}
-		else if(this->isChanged)
-		{
-			if(this->type == ReturnType_CharPtr)
-			{
-				delete [] (char *)this->newResult;
-			}
-			else if(this->type == ReturnType_VectorPtr)
-			{
-				delete (SDKVector *)this->newResult;
-			}
-		}
-		
-	}
+	~HookReturnStruct();
 public:
 	ReturnType type;
 	bool isChanged;
@@ -162,95 +161,7 @@ bool SetupHookManager(ISmmAPI *ismm);
 void CleanupHooks(IPluginContext *pContext = NULL);
 size_t GetParamTypeSize(HookParamType type);
 SourceHook::PassInfo::PassType GetParamTypePassType(HookParamType type);
-
-#ifndef  WIN32
-static void *GenerateThunk(ReturnType type)
-{
-	sp::MacroAssemblerX86 masm;
-	static const size_t kStackNeeded = (2) * 4; // 2 args max
-	static const size_t kReserve = ke::Align(kStackNeeded+8, 16)-8;
-
-	masm.push(ebp);
-	masm.movl(ebp, esp);
-	masm.subl(esp, kReserve);
-	if(type != ReturnType_String && type != ReturnType_Vector)
-	{
-		masm.lea(eax, Operand(ebp, 12)); // grab the incoming caller argument vector
-		masm.movl(Operand(esp, 1 * 4), eax); // set that as the 2nd argument
-		masm.movl(eax, Operand(ebp, 8)); // grab the |this|
-		masm.movl(Operand(esp, 0 * 4), eax); // set |this| as the 1st argument*/
-	}
-	else
-	{
-		masm.lea(eax, Operand(ebp, 8)); // grab the incoming caller argument vector
-		masm.movl(Operand(esp, 1 * 4), eax); // set that as the 2nd argument
-		masm.movl(eax, Operand(ebp, 12)); // grab the |this|
-		masm.movl(Operand(esp, 0 * 4), eax); // set |this| as the 1st argument*/
-	}
-	if(type == ReturnType_Float)
-	{
-		masm.call(ExternalAddress((void *)Callback_float));
-	}
-	else if(type == ReturnType_Vector)
-	{
-		masm.call(ExternalAddress((void *)Callback_vector));
-	}
-	else if(type == ReturnType_String)
-	{
-		masm.call(ExternalAddress((void *)Callback_stringt));
-	}
-	else
-	{
-		masm.call(ExternalAddress((void *)Callback));
-	}
-	masm.addl(esp, kReserve);
-	masm.pop(ebp); // restore ebp
-	masm.ret();
-
-	void *base =  g_pSM->GetScriptingEngine()->AllocatePageMemory(masm.length());
-	masm.emitToExecutableMemory(base);
-	return base;
-}
-#else
-// HUGE THANKS TO BAILOPAN (dvander)!
-static void *GenerateThunk(ReturnType type)
-{
-	sp::MacroAssemblerX86 masm;
-	static const size_t kStackNeeded = (3 + 1) * 4; // 3 args max, 1 locals max
-	static const size_t kReserve = ke::Align(kStackNeeded+8, 16)-8;
-
-	masm.push(ebp);
-	masm.movl(ebp, esp);
-	masm.subl(esp, kReserve);
-	masm.lea(eax, Operand(esp, 3 * 4)); // ptr to 2nd var after argument space
-	masm.movl(Operand(esp, 2 * 4), eax); // set the ptr as the third argument
-	masm.lea(eax, Operand(ebp, 8)); // grab the incoming caller argument vector
-	masm.movl(Operand(esp, 1 * 4), eax); // set that as the 2nd argument
-	masm.movl(Operand(esp, 0 * 4), ecx); // set |this| as the 1st argument
-	if(type == ReturnType_Float)
-	{
-		masm.call(ExternalAddress(Callback_float));
-	}
-	else if(type == ReturnType_Vector)
-	{
-		masm.call(ExternalAddress(Callback_vector));
-	}
-	else
-	{
-		masm.call(ExternalAddress(Callback));
-	}
-	masm.movl(ecx, Operand(esp, 3*4));
-	masm.addl(esp, kReserve);
-	masm.pop(ebp); // restore ebp
-	masm.pop(edx); // grab return address in edx
-	masm.addl(esp, ecx); // remove arguments
-	masm.jmp(edx); // return to caller
- 
-	void *base =  g_pSM->GetScriptingEngine()->AllocatePageMemory(masm.length());
-	masm.emitToExecutableMemory(base);
-	return base;
-}
-#endif
+void *GenerateThunk(ReturnType type);
 
 static DHooksCallback *MakeHandler(ReturnType type)
 {
@@ -280,7 +191,7 @@ public:
 	void **orgParams;
 	void **newParams;
 	bool *isChanged;
-	DHooksCallback *dg;
+	DHooksInfo *dg;
 };
 
 class HookSetup
@@ -291,18 +202,38 @@ public:
 		this->returnType = returnType;
 		this->returnFlag = returnFlag;
 		this->hookType = hookType;
+		this->callConv = CallConv_THISCALL;
 		this->thisType = thisType;
 		this->offset = offset;
+		this->funcAddr = nullptr;
 		this->callback = callback;
 	};
+	HookSetup(ReturnType returnType, unsigned int returnFlag, CallingConvention callConv, ThisPointerType thisType, void *funcAddr)
+	{
+		this->returnType = returnType;
+		this->returnFlag = returnFlag;
+		this->hookType = HookType_Raw;
+		this->callConv = callConv;
+		this->thisType = thisType;
+		this->offset = -1;
+		this->funcAddr = funcAddr;
+		this->callback = nullptr;
+	};
 	~HookSetup(){};
+
+	bool IsVirtual()
+	{
+		return this->offset != -1;
+	}
 public:
 	unsigned int returnFlag;
 	ReturnType returnType;
 	HookType hookType;
+	CallingConvention callConv;
 	ThisPointerType thisType;
 	SourceHook::CVector<ParamInfo> params;
 	int offset;
+	void *funcAddr;
 	IPluginFunction *callback;
 };
 
@@ -335,6 +266,7 @@ public:
 };
 
 size_t GetStackArgsSize(DHooksCallback *dg);
+cell_t GetThisPtr(void *iface, ThisPointerType type);
 
 extern IBinTools *g_pBinTools;
 extern HandleType_t g_HookParamsHandle;
