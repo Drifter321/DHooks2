@@ -1411,6 +1411,33 @@ cell_t Native_IsNullParam(IPluginContext *pContext, const cell_t *params)
 		return pContext->ThrowNativeError("Param is not a pointer!");
 }
 
+//native Address:DHookGetParamAddress(Handle:hParams, num);
+cell_t Native_GetParamAddress(IPluginContext *pContext, const cell_t *params)
+{
+	HookParamsStruct *paramStruct;
+
+	if(!GetCallbackArgHandleIfValidOrError(g_HookParamsHandle, g_HookReturnHandle, (void **)&paramStruct, pContext, params[1]))
+	{
+		return 0;
+	}
+
+	if(params[2] <= 0 || params[2] > (int)paramStruct->dg->params.size())
+	{
+		return pContext->ThrowNativeError("Invalid param number %i max params is %i", params[2], paramStruct->dg->params.size());
+	}
+
+	int index = params[2] - 1;
+
+	HookParamType type = paramStruct->dg->params.at(index).type;
+	if(type != HookParamType_StringPtr && type != HookParamType_CharPtr && type != HookParamType_VectorPtr && type != HookParamType_CBaseEntity && type != HookParamType_ObjectPtr && type != HookParamType_Edict && type != HookParamType_Unknown)
+	{	
+		return pContext->ThrowNativeError("Param is not a pointer!");
+	}
+
+	size_t offset = GetParamOffset(paramStruct, index);
+	return *(cell_t *)((intptr_t)paramStruct->orgParams + offset);
+}
+
 sp_nativeinfo_t g_Natives[] = 
 {
 	{"DHookCreate",							Native_CreateHook},
@@ -1444,6 +1471,7 @@ sp_nativeinfo_t g_Natives[] =
 	{"DHookSetParamObjectPtrVarVector",		Native_SetParamObjectPtrVarVector},
 	{"DHookGetParamObjectPtrString",		Native_GetParamObjectPtrString},
 	{"DHookIsNullParam",					Native_IsNullParam},
+	{"DHookGetParamAddress",				Native_GetParamAddress},
 
   // Methodmap API
   {"DHookSetup.AddParam",             Native_AddParam},
@@ -1473,6 +1501,7 @@ sp_nativeinfo_t g_Natives[] =
   {"DHookParam.SetObjectVar",         Native_SetParamObjectPtrVar},
   {"DHookParam.SetObjectVarVector",   Native_SetParamObjectPtrVarVector},
   {"DHookParam.IsNull",               Native_IsNullParam},
+  {"DHookParam.GetAddress",           Native_GetParamAddress},
 
   {"DHookReturn.Value.get",           Native_GetReturn},
   {"DHookReturn.Value.set",           Native_SetReturn},

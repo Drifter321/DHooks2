@@ -339,6 +339,14 @@ methodmap DHookParam < Handle
 	// @return              True if null, false otherwise.
 	// @error               Non-pointer parameter.
 	public native bool IsNull(int num);
+
+	// Get param address (Use only for ptr param types)
+	// 
+	// @param num			Param number to get. (Example if the function has 2 params and you need the value of the first param num would be 1.)
+	// 
+	// @error Invalid handle. Invalid param number. Invalid param type.
+	// @return address of the parameter.
+	public native Address GetAddress(int num);
 };
 
 
@@ -930,6 +938,16 @@ native void DHookGetParamObjectPtrString(Handle hParams, int num, int offset, Ob
 */
 native bool DHookIsNullParam(Handle hParams, int num);
 
+/* Get param address (Use only for ptr param types)
+ * 
+ * @param hParams		Handle to params structure
+ * @param num			Param number to get. (Example if the function has 2 params and you need the value of the first param num would be 1.)
+ * 
+ * @error Invalid handle. Invalid param number. Invalid param type.
+ * @return address of the parameter.
+*/
+native Address DHookGetParamAddress(Handle hParams, int num);
+
 public Extension __ext_dhooks =
 {
 	name = "dhooks",
@@ -980,6 +998,7 @@ public __ext_dhooks_SetNTVOptional()
 	MarkNativeAsOptional("DHookSetParamObjectPtrVarVector");
 	MarkNativeAsOptional("DHookIsNullParam");
 	MarkNativeAsOptional("DHookGetParamObjectPtrString");
+	MarkNativeAsOptional("DHookGetParamAddress");
 
 	MarkNativeAsOptional("DHookParam.IsNull");
 	MarkNativeAsOptional("DHookParam.Get");
@@ -993,6 +1012,7 @@ public __ext_dhooks_SetNTVOptional()
 	MarkNativeAsOptional("DHookParam.GetObjectVarString");
 	MarkNativeAsOptional("DHookParam.SetObjectVar");
 	MarkNativeAsOptional("DHookParam.SetObjectVarVector");
+	MarkNativeAsOptional("DHookParam.GetAddress");
 	MarkNativeAsOptional("DHookReturn.Value.get");
 	MarkNativeAsOptional("DHookReturn.Value.set");
 	MarkNativeAsOptional("DHookReturn.GetVector");
