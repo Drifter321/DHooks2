@@ -391,7 +391,7 @@ cell_t HookEntityImpl(IPluginContext *pContext, const cell_t *params, uint32_t c
 	IPluginFunction *cb = GetCallback(pContext, setup, params, callbackIndex);
 	if (!cb)
 	{
-		return pContext->ThrowNativeError("Failed to hook entity %i, no callback provided", params[2]);
+		return pContext->ThrowNativeError("Failed to hook entity %i, no callback provided", params[3]);
 	}
 
 	bool post = params[2] != 0;
@@ -409,7 +409,7 @@ cell_t HookEntityImpl(IPluginContext *pContext, const cell_t *params, uint32_t c
 
 	if(!pEnt)
 	{
-		return pContext->ThrowNativeError("Invalid entity passed %i", params[2]);
+		return pContext->ThrowNativeError("Invalid entity passed %i", params[3]);
 	}
 
 	DHooksManager *manager = new DHooksManager(setup, pEnt, removalcb, cb, post);
