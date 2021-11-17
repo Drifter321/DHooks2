@@ -2,6 +2,8 @@
 A SourceMod extension to hook any game function from within a SourcePawn plugin.
 This fork adds support to dynamically detour any functions instead of only virtual functions.
 
+# DHooks is now included in SourceMod 1.11.6820. This repository is archived and discontinued.
+
 Check out the [release post](https://forums.alliedmods.net/showthread.php?p=2588686#post2588686) for details on how to use this in a plugin.
 
 ## Installation
