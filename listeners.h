@@ -16,6 +16,7 @@ public:
 	virtual void OnEntityCreated(CBaseEntity *pEntity, const char *classname);
 	virtual void OnEntityDestroyed(CBaseEntity *pEntity);
 	void CleanupListeners(IPluginContext *func = NULL);
+	void CleanupRemoveList();
 	bool AddPluginEntityListener(ListenType type, IPluginFunction *callback);
 	bool RemovePluginEntityListener(ListenType type, IPluginFunction *callback);
 };
@@ -27,5 +28,5 @@ struct EntityListener
 	IPluginFunction *callback;
 };
 
-extern ke::Vector<DHooksManager *> g_pHooks;
+extern std::vector<DHooksManager *> g_pHooks;
 #endif
